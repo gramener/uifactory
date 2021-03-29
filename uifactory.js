@@ -93,14 +93,11 @@
         })
 
         // this.__obj holds the object passed to the template.
-        // Initialize this.__obj with default values.
-        let obj = this.__obj = {}
-        options.forEach(({ name, value }) => obj[name] = value)
-        // Element attributes are available as variables. Convert kebab-case to camelCase
-        for (var i = 0, len = this.attributes.length; i < len; i++)
-          obj[camelize(this.attributes[i].name)] = this.attributes[i].value
+        this.__obj = { $target: this }
+        // Add default values from options, overriding it with attributes' values
+        for (let {name, value} of [...options, ...this.attributes])
+          this.__set(name, value)
         // template can access the component at $target
-        obj.$target = this
         // template can access to the original children via "this"
         this.__originalNode = this.cloneNode(true)
 
@@ -108,6 +105,11 @@
         this.dispatchEvent(new CustomEvent('connect', { bubbles: true }))
         // this.render() re-renders the object based on current options.
         this.render()
+      }
+
+      // Set the template variables. Convert kebab-case to camelCase
+      __set(name, value) {
+        this.__obj[camelize(name)] = value
       }
 
       render(config) {
@@ -124,11 +126,11 @@
       }
 
       // When any attribute changes, update this.__obj and re-render
-      attributeChangedCallback(name, oldValue, newValue) {
+      attributeChangedCallback(name, oldValue, value) {
         // If the component is not initialized, don't render it
         // If it's intialized, re-render
         if (this.__obj) {
-          this.__obj[name] = newValue
+          this.__set(name, value)
           this.render()
         }
       }
