@@ -1,0 +1,20 @@
+{
+  "name": "uifactory",
+  "version": "0.0.1",
+  "description": "Simple HTML components",
+  "main": "uifactory.js",
+  "jsdelivr": "uifactory.js",
+  "unpkg": "uifactory.js",
+  "repository": "git@github.com:gramener/uifactory.git",
+  "author": "S Anand <s.anand@gramener.com>",
+  "scripts": {},
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "peerDependencies": {
+    "lodash": "4"
+  },
+  "devDependencies": {}
+}
