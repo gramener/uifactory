@@ -155,13 +155,20 @@ Use a `<script>` tag to add events or define your component's behavior. For exam
 
 This `<script>` will be executed *before the component is rendered*. So use [event delegation](https://davidwalsh.name/event-delegate), e.g. using [jQuery](https://api.jquery.com/on/) or [delegate](https://www.npmjs.com/package/delegate).
 
-Whenever a component is rendered, it fires a `render` event that you can listen for. For example, this prints every component rendered.
+When a component is added, it fires a `connect` event. Use this to add listeners to the component itself.
+
+When a component is redrawn, it fires a `render` event. Use this to add listeners to the component's children.
+
+For example, this tracks every component's connect and render event.
 
 ```js
-$('body').on('render', function (e) {
-  console.log('We just rendered', e.target)
+$('body').on('connect render', function (e) {
+  console.log('EVENT', e.type, e.target.tagName)
 })
 ```
+
+![Event cycle for connect and render](docs/g-repeat-connect-render-events.gif)
+
 
 ## Register components
 

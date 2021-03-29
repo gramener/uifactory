@@ -104,6 +104,8 @@
         // template can access to the original children via "this"
         this.__originalNode = this.cloneNode(true)
 
+        // Generate a connect event on this component when it's created
+        this.dispatchEvent(new CustomEvent('connect', { bubbles: true }))
         // this.render() re-renders the object based on current options.
         this.render()
       }
@@ -111,7 +113,7 @@
       render(config) {
         // "this" is the HTMLElement. Apply the lodash template
         this.innerHTML = template.call(this.__originalNode, Object.assign(this.__obj, config))
-        // Generate a render event on this component for initialization
+        // Generate a render event on this component when re-rendered
         this.dispatchEvent(new CustomEvent('render', { bubbles: true }))
       }
 

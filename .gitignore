@@ -1,1 +1,10 @@
+# Locally tracked TODOs
+TODO
+
+# Local testing file
+test.html
+
+# Ignore all node modules
 node_modules/
+
+# DO NOT ignore package-lock.json. Commit it
