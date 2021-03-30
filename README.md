@@ -52,6 +52,41 @@ So, `<g-repeat value="8">★</g-repeat>` renders:
 ![8 stars](docs/g-repeat-8-star.png).
 
 
+## ... in template or script tags
+
+Instead of `<template component="...">`, you can use `<script type="text/html" component="...">`.
+
+The `<template>` tag only allows valid HTML. So you CANNOT do this:
+
+```html
+<template component="table-row">
+  <tr>
+    <% cells.forEach(function(cell) { %>
+      <td><%= cell></td>
+    <% }) %>
+  </tr>
+</template>
+```
+
+... because `<tr>` only accepts `<td>` or `<th>` as children -- not `<% ... %>`.
+
+Instead, you can use `<script type="text/html" component="...">`.
+
+```html
+<script type="text/html" component="table-row">
+  <tr>
+    <% cells.forEach(function(cell) { %>
+      <td><%= cell></td>
+    <% }) %>
+  </tr>
+</script>
+```
+
+The disadvantage is that you can't use a `<script>` tag inside it -- which makes
+[adding events](#add-events-with-js) tougher.
+In such cases, use the [register component API](#register-components-api).
+
+
 ## Access attributes as variables
 
 Any attributes in your `<template>` is available as a variable in JavaScript. For example, `<template value="30">` in the example below becomes the JavaScript variable `value`:
@@ -119,7 +154,7 @@ Remember: `this` is the `<template>`. `$target` is the component, e.g. `<g-repea
 <!-- TODO: Explain why once: true -->
 
 
-## Style components
+## Style components with CSS
 
 Use regular CSS to style the components. The `<template>` is rendered directly inside the component (not a shadow DOM). So you can style the contents directly.
 
@@ -141,7 +176,7 @@ For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`
 UIFactory copies all `<style>`s and `<link rel="stylesheet">`s into the document's HEAD, and runs them only once (even if you use the component multiple times.)
 
 
-## Add events
+## Add events with JS
 
 Use a `<script>` tag to add events or define your component's behavior. For example:
 
@@ -176,7 +211,7 @@ $('body').on('connect render', function (e) {
 ![Event cycle for connect and render](docs/g-repeat-connect-render-events.gif)
 
 
-## Register components
+## Register components API
 
 You can register components via JavaScript like this:
 

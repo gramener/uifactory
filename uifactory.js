@@ -63,7 +63,7 @@
     }
     // Compile the rest of the template -- by default, using a Lodash template
     const compile = config.compile || _.template
-    const template = compile(_.unescape(html))
+    const template = compile(html)
     // The {name: ...} from the options list become the observable attrs
     const options = config.options || []
     const attrs = options.map(option => option.name)
@@ -151,7 +151,7 @@
   }
 
   // Any <template component="..."> becomes a component
-  document.querySelectorAll('template[component]').forEach(component => {
+  document.querySelectorAll('template[component],script[type="text/html"][component]').forEach(component => {
     // A template like <template component="comp" attr="val">
     // has componentname = "comp" and config.options = {attr: {value: "val", type: "text"}}
     let componentname, options = []
@@ -166,8 +166,7 @@
       name: componentname,
       // If <template> tag is used unescape the HTML. It'll come through as &lt;tag-name&gt;
       // But if <script> tag is used, no need to unescape it.
-      // Currently, we don't allow a <script> tag, so always unescape it.
-      template: _.unescape(component.innerHTML),
+      template: component.tagName == 'SCRIPT' ? component.innerHTML : _.unescape(component.innerHTML),
       options: options
     })
   })
