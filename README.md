@@ -51,6 +51,7 @@ So, `<g-repeat value="8">★</g-repeat>` renders:
 
 ![8 stars](docs/g-repeat-8-star.png).
 
+
 ## Access attributes as variables
 
 Any attributes in your `<template>` is available as a variable in JavaScript. For example, `<template value="30">` in the example below becomes the JavaScript variable `value`:
@@ -84,6 +85,7 @@ Notes:
 - Attributes become *string* variables. You need to convert it to a number using `+value`.
 - When you change the attribute or property, the component is *re-rendered*.
 
+
 ## Access `<template>` as `this`
 
 `this` points to the template element (e.g. `<template component="g-repeat">`). For example, you can access contents of your `<template>` via `this.innerHTML`.
@@ -91,6 +93,7 @@ Notes:
 - `this` is a copy of component template as a DOM element.
 - `this.innerHTML` has whatever was in your template.
 - `this.querySelectorAll('*')` and similar expressions can access parts of the template
+
 
 ## Access component as `$target`
 
@@ -115,6 +118,7 @@ Remember: `this` is the `<template>`. `$target` is the component, e.g. `<g-repea
 
 <!-- TODO: Explain why once: true -->
 
+
 ## Style components
 
 Use regular CSS to style the components. The `<template>` is rendered directly inside the component (not a shadow DOM). So you can style the contents directly.
@@ -135,6 +139,7 @@ For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`
 ![Yellow background applied to g-repeat](docs/g-repeat-8-star-yellow.png)
 
 UIFactory copies all `<style>`s and `<link rel="stylesheet">`s into the document's HEAD, and runs them only once (even if you use the component multiple times.)
+
 
 ## Add events
 
@@ -190,6 +195,8 @@ uifactory.register({
 - `template`: component contents as a [lodash template](#-defined-as-lodash-templates)
 - `options`: OPTIONAL: a list of [attributes](#access-attributes-as-variables) as `{name, value}` objects
 - `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
+- `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
+
 
 ## Load components
 
@@ -200,6 +207,77 @@ uifactory.register('g-repeat.json`)
 ```
 
 ... fetches `g-repeat.json` and calls `uifactory.register(...contents of the JSON...)`.
+
+
+## Use any compiler
+
+Instead of [lodash templates](https://lodash.com/docs/#template), you can use any function to compile templates.
+
+For example, the `g-name` component below uses [Handlebars](https://handlebarsjs.com/) templates to render the last name in bold:
+
+```html
+<g-name first="Walt" last="Disney">
+<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+<script>
+uifactory.register({
+  name: 'g-name',
+  template: '{{ first }} <strong>{{ last }}</strong>',
+  compile: Handlebars.compile
+})
+</script>
+```
+
+![g-name component](docs/g-name-walt-disney.png)
+
+You can change [lodash template settings](https://lodash.com/docs/4.17.15#templateSettings) into
+[Tornado-like templates](https://www.tornadoweb.org/en/stable/template.html) like this:
+
+
+```html
+<g-repeat2 value="8">★</g-repeat2>
+<script>
+uifactory.register({
+  name: 'g-repeat2',
+  template: '{% for (var j=0; j<+value; j++) { %}{{ this.innerHTML }}{% } %}',
+  compile: html => _.template(html, {
+    escape: /{{-([\s\S]+?)}}/g,
+    evaluate: /{%([\s\S]+?)%}/g,
+    interpolate: /{{([\s\S]+?)}}/g
+  })
+})
+</script>
+```
+
+![8 stars](docs/g-repeat-8-star.png)
+
+`compile:` must be a function that accepts a string that returns a template function.
+When rendering, the template function is called with the properties object
+(e.g. `{first: "Walt", last: "Disney", this: ...}`).
+Its return value is rendered inside the component.
+
+For example, this is a "template" that replaces all words beginning with `$` by looking up the properties object:
+
+```html
+<g-name first="Walt" last="Disney">
+<script>
+uifactory.register({
+  name: 'g-name',
+  template: '$first <strong>$last</strong>',
+  compile: function (html) {
+    // Returns template function
+    return function (obj) {
+      // Replace $xxx with obj["xxx"] and return the template
+      return html.replace(/\$([a-zA-Z0-9_]+)/g, function (match, key) {
+        return obj[key] || '$' + key
+      })
+    }
+  }
+})
+</script>
+```
+
+![g-name component](docs/g-name-walt-disney.png)
+
 
 ## Support
 

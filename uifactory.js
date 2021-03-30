@@ -1,22 +1,6 @@
 /* eslint-env es6 */
 
 (function(window) {
-  // From https://github.com/lodash/lodash/blob/master/unescape.js
-  const htmlUnescapes = {
-    '&amp;': '&',
-    '&lt;': '<',
-    '&gt;': '>',
-    '&quot;': '"',
-    '&#39;': "'"
-  }
-  const reEscapedHtml = /&(?:amp|lt|gt|quot|#(0+)?39);/g
-  const reHasEscapedHtml = RegExp(reEscapedHtml.source)
-  function unescape(string) {
-    return (string && reHasEscapedHtml.test(string))
-      ? string.replace(reEscapedHtml, (entity) => (htmlUnescapes[entity] || "'"))
-      : (string || '')
-  }
-
   // Register a single component
   function _registerComponent(config) {
     // The custom element is defined on this window. This need not be the global window.
@@ -68,8 +52,9 @@
     // Remove extracted styles and scripts from template
     for (let el of dom.documentElement.querySelectorAll('link[rel="stylesheet"], style, script'))
       el.remove()
-    // Convert the rest of the template into a Lodash template
-    const template = _.template(unescape(dom.body.innerHTML))
+    // Compile the rest of the template -- by default, using a Lodash template
+    const compile = config.compile || _.template
+    const template = compile(_.unescape(dom.body.innerHTML))
     // The {name: ...} from the options list become the observable attrs
     const options = config.options || []
     const attrs = options.map(option => option.name)
@@ -173,7 +158,7 @@
       // If <template> tag is used unescape the HTML. It'll come through as &lt;tag-name&gt;
       // But if <script> tag is used, no need to unescape it.
       // Currently, we don't allow a <script> tag, so always unescape it.
-      template: unescape(component.innerHTML),
+      template: _.unescape(component.innerHTML),
       options: options
     })
   })
