@@ -105,7 +105,7 @@ Notes:
     <%= this.innerHTML %>
   <% } %>
   <%
-    $target.addEventListener('click', console.log, { once: true })
+    $target.addEventListener('click', console.log)
   %>
 </template>
 ```
@@ -150,6 +150,7 @@ Use a `<script>` tag to add events or define your component's behavior. For exam
   <% for (var j=0; j < +value; j++) { %>
     <%= this.innerHTML %>
   <% } %>
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
   <script>
     $('body').on('click', 'g-repeat', console.log)
   </script>
@@ -200,7 +201,15 @@ uifactory.register({
 
 ## Load components
 
-You can register components from a JSON file by calling `uifactory.register(url)`. For example,
+You can register components from a HTML file like this:
+
+```js
+fetch('mycomponent.html')
+  .then(response => response.text())
+  .then(html => uifactory.register({ name: 'my-component', template: html }))
+```
+
+You can directly register components from a JSON file by calling `uifactory.register(url)`. For example,
 
 ```js
 uifactory.register('g-repeat.json`)

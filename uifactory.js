@@ -10,25 +10,37 @@
     // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
     const camelize = s => s.replace(/-./g, x => x.toUpperCase()[1])
 
+    // Used to create document fragments
+    const tmpl = _window.document.createElement('template')
+
     // Each window has its own component registry. "this" picks the registry of the current window
     // If a component is already registered, don't re-register.
     // TODO: Should this be an error or a warning?
     if (_window.customElements.get(config.name))
       return console.trace(`Can't redefine component ${config.name} on ${_window}`)
 
-    // Parse the template into DOM element
-    const parser = new DOMParser()
-    const dom = parser.parseFromString(config.template, 'text/html')
+    // Extract specific tags out of the HTML template. Used to remove <style>, <script>, etc.
+    // extract(re) matches a string that's removed from `html`, and returns the matches.
+    // NOTE: Don't use DOMParser(). It doesn't allow strings like <% ... %> under <tbody>/<tr>.
+    let html = config.template
+    function extract(re) {
+      let els = Array.from(html.matchAll(re)).map(v => v[0].trim())
+      html = html.replace(re, '')
+      return els
+    }
 
-    // Add the styles and scripts into the target document under <head> and <body>
-    // target is "head" or "body" -- the element where we add it into the document
-    loadExtract('head', dom.documentElement.querySelectorAll('link[rel="stylesheet"], style'))
-    loadExtract('body', dom.documentElement.querySelectorAll('script'))
+    // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
+    loadExtract('head', extract(/<style\b[^>]*>[\s\S]*?<\/style>|<link\b[^>]*>[\s\S]*?(<\/link>)?/gmi))
+    loadExtract('body', extract(/<script\b[^>]*>[\s\S]*?<\/script>/gmi))
+    // target is "head" or "body". els the list of DOM elements to add into target
     function loadExtract(target, els, _start = 0) {
       // Loop through elements starting from the start index
       for (let index = _start; index < els.length; index++) {
-        let el = els[index]
-        // Copy the element into the target document with attributes
+        // Convert the HTML string into an element
+        tmpl.innerHTML = els[index]
+        let el = tmpl.content.firstChild
+        // Copy the element into the target document with attributes.
+        // NOTE: Just inserting el into the document doesn't let <script> elements execute.
         const clone = _window.document.createElement(el.tagName)
         for (let attr of el.attributes)
           clone.setAttribute(attr.name, attr.value)
@@ -36,7 +48,7 @@
         // If this is a <script src="...">, then load the remaining extracts AFTER it's loaded
         // WHY? If I use <script src="jquery"> and then <script>$(...)</script>
         //    the 2nd script should wait for the 1st script to load.
-        // Why not just...
+        // NOTE: Why not just...
         //    Use clone.async = false? Doesn't work
         //    Add all scripts to a documentFragment and add it at one shot? Doesn't work
         let externalScript = el.tagName.toLowerCase() == 'script' && el.hasAttribute('src')
@@ -49,12 +61,9 @@
           break
       }
     }
-    // Remove extracted styles and scripts from template
-    for (let el of dom.documentElement.querySelectorAll('link[rel="stylesheet"], style, script'))
-      el.remove()
     // Compile the rest of the template -- by default, using a Lodash template
     const compile = config.compile || _.template
-    const template = compile(_.unescape(dom.body.innerHTML))
+    const template = compile(_.unescape(html))
     // The {name: ...} from the options list become the observable attrs
     const options = config.options || []
     const attrs = options.map(option => option.name)
