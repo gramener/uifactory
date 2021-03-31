@@ -1,12 +1,16 @@
 {
   "name": "uifactory",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Simple HTML components",
   "main": "uifactory.js",
   "jsdelivr": "uifactory.js",
   "unpkg": "uifactory.js",
   "repository": "git@github.com:gramener/uifactory.git",
   "author": "S Anand <s.anand@gramener.com>",
+  "contributors": [
+    "Bhanu Kamapantula <bhanu.kamapantula@gramener.com>",
+    "Samarth Gulati <samarth.gulati@gramener.com>"
+  ],
   "scripts": {},
   "license": "MIT",
   "private": false,

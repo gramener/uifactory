@@ -84,13 +84,12 @@ You can define new properties inside `<script type="application/json"></script>`
 For example:
 
 ```html
-<template component="g-repeat" value="30">
-  <% for (var j=0; j < +value; j++) { %>
-    <%= this.innerHTML %>
-  <% } %>
+<template component="g-repeat">
+  ...
   <script type="application/json">
     [
-      { "name": "value", "type": "number", "value": 30 }
+      { "name": "value", "type": "number", "value": 30 },
+      { "name": "data-list", "type": "array", "value": [4, 5] },
     ]
   </script>
 </template>
@@ -98,12 +97,12 @@ For example:
 
 The properties list is an array of objects. Each object may have these keys:
 
-- `name`: property name. e.g. `"name": "font-size"` defines a property `.fontSize`
+- `name`: property name. e.g. `"name": "data-list"` defines a property `.dataList` and variable `dataList`
 - `value`: default value. e.g. `"value": "[30, 40]"` sets the default value to `"[30, 40]"`
 - `type`: property type. Valid values are `string` (default), `number`, `boolean`, `object` or `array`.
 
-Attributes are strings. Properties and JavaScript variables have the `type` you specify.
-They're automatically converted from one to the other.
+Attributes are strings. Properties and JavaScript variables are converted to your `type` automatically.
+
 
 ## Attributes = Properties = JavaScript Variables
 
@@ -282,7 +281,19 @@ rename all `<script>...</script>` to `<x-script>...</x-script>`. For example:
 
 ## Register components API
 
-You can register components via JavaScript like this:
+To register a component from a HTML file, use:
+
+```js
+uifactory.register('path/to/component.html')
+```
+
+To register a component from a DOM element, use:
+
+```js
+uifactory.register(document.querySelector('template'))
+```
+
+To register a component by specifying elements explicitly, use:
 
 ```js
 uifactory.register({
@@ -294,7 +305,7 @@ uifactory.register({
 })
 ```
 
-`uifactory.register()` accepts an object with these keys:
+The object has these keys:
 
 - `name`: component name, e.g. `"g-repeat"`
 - `template`: component contents as a [lodash template](#-defined-as-lodash-templates)
