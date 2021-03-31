@@ -1,0 +1,68 @@
+<!-- -------------------------------------------------------------- -->
+<template component="chart-donut-kpi" width="300" height="300" r="100" thickness="30" bgfill="#eee" fill="#5c99fc" stroke="" stroke-width="1" value="60" font-size="50" font-family="sans-serif">
+  <script type="application/json">
+    [
+      { "name": "width", "type": "number" },
+      { "name": "height", "type": "number" },
+      { "name": "r", "type": "number" },
+      { "name": "thickness", "type": "number" },
+      { "name": "stroke-width", "type": "number" },
+      { "name": "value", "type": "number" },
+      { "name": "font-size", "type": "number" }
+    ]
+  </script>
+  <svg width="<%= width %>" height="<%= height %>" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
+    <%
+      let r1 = r - thickness    // r1 is the inner radius
+    %>
+    <path class="chart-donut-kpi-bg" fill="<%= bgfill %>" d="
+      M 100 <%= 100 - r %>
+      A <%= r %> <%= r %> 0 1 1 100 <%= 100 + r %>
+      A <%= r %> <%= r %> 0 1 1 100 <%= 100 - r %>
+      M 100 <%= 100 - r1 %>
+      A <%= r1 %> <%= r1 %> 0 0 0 100 <%= 100 + r1 %>
+      A <%= r1 %> <%= r1 %> 0 0 0 100 <%= 100 - r1 %>
+      z"></path>
+    <%
+      let val = Math.max(0, Math.min(99.9999, value)),
+          theta = val / 100 * 2 * Math.PI,
+          largeArc = val > 50 ? 1 : 0,
+          x2 = 100 + r * Math.sin(theta),
+          y2 = 100 - r * Math.cos(theta),
+          x1 = 100 + r1 * Math.sin(theta),
+          y1 = 100 - r1 * Math.cos(theta),
+          text = this.innerHTML.trim()
+    %>
+    <path class="chart-donut-kpi-fill" fill="<%= fill %>" stroke="<%= stroke %>" stroke-width="<%= strokeWidth %>" d="
+      M 100 <%= 100 - r %>
+      A <%= r %> <%= r %> 0 <%= largeArc %> 1 <%= x2 %> <%= y2 %>
+      L <%= x1 %> <%= y1 %>
+      A <%= r1 %> <%= r1 %> 0 <%= largeArc %> 0 100 <%= 100 - r1 %>
+      z"></path>
+    <% if (text.match('<')) { %>
+      <g transform="translate(100,100)" font-size="<%= fontSize %>" font-family="<%= fontFamily %>"><%= _.template(_.unescape(text))(obj) %></g>
+    <% } else { %>
+      <text text-anchor="middle" dy="0.37em" x="100" y="100" font-size="<%= fontSize %>" font-family="<%= fontFamily %>"><%= text || value %></text>
+    <% } %>
+  </svg>
+</template>
+
+<!-- -------------------------------------------------------------- -->
+<template component="chart-pictogram" value="10" cols="10">
+  <script type="application/json">
+    [
+      { "name": "value", "type": "number" },
+      { "name": "cols", "type": "number" }
+    ]
+  </script>
+  <% for (let index=0; index < value; index++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+  <!--
+    partially cutoff fractional values: https://www.theschoolrun.com/sites/theschoolrun.com/files/article_images/pictogram.png
+    partially cutoff fractional values: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ0dwTXoRho3qxbLsjxuolu6JGi6eQ51AO28TgqQNtGCpGFrlYbEObo72IkbaHAvzhyWvc&usqp=CAU
+    different sequence: https://venngage-wordpress.s3.amazonaws.com/uploads/2016/04/template-countries.png
+    different fills: https://www.easel.ly/blog/wp-content/uploads/2018/12/using-pictogram-charts.png
+    different fills: https://about.infogr.am/wp-content/uploads/2018/09/pictorial1.png
+  -->
+</template>

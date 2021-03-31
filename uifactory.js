@@ -1,17 +1,28 @@
 /* eslint-env es6 */
 
 (function(window) {
+  // Used to create document fragments
+  const doc = window.document
+  const tmpl = doc.createElement('template')
+
+  function domify(content) {
+    tmpl.innerHTML = content
+    return tmpl.content
+  }
+
+  // Used to serialize and parse values of different types
+  const types = /number|boolean|object|array|json/i
+  const stringify = (type, val) => type.match(types) ? JSON.stringify(val) : val
+  const parse = (type, val) => type && type.match(types) ? JSON.parse(val) : val
+
+  // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
+  const camelize = s => s.replace(/-./g, x => x.toUpperCase()[1])
+
   // Register a single component
-  function _registerComponent(config) {
+  function registerComponent(config) {
     // The custom element is defined on this window. This need not be the global window.
     // For an iframe, you can use registerComponent({window: iframe.contentWindow}).
     const _window = config.window || window
-
-    // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
-    const camelize = s => s.replace(/-./g, x => x.toUpperCase()[1])
-
-    // Used to create document fragments
-    const tmpl = _window.document.createElement('template')
 
     // Each window has its own component registry. "this" picks the registry of the current window
     // If a component is already registered, don't re-register.
@@ -30,18 +41,18 @@
     }
 
     // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
+    // Treat <scriptx> exactly like <script>
     loadExtract('head', extract(/<style\b[^>]*>[\s\S]*?<\/style>|<link\b[^>]*>[\s\S]*?(<\/link>)?/gmi))
-    loadExtract('body', extract(/<script\b[^>]*>[\s\S]*?<\/script>/gmi))
+    loadExtract('body', extract(/<x?-?script\b[^>]*>[\s\S]*?<\/x?-?script>/gmi))
     // target is "head" or "body". els the list of DOM elements to add into target
     function loadExtract(target, els, _start = 0) {
       // Loop through elements starting from the start index
       for (let index = _start; index < els.length; index++) {
         // Convert the HTML string into an element
-        tmpl.innerHTML = els[index]
-        let el = tmpl.content.firstChild
+        let el = domify(els[index]).firstChild
         // Copy the element into the target document with attributes.
         // NOTE: Just inserting el into the document doesn't let <script> elements execute.
-        const clone = _window.document.createElement(el.tagName)
+        const clone = _window.document.createElement(el.tagName.replace(/x-script/i, 'script'))
         for (let attr of el.attributes)
           clone.setAttribute(attr.name, attr.value)
         clone.innerHTML = el.innerHTML
@@ -51,7 +62,7 @@
         // NOTE: Why not just...
         //    Use clone.async = false? Doesn't work
         //    Add all scripts to a documentFragment and add it at one shot? Doesn't work
-        let externalScript = el.tagName.toLowerCase() == 'script' && el.hasAttribute('src')
+        let externalScript = clone.hasAttribute('src') && clone.matches('script')
         if (externalScript)
           clone.onload = clone.onerror = () => loadExtract(target, els, index + 1)
         _window.document[target].appendChild(clone)
@@ -64,66 +75,72 @@
     // Compile the rest of the template -- by default, using a Lodash template
     const compile = config.compile || _.template
     const template = compile(html)
-    // The {name: ...} from the options list become the observable attrs
-    const options = config.options || []
-    const attrs = options.map(option => option.name)
+    // The {name: ...} from the properties list become the observable attrs
+    const properties = config.properties || []
+    const attrs = properties.map(prop => prop.name)
+    // attrparse[attr-name](val) parses attribute based on its type
+    const attrparse = Object.fromEntries(properties.map(prop => [prop.name, parse.bind(this, prop.type)]))
 
     // Create the custom HTML element
     class UIFactory extends _window.HTMLElement {
       connectedCallback() {
         // Called when the component is created. "this" is the created HTMLElement.
 
+        // this.__model is the model, i.e. object passed to the template.
+        // template can access the component at $target
+        this.__model = { $target: this }
+        // Initialize with default values from properties, overriding it with attributes' values
+        for (let { name, value } of [...properties, ...this.attributes])
+          this.__set(name, value)
+
         // Expose the defined attributes as properties.
-        // <g-component attr="val"> exponses el.attr == "val"
-        attrs.forEach(attr => {
-          Object.defineProperty(this, attr, {
+        // <g-component attr-name="val"> exponses el.attrName == "val"
+        // GET .property returns from this.__model[property]
+        // SET .property sets this.__model[property] = val and sets the attr = stringify(val)
+        properties.forEach(prop => {
+          let property = camelize(prop.name)
+          Object.defineProperty(this, property, {
             get: function () {
-              return this.getAttribute(attr)
+              return this.__model[property]
             },
             set: function (val) {
-              this.setAttribute(attr, val)
+              this.__model[property] = val
+              this.setAttribute(prop.name, stringify(prop.type, val))
             }
           })
         })
 
-        // this.__obj holds the object passed to the template.
-        this.__obj = { $target: this }
-        // Add default values from options, overriding it with attributes' values
-        for (let {name, value} of [...options, ...this.attributes])
-          this.__set(name, value)
-        // template can access the component at $target
-        // template can access to the original children via "this"
+        // templates can access to the original children of the node via "this"
         this.__originalNode = this.cloneNode(true)
 
         // Generate a connect event on this component when it's created
         this.dispatchEvent(new CustomEvent('connect', { bubbles: true }))
-        // this.render() re-renders the object based on current options.
+        // this.render() re-renders the object based on current properties.
         this.render()
       }
 
       // Set the template variables. Convert kebab-case to camelCase
       __set(name, value) {
-        this.__obj[camelize(name)] = value
+        this.__model[camelize(name)] = typeof value == 'string' ? attrparse[name](value) : value
       }
 
-      render(config) {
+      render(props) {
         // "this" is the HTMLElement. Apply the lodash template
-        this.innerHTML = template.call(this.__originalNode, Object.assign(this.__obj, config))
+        this.innerHTML = template.call(this.__originalNode, Object.assign(this.__model, props))
         // Generate a render event on this component when re-rendered
         this.dispatchEvent(new CustomEvent('render', { bubbles: true }))
       }
 
       // The list of attributes to watch for changes on is based on the keys of
-      // config.options, When any of these change, attributeChangedCallback is called.
+      // config.properties, When any of these change, attributeChangedCallback is called.
       static get observedAttributes() {
         return attrs
       }
 
-      // When any attribute changes, update this.__obj and re-render
+      // When any attribute changes, update this.__model[property] to convert(val) and re-render
       attributeChangedCallback(name, oldValue, value) {
         // If the component is not initialized, don't render it
-        // If it's intialized, re-render
-        if (this.__obj) {
+        if (this.__model) {
           this.__set(name, value)
           this.render()
         }
@@ -135,61 +152,74 @@
     _window.customElements.define(config.name, UIFactory)
   }
 
-  // If called via <script src="components.js" component="g-component, ...">, load each component
-  let fetchComponent
-  if (document.currentScript) {
-    let base = document.currentScript.src.substring(0, document.currentScript.src.lastIndexOf('/'))
-    fetchComponent = component => {
-      fetch(`${base}/component/${component}.json`)
-        .then(response => response.json())
-        .then(config => registerComponent(config))
-        .catch(error => console.error(error))
-    }
-    let components = (document.currentScript.getAttribute('component') || '').trim()
-    if (components)
-      components.split(/[,+ ]+/g).forEach(fetchComponent)
-  }
-
-  // Any <template component="..."> becomes a component
-  document.querySelectorAll('template[component],script[type="text/html"][component]').forEach(component => {
-    // A template like <template component="comp" attr="val">
-    // has componentname = "comp" and config.options = {attr: {value: "val", type: "text"}}
-    let componentname, options = []
-    for (let attr of component.attributes)
-      if (attr.name == 'component')
-        componentname = attr.value.toLowerCase()
-      else
-        options.push({ name: attr.name, type: 'text', value: attr.value })
-
+  function registerElement(el) {
+    // Register a template/script element like <template component="comp" attr="val">
+    // as a component {name: "comp", properties: {attr: {value: "val", type: "text"}}}
+    let componentname = el.getAttribute('component')
+    let isScript = el.matches('script')
+    let properties = {}
+    for (let attr of el.attributes)
+      properties[attr.name] = { name: attr.name, type: 'text', value: attr.value }
+    // Merge properties with any <script type="application/json"> configurations
+    let contents = isScript ? domify(el.innerHTML) : el.content
+    contents.querySelectorAll('[type="application/json"]').forEach(text => {
+      for (let attr of JSON.parse(text.innerHTML))
+        properties[attr.name] = Object.assign(properties[attr.name] || {}, attr)
+    })
     // Create the custom component on the current window
-    _registerComponent({
+    registerComponent({
       name: componentname,
       // If <template> tag is used unescape the HTML. It'll come through as &lt;tag-name&gt;
       // But if <script> tag is used, no need to unescape it.
-      template: component.tagName == 'SCRIPT' ? component.innerHTML : _.unescape(component.innerHTML),
-      options: options
+      template: isScript ? el.innerHTML : _.unescape(el.innerHTML),
+      properties: Object.values(properties)
     })
-  })
+  }
+
+  // Take all <template component="..."> or <script type="text/html" component="..."> in a document.
+  // Register each element as a component.
+  function registerDocument(doc) {
+    doc.querySelectorAll('template[component],script[type="text/html"][component]').forEach(registerElement)
+  }
+
+  // Fetch a URL and register the response.
+  // If response is JSON, registerComponent().
+  // If response is not JSON, render it as HTML and register the document
+  function registerURL(url) {
+    fetch(url)
+      .then(response => response.headers.get('Content-Type') == 'application/json' ? response.json() : response.text())
+      .then(config => {
+        if (typeof config == 'object')
+          registerComponent(config)
+        else {
+          tmpl.innerHTML = config
+          registerDocument(tmpl.content)
+        }
+      })
+      .catch(console.error)
+  }
+
+  // Register a HTML element, URL or config
+  function register(config) {
+    if (config instanceof HTMLElement)
+      registerElement(config)
+    else if (typeof config == 'string')
+      registerURL(config)
+    else if (typeof config == 'object')
+      registerComponent(config)
+  }
 
   // uifactory.register({ name: 'g-component', template: '<%= 1 + 2 %>', window: window })
   //    creates a <g-component> with the lodash template
-  // uifactory.register('g-comp1', 'g-comp2')
-  //    loads these components from ../component/g-comp1.json, etc
-  // uifactory.register.call({...})
-  //    registers component in specified window
-  // AVOID ARROW => FUNCTIONS. We need to preserve "this". "this" defaults to the current window.
-  // But uifactory.register.call(iframe_window, {...}) will register in the iframe_window.
-  // TODO: Allow registering a custom DOM element
+  // uifactory.register('g-comp1.json', 'g-comp2.json')
+  //    loads these components from g-comp1.json, etc
   this.uifactory = {
-    register: function (...configs) {
-      // TODO: handle this
-      configs.forEach(config => {
-        if (typeof config == 'object')
-          _registerComponent(config)
-        else if (fetchComponent && typeof config == 'string')
-          fetchComponent(config)
-      })
-    }
+    register: (...configs) => configs.forEach(register)
   }
 
+  // If called via <script src="components.js" import="path.html, ...">, import each file
+  let components = doc.currentScript.getAttribute('import') || ''
+  components.trim().split(/[,+ ]+/g).forEach(registerURL)
+
+  registerDocument(doc)
 })(this)

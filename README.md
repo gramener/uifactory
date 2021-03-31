@@ -52,44 +52,9 @@ So, `<g-repeat value="8">★</g-repeat>` renders:
 ![8 stars](docs/g-repeat-8-star.png).
 
 
-## ... in template or script tags
+## Access attributes
 
-Instead of `<template component="...">`, you can use `<script type="text/html" component="...">`.
-
-The `<template>` tag only allows valid HTML. So you CANNOT do this:
-
-```html
-<template component="table-row">
-  <tr>
-    <% cells.forEach(function(cell) { %>
-      <td><%= cell></td>
-    <% }) %>
-  </tr>
-</template>
-```
-
-... because `<tr>` only accepts `<td>` or `<th>` as children -- not `<% ... %>`.
-
-Instead, you can use `<script type="text/html" component="...">`.
-
-```html
-<script type="text/html" component="table-row">
-  <tr>
-    <% cells.forEach(function(cell) { %>
-      <td><%= cell></td>
-    <% }) %>
-  </tr>
-</script>
-```
-
-The disadvantage is that you can't use a `<script>` tag inside it -- which makes
-[adding events](#add-events-with-js) tougher.
-In such cases, use the [register component API](#register-components-api).
-
-
-## Access attributes as variables
-
-Any attributes in your `<template>` is available as a variable in JavaScript. For example, `<template value="30">` in the example below becomes the JavaScript variable `value`:
+`<template>` attributes are available as JavaScript variables. For example, `<template value="30">` defines the variable `value`:
 
 ```html
 <template component="g-repeat" value="30">
@@ -99,26 +64,56 @@ Any attributes in your `<template>` is available as a variable in JavaScript. Fo
 </template>
 ```
 
-When using the component, e.g. `<g-repeat value="8"></g-repeat>`, `value` comes `"8"`.
+When using the component, e.g. `<g-repeat value="8"></g-repeat>`, the variable `value` becomes `"8"`.
 
-If you add a component attribute, e.g. `<g-repeat color="red">`, *without* adding it to the template, you can't access `color` as a variable. (But you can access it via [`$target.getAttribute('color')`](#access-component-as-target).)
+## Define properties
 
-You can also get or set these as attributes as properties. For example:
+`<template>` attributes are available as component properties. For example, `<template component="g-repeat" value="30">` defines a property `.value`:
 
-```js
+```html
+<script>
 let el = document.querySelector('g-repeat')   // Find the first <g-repeat>
 console.log(el.value)                         // Prints the value=".."
 el.value = 10                                 // Changes value="..." and re-renders
+</script>
 ```
 
 ![Access and change properties](docs/g-repeat-properties.gif)
 
-Notes:
+You can define new properties inside `<script type="application/json"></script>`.
+For example:
 
-- All attributes on the `<template>` are converted to variables, *except* `component=`. It defines the component tag name
-- Attribute names with hyphens are converted to *camelCase*. For example, `<template font-size="8">` converts to variable `fontSize`.
-- Attributes become *string* variables. You need to convert it to a number using `+value`.
-- When you change the attribute or property, the component is *re-rendered*.
+```html
+<template component="g-repeat" value="30">
+  <% for (var j=0; j < +value; j++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+  <script type="application/json">
+    [
+      { "name": "value", "type": "number", "value": 30 }
+    ]
+  </script>
+</template>
+```
+
+The properties list is an array of objects. Each object may have these keys:
+
+- `name`: property name. e.g. `"name": "font-size"` defines a property `.fontSize`
+- `value`: default value. e.g. `"value": "[30, 40]"` sets the default value to `"[30, 40]"`
+- `type`: property type. Valid values are `string` (default), `number`, `boolean`, `object` or `array`.
+
+Attributes are strings. Properties and JavaScript variables have the `type` you specify.
+They're automatically converted from one to the other.
+
+## Attributes = Properties = JavaScript Variables
+
+- All [attributes](#access-attributes) in the `<template>` are properties.
+  - Attributes in the component (e.g. `g-repeat`) **NOT** in the `<template>` are not properties.
+- All [properties](#define-properties) in `<script type="application/json"></script>` are also also attributes.
+- All attributes/properties are available as JavaScript variables.
+- Changing attributes via `.setAttribute()` or properties via `.value = ...` *re-renders* the component.
+- Attribute names with hyphens (e.g. `font-size`) are converted to *camelCase* properties and variables (e.g. `fontSize`).
+- Attribute values are strings. Non-string types are converted using `JSON.stringify()`
 
 
 ## Access `<template>` as `this`
@@ -150,8 +145,6 @@ Notes:
 You can access component attributes, e.g. `<g-repeat color="red">`, via `$target.getAttribute('color')`.
 
 Remember: `this` is the `<template>`. `$target` is the component, e.g. `<g-repeat>`
-
-<!-- TODO: Explain why once: true -->
 
 
 ## Style components with CSS
@@ -211,6 +204,82 @@ $('body').on('connect render', function (e) {
 ![Event cycle for connect and render](docs/g-repeat-connect-render-events.gif)
 
 
+## Import components
+
+Save your component code in a HTML file. For example, `my-component.html` could look like this:
+
+```html
+<template component="my-component">
+  ... your component code
+</template>
+
+<template component="another-component">
+  ... your component code
+</template>
+```
+
+To import it in another file, use:
+
+```html
+<script src="node_modules/uifactory/uifactory.js" import="path/to/my-component.html"></script>
+```
+
+All components in `component.html` are imported.
+
+You can import multiple component files separated by comma and/or spaces.
+
+```html
+<script src="node_modules/uifactory/uifactory.js" import="a.html, b.html, c.html"></script>
+```
+
+The components must be in the same domain, or [CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
+
+
+## Use `<script>` instead of `<template>` for tables
+
+The `<template>` tag only allows valid HTML. So you CANNOT do this:
+
+```html
+<template component="table-row">
+  <tr>
+    <% cells.forEach(function(cell) { %>
+      <td><%= cell></td>
+    <% }) %>
+  </tr>
+</template>
+```
+
+... because `<tr>` only accepts `<td>` or `<th>` as children -- not `<% ... %>`.
+
+Instead of `<template component="...">`, you can use `<script type="text/html" component="...">`.
+
+```html
+<script type="text/html" component="table-row">
+  <tr>
+    <% cells.forEach(function(cell) { %>
+      <td><%= cell></td>
+    <% }) %>
+  </tr>
+</script>
+```
+
+Since you can't use a `<script>` tag inside another `<script>` tag, to
+[add events](#add-events-with-js) and [define properties](#define-properties), you need to
+rename all `<script>...</script>` to `<x-script>...</x-script>`. For example:
+
+```html
+<script type="text/html" component="table-row">
+  ...
+  <x-script>
+    // TODO: add events here
+  </x-script>
+  <x-script type="application/json">
+    // TODO: define properties here
+  </x-script>
+</script>
+```
+
+
 ## Register components API
 
 You can register components via JavaScript like this:
@@ -219,7 +288,7 @@ You can register components via JavaScript like this:
 uifactory.register({
   name: 'g-repeat',
   template: '<% for (var j=0; j<+value; j++) { %><%= this.innerHTML %><% } %>',
-  options: [
+  properties: [
     { name: "value", value: "30" }
   ]
 })
@@ -229,28 +298,9 @@ uifactory.register({
 
 - `name`: component name, e.g. `"g-repeat"`
 - `template`: component contents as a [lodash template](#-defined-as-lodash-templates)
-- `options`: OPTIONAL: a list of [attributes](#access-attributes-as-variables) as `{name, value}` objects
+- `properties`: OPTIONAL: a list of [attributes](#access-attributes-as-variables) as `{name, value}` objects
 - `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
 - `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
-
-
-## Load components
-
-You can register components from a HTML file like this:
-
-```js
-fetch('mycomponent.html')
-  .then(response => response.text())
-  .then(html => uifactory.register({ name: 'my-component', template: html }))
-```
-
-You can directly register components from a JSON file by calling `uifactory.register(url)`. For example,
-
-```js
-uifactory.register('g-repeat.json`)
-```
-
-... fetches `g-repeat.json` and calls `uifactory.register(...contents of the JSON...)`.
 
 
 ## Use any compiler

@@ -2,7 +2,7 @@
 TODO
 
 # Local testing file
-test.html
+test*.html
 
 # Ignore all node modules
 node_modules/
