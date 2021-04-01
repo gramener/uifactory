@@ -90,8 +90,11 @@
         // template can access the component at $target
         this.__model = { $target: this }
         // Initialize with default values from properties, overriding it with attributes' values
-        for (let { name, value } of [...properties, ...this.attributes])
-          this.__set(name, value)
+        const attrs = {}
+        for (let { name, value } of this.attributes)
+          attrs[name] = value
+        for (let { name, value } of properties)
+          this.__set(name, attrs[name] || value)
 
         // Expose the defined attributes as properties.
         // <g-component attr-name="val"> exponses el.attrName == "val"
