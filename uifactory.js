@@ -40,14 +40,18 @@
       return els
     }
 
+    // When the scripts are loaded, resolve this promise.
+    let scriptsResolve
+    const scriptsLoad = new Promise((resolve, rejected) => scriptsResolve = resolve)
     // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
     // Treat <scriptx> exactly like <script>
     loadExtract('head', extract(/<style\b[^>]*>[\s\S]*?<\/style>|<link\b[^>]*>[\s\S]*?(<\/link>)?/gmi))
     loadExtract('body', extract(/<x?-?script\b[^>]*>[\s\S]*?<\/x?-?script>/gmi))
     // target is "head" or "body". els the list of DOM elements to add into target
     function loadExtract(target, els, _start = 0) {
+      let index = _start
       // Loop through elements starting from the start index
-      for (let index = _start; index < els.length; index++) {
+      for (; index < els.length; index++) {
         // Convert the HTML string into an element
         let el = domify(els[index]).firstChild
         // Copy the element into the target document with attributes.
@@ -67,10 +71,13 @@
           clone.onload = clone.onerror = () => loadExtract(target, els, index + 1)
         _window.document[target].appendChild(clone)
         // If this is a <script src="...">, we've scheduled the next loadExtract.
-        // So stop looping
+        // So stop looping. In fact, OUTRIGHT return. DON'T resolve scripts until loaded
         if (externalScript)
-          break
+          return
       }
+      // If we've loaded all scripts -- internal and external -- mark scripts as loaded
+      if (target == 'body' && index == els.length)
+        scriptsResolve(true)
     }
     // Compile the rest of the template -- by default, using a Lodash template
     const compile = config.compile || _.template
@@ -118,8 +125,8 @@
 
         // Generate a connect event on this component when it's created
         this.dispatchEvent(new CustomEvent('connect', { bubbles: true }))
-        // this.render() re-renders the object based on current properties.
-        this.render()
+        // Wait for external scripts to get loaded. Then render.
+        scriptsLoad.then(() => this.render())
       }
 
       // Set the template variables. Convert kebab-case to camelCase
@@ -127,6 +134,7 @@
         this.__model[camelize(name)] = typeof value == 'string' ? attrparse[name](value) : value
       }
 
+      // this.render() re-renders the object based on current and supplied properties
       render(props) {
         // "this" is the HTMLElement. Apply the lodash template
         this.innerHTML = template.call(this.__originalNode, Object.assign(this.__model, props))
@@ -156,27 +164,32 @@
   }
 
   function registerElement(el) {
+    let isScript = el.matches('script')
     // Register a template/script element like <template component="comp" attr="val">
     // as a component {name: "comp", properties: {attr: {value: "val", type: "text"}}}
-    let componentname = el.getAttribute('component')
-    let isScript = el.matches('script')
-    let properties = {}
-    for (let attr of el.attributes)
-      properties[attr.name] = { name: attr.name, type: 'text', value: attr.value }
-    // Merge properties with any <script type="application/json"> configurations
-    let contents = isScript ? domify(el.innerHTML) : el.content
-    contents.querySelectorAll('[type="application/json"]').forEach(text => {
-      for (let attr of JSON.parse(text.innerHTML))
-        properties[attr.name] = Object.assign(properties[attr.name] || {}, attr)
-    })
-    // Create the custom component on the current window
-    registerComponent({
-      name: componentname,
+    let config = {
+      name: el.getAttribute('component'),
       // If <template> tag is used unescape the HTML. It'll come through as &lt;tag-name&gt;
       // But if <script> tag is used, no need to unescape it.
       template: isScript ? el.innerHTML : _.unescape(el.innerHTML),
-      properties: Object.values(properties)
+      // Define properties as an object to make merge easier. But later, convert to list
+      properties: {}
+    }
+    // Define properties from attributes
+    for (let attr of el.attributes)
+      config.properties[attr.name] = { name: attr.name, type: 'text', value: attr.value }
+    // Merge config with <script type="application/json"> configurations
+    let contents = isScript ? domify(el.innerHTML) : el.content
+    contents.querySelectorAll('[type="application/json"]').forEach(text => {
+      // Copy properties
+      let conf = JSON.parse(text.innerHTML)
+      for (let attr of conf.properties || [])
+        config.properties[attr.name] = Object.assign(config.properties[attr.name] || {}, attr)
     })
+    // Convert properties back to a list, which is how registerComponent() needs it
+    config.properties = Object.values(config.properties)
+    // Create the custom component on the current window
+    registerComponent(config)
   }
 
   // Take all <template component="..."> or <script type="text/html" component="..."> in a document.
@@ -216,7 +229,7 @@
   //    creates a <g-component> with the lodash template
   // uifactory.register('g-comp1.json', 'g-comp2.json')
   //    loads these components from g-comp1.json, etc
-  this.uifactory = {
+  window.uifactory = {
     register: (...configs) => configs.forEach(register)
   }
 
@@ -224,5 +237,6 @@
   let components = doc.currentScript.getAttribute('import') || ''
   components.trim().split(/[,+ ]+/g).forEach(registerURL)
 
-  registerDocument(doc)
+  // When DOM all elements are loaded, register the current document
+  window.addEventListener('DOMContentLoaded', () => registerDocument(doc))
 })(this)

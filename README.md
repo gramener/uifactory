@@ -1,9 +1,9 @@
 # UIFactory
 
-UIFactory is a simple HTML component library.
+UIFactory is a small easy-to-learn HTML component library.
 
-- **It's small**. <1.5KB minified, gzipped.
-- **Nothing new to learn**. No shadow DOM. No virtual DOM. Just regular HTML, CSS and JS.
+- **It's small**. 2 KB minified, gzipped.
+- **There's nothing new to learn**. No shadow DOM. No virtual DOM. Just regular HTML, CSS and JS.
 
 ## Installation
 
@@ -26,11 +26,31 @@ For example, you can create a `<g-repeat value="8">★</g-repeat>` that componen
 
 ![8 stars](docs/g-repeat-8-star.png)
 
-## ... defined as lodash templates
+## ... defined as templates
 
 Any `<template component="x-xx">` defines a new `<x-xx>` element.
 
-For example, this creates the `g-repeat` component we saw above:
+You can use [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals). For example, this creates the `g-repeat` component we saw above:
+
+```html
+<template component="g-repeat" value="30">
+  ${this.innerHTML.repeat(+value)}
+</template>
+```
+
+You can use the component as a new HTML tag:
+
+```html
+<g-repeat value="8">★</g-repeat>
+```
+
+![8 stars](docs/g-repeat-8-star.png)
+
+You **MUST** have a dash (hyphen) in the component name (e.g. `g-repeat`).
+[It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
+
+
+For better control, you can use [lodash templates](https://lodash.com/docs/#template):
 
 ```html
 <template component="g-repeat" value="30">
@@ -40,35 +60,18 @@ For example, this creates the `g-repeat` component we saw above:
 </template>
 ```
 
-The `component="g-repeat"` attribute defines a `<g-repeat>` component. You **MUST** have a hypen in the component name.
-
-Wherever `<g-repeat></g-repeat>` is placed, the [lodash template](https://lodash.com/docs/#template) is rendered inside it.
-
-- `<%= ... %>` renders JavaScript code.
-- `<% ... %>` runs JavaScript code without rendering.
-
-So, `<g-repeat value="8">★</g-repeat>` renders:
+This renders the same output:
 
 ![8 stars](docs/g-repeat-8-star.png).
 
+Lodash templates use tags as follows:
 
-## Access attributes
-
-`<template>` attributes are available as JavaScript variables. For example, `<template value="30">` defines the variable `value`:
-
-```html
-<template component="g-repeat" value="30">
-  <% for (var j=0; j < +value; j++) { %>
-    <%= this.innerHTML %>
-  <% } %>
-</template>
-```
-
-When using the component, e.g. `<g-repeat value="8"></g-repeat>`, the variable `value` becomes `"8"`.
+- Anything inside `<% ... %>` runs as JavaScript
+- Anything inside `<%= ... %>` runs as JavaScript, and the result is "print"ed
 
 ## Define properties
 
-`<template>` attributes are available as component properties. For example, `<template component="g-repeat" value="30">` defines a property `.value`:
+Any attributes you add to `<template>` creates a property. For example, `<template component="g-repeat" value="30">` defines a property `.value`:
 
 ```html
 <script>
@@ -80,53 +83,70 @@ el.value = 10                                 // Changes value="..." and re-rend
 
 ![Access and change properties](docs/g-repeat-properties.gif)
 
-You can define new properties inside `<script type="application/json"></script>`.
-For example:
+Changing a property via `.setAttribute()` or properties via `.value = ...` *re-renders* the component.
+
+Notes:
+
+- Attribute names with uppercase letters (e.g. `fontSize`) are converted to lowercase property names (e.g. `fontsize`)
+- Attribute names with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* property names (e.g. `fontSize`).
+- Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<g-repeat new-attr="x">`).
+
+Attribute values are strings, by default. To specify other types (e.g. number, boolean),
+create properties via JSON inside a `<script type="application/json">...</script>`. For example:
 
 ```html
 <template component="g-repeat">
-  ...
+  ... add this JSON properties anywhere in your template:
   <script type="application/json">
-    [
-      { "name": "value", "type": "number", "value": 30 },
-      { "name": "data-list", "type": "array", "value": [4, 5] },
-    ]
+    {
+      "properties": [
+        { "name": "value", "type": "number", "value": 30 },
+        { "name": "data-list", "type": "array", "value": [4, 5] },
+      ]
+    }
   </script>
 </template>
 ```
 
-The properties list is an array of objects. Each object may have these keys:
+This is an array of property definitions. A property definition object has these keys:
 
 - `name`: property name. e.g. `"name": "data-list"` defines a property `.dataList` and variable `dataList`
-- `value`: default value. e.g. `"value": "[30, 40]"` sets the default value to `"[30, 40]"`
-- `type`: property type. Valid values are `string` (default), `number`, `boolean`, `object` or `array`.
+- `type`: OPTIONAL: property type. Valid values are `string` (default), `number`, `boolean`, `object` or `array`.
+  Other types are converted using `JSON.stringify()`
+- `value`: default value of the correct type. e.g. `"value": true` for `boolean`, `"value": [30, 40]` for array, etc.
 
-Attributes are strings. Properties and JavaScript variables are converted to your `type` automatically.
 
+## Access properties as variables
 
-## Attributes = Properties = JavaScript Variables
+Inside templates, properties are available as JavaScript variables.
+For example, `<template value="30">` defines the variable `value`:
 
-- All [attributes](#access-attributes) in the `<template>` are properties.
-  - Attributes in the component (e.g. `g-repeat`) **NOT** in the `<template>` are not properties.
-- All [properties](#define-properties) in `<script type="application/json"></script>` are also also attributes.
-- All attributes/properties are available as JavaScript variables.
-- Changing attributes via `.setAttribute()` or properties via `.value = ...` *re-renders* the component.
-- Attribute names with hyphens (e.g. `font-size`) are converted to *camelCase* properties and variables (e.g. `fontSize`).
-- Attribute values are strings. Non-string types are converted using `JSON.stringify()`
+```html
+<template component="g-repeat" value="30">
+  <% for (var j=0; j < +value; j++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+</template>
+```
+
+When using the component, e.g. `<g-repeat value="8"></g-repeat>`, the variable `value` becomes `"8"`.
 
 
 ## Access `<template>` as `this`
 
-`this` points to the template element (e.g. `<template component="g-repeat">`). For example, you can access contents of your `<template>` via `this.innerHTML`.
+Inside the [template](#-defined-as-templates),
+`this` is the template element (e.g. `<template component="g-repeat">`).
+For example
 
-- `this` is a copy of component template as a DOM element.
-- `this.innerHTML` has whatever was in your template.
-- `this.querySelectorAll('*')` and similar expressions can access parts of the template
+- `this.innerHTML` has the contents of your template.
+- `this.querySelectorAll('input')` fetches all `<div>`s in your template
 
 
 ## Access component as `$target`
 
-`$target` points to the element you add (e.g. `<g-repeat>`). For example, this adds a click event listener to each `g-repeat` component.
+Inside the [template](#-defined-as-templates),
+`$target` is the component you add (e.g. `<g-repeat>`).
+For example, this adds a click event listener to each `g-repeat` component.
 
 ```html
 <template component="g-repeat" value="30">
@@ -139,11 +159,11 @@ Attributes are strings. Properties and JavaScript variables are converted to you
 </template>
 ```
 
+<!-- TODO: Will this add multiple event listeners if the component is re-rendered? -->
+
 ![Access $target element](docs/g-repeat-click-event.gif)
 
-You can access component attributes, e.g. `<g-repeat color="red">`, via `$target.getAttribute('color')`.
-
-Remember: `this` is the `<template>`. `$target` is the component, e.g. `<g-repeat>`
+You can access component attributes, e.g. `<g-repeat color="red">` as `$target.getAttribute('color')`.
 
 
 ## Style components with CSS
@@ -166,6 +186,15 @@ For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`
 ![Yellow background applied to g-repeat](docs/g-repeat-8-star-yellow.png)
 
 UIFactory copies all `<style>`s and `<link rel="stylesheet">`s into the document's HEAD, and runs them only once (even if you use the component multiple times.)
+
+You can style child elements like this:
+
+```css
+/* When user hovers on any image inside a g-repeat, add a black border */
+g-repeat img:hover {
+  border: 1px solid black;
+}
+```
 
 
 ## Add events with JS
@@ -205,7 +234,8 @@ $('body').on('connect render', function (e) {
 
 ## Import components
 
-Save your component code in a HTML file. For example, `my-component.html` could look like this:
+To re-use components across projects, save the component code in a HTML file.
+For example, `my-component.html` could look like this:
 
 ```html
 <template component="my-component">
@@ -223,7 +253,7 @@ To import it in another file, use:
 <script src="node_modules/uifactory/uifactory.js" import="path/to/my-component.html"></script>
 ```
 
-All components in `component.html` are imported.
+This imports all `<template component="...">` components from `path/to-my-component.html`
 
 You can import multiple component files separated by comma and/or spaces.
 
@@ -231,7 +261,19 @@ You can import multiple component files separated by comma and/or spaces.
 <script src="node_modules/uifactory/uifactory.js" import="a.html, b.html, c.html"></script>
 ```
 
-The components must be in the same domain, or [CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
+You can also import via JavaScript:
+
+```js
+uifactory.register('path/to/component.html')
+```
+
+Notes:
+
+- Since this uses [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch),
+  the fetched files must be in the same domain, or
+  [CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
+
+
 
 
 ## Use `<script>` instead of `<template>` for tables
@@ -278,22 +320,9 @@ rename all `<script>...</script>` to `<x-script>...</x-script>`. For example:
 </script>
 ```
 
+# Advanced options
 
-## Register components API
-
-To register a component from a HTML file, use:
-
-```js
-uifactory.register('path/to/component.html')
-```
-
-To register a component from a DOM element, use:
-
-```js
-uifactory.register(document.querySelector('template'))
-```
-
-To register a component by specifying elements explicitly, use:
+To register a component with full control over the options, use:
 
 ```js
 uifactory.register({
@@ -308,7 +337,7 @@ uifactory.register({
 The object has these keys:
 
 - `name`: component name, e.g. `"g-repeat"`
-- `template`: component contents as a [lodash template](#-defined-as-lodash-templates)
+- `template`: component contents as a [template](#-defined-as-templates)
 - `properties`: OPTIONAL: a list of [attributes](#access-attributes-as-variables) as `{name, value}` objects
 - `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
 - `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
@@ -316,7 +345,7 @@ The object has these keys:
 
 ## Use any compiler
 
-Instead of [lodash templates](https://lodash.com/docs/#template), you can use any function to compile templates.
+Instead of [templates](https://lodash.com/docs/#template), you can use any function to compile templates.
 
 For example, the `g-name` component below uses [Handlebars](https://handlebarsjs.com/) templates to render the last name in bold:
 

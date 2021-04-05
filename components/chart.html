@@ -1,15 +1,17 @@
 <!-- -------------------------------------------------------------- -->
 <template component="chart-donut-kpi" width="300" height="300" r="100" thickness="30" bgfill="#eee" fill="#5c99fc" stroke="" stroke-width="1" value="60" font-size="50" font-family="sans-serif">
   <script type="application/json">
-    [
-      { "name": "width", "type": "number" },
-      { "name": "height", "type": "number" },
-      { "name": "r", "type": "number" },
-      { "name": "thickness", "type": "number" },
-      { "name": "stroke-width", "type": "number" },
-      { "name": "value", "type": "number" },
-      { "name": "font-size", "type": "number" }
-    ]
+    {
+      "properties": [
+        { "name": "width", "type": "number" },
+        { "name": "height", "type": "number" },
+        { "name": "r", "type": "number" },
+        { "name": "thickness", "type": "number" },
+        { "name": "stroke-width", "type": "number" },
+        { "name": "value", "type": "number" },
+        { "name": "font-size", "type": "number" }
+      ]
+    }
   </script>
   <svg width="<%= width %>" height="<%= height %>" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid meet">
     <%
@@ -50,10 +52,12 @@
 <!-- -------------------------------------------------------------- -->
 <template component="chart-pictogram" value="10" cols="10">
   <script type="application/json">
-    [
-      { "name": "value", "type": "number" },
-      { "name": "cols", "type": "number" }
-    ]
+    {
+      "properties": [
+        { "name": "value", "type": "number" },
+        { "name": "cols", "type": "number" }
+      ]
+    }
   </script>
   <% for (let index=0; index < value; index++) { %>
     <%= this.innerHTML %>
