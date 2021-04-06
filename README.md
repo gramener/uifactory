@@ -211,9 +211,41 @@ For example, this adds a click event listener to each `g-repeat` component.
 You can access component attributes, e.g. `<g-repeat color="red">` as `$target.getAttribute('color')`.
 
 
-## Define property types in JSON
+## Define property types as JSON
 
-Properties defined as attributes are created as strings. To create numbers, booleans, arrays, etc., define properties as JSON, like this:
+[Properties](#define-properties-using-template-attributes) are strings by default.
+To use numbers, booleans, arrays, etc., you can define properties as JSON.
+
+For example, this creates a simple list component:
+
+```html
+<template component="simple-list">
+  <script type="application/json">
+    // Add a single object {} under <script type="application/json">.
+    // Create a list of properties. The property "type" defines how it's treated
+    { "properties": [ { "name": "list", "type": "array", "value": [] } ] }
+  </script>
+  <ul>
+    <% list.forEach(function (val) { %>
+      <li><%= val %></li>
+    <% }) %>
+  </ul>
+</template>
+```
+
+When you add the component to your page, the list attribute is parsed as an array:
+
+```html
+<simple-list list="[4, 'ok', true]"></simple-list>
+```
+
+... it renders this output:
+
+- 4
+- ok
+- true
+
+Here's an example that shows all types possible:
 
 ```html
 <template component="typed-props">
@@ -232,11 +264,11 @@ Properties defined as attributes are created as strings. To create numbers, bool
     }
   </script>
 
-  Use .name as a string: <%= name.repeat(3) %>.
-  Use .value as a number: <%= "x".repeat(value) %>.
-  Use .isSet as a boolean: <%= typeof isSet %>.
-  Use .dataList as array: <%= dataList.length %>.
-  Use .config as object: <%= JSON.stringify(config) %>.
+  Use .name     as string:  <%= name.repeat(3) %>.
+  Use .value    as number:  <%= "x".repeat(value) %>.
+  Use .isSet    as boolean: <%= typeof isSet %>.
+  Use .dataList as array:   <%= dataList.length %>.
+  Use .config   as object:  <%= JSON.stringify(config) %>.
 </template>
 <typed-props name="key" value="10" is-set="true"
   data-list="[1,2,3,4,5,6,7,8]" config="{x:1}"></typed-props>
