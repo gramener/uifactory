@@ -5,11 +5,6 @@
   const doc = window.document
   const tmpl = doc.createElement('template')
 
-  function domify(content) {
-    tmpl.innerHTML = content
-    return tmpl.content
-  }
-
   // Used to serialize and parse values of different types
   const js_parse = s => eval(`(${s})`)
   const types = /number|boolean|object|array|json|js/i
@@ -32,32 +27,23 @@
       return console.trace(`Can't redefine component ${config.name} on ${_window}`)
 
     // Extract specific tags out of the HTML template. Used to remove <style>, <script>, etc.
-    // extract(re) matches a string that's removed from `html`, and returns the matches.
-    // NOTE: Don't use DOMParser(). It doesn't allow strings like <% ... %> under <tbody>/<tr>.
-    let html = config.template
-    function extract(re) {
-      let els = Array.from(html.matchAll(re)).map(v => v[0].trim())
-      html = html.replace(re, '')
-      return els
-    }
-
+    tmpl.innerHTML = config.template
+    const htmlScript = tmpl.content.querySelector('script[type="text/html"]')
     // When the scripts are loaded, resolve this promise.
     let scriptsResolve
     const scriptsLoad = new Promise((resolve, rejected) => scriptsResolve = resolve)
     // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
-    // Treat <scriptx> exactly like <script>
-    loadExtract('head', extract(/<style\b[^>]*>[\s\S]*?<\/style>|<link\b[^>]*>[\s\S]*?(<\/link>)?/gmi))
-    loadExtract('body', extract(/<x?-?script\b[^>]*>[\s\S]*?<\/x?-?script>/gmi))
+    loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style'))
+    loadExtract('body', tmpl.content.querySelectorAll('script'))
     // target is "head" or "body". els the list of DOM elements to add into target
     function loadExtract(target, els, _start = 0) {
       let index = _start
       // Loop through elements starting from the start index
       for (; index < els.length; index++) {
-        // Convert the HTML string into an element
-        let el = domify(els[index]).firstChild
+        let el = els[index]
         // Copy the element into the target document with attributes.
         // NOTE: Just inserting el into the document doesn't let <script> elements execute.
-        const clone = _window.document.createElement(el.tagName.replace(/x-script/i, 'script'))
+        const clone = _window.document.createElement(el.tagName)
         for (let attr of el.attributes)
           clone.setAttribute(attr.name, attr.value)
         clone.innerHTML = el.innerHTML
@@ -80,6 +66,14 @@
       if (target == 'body' && index == els.length)
         scriptsResolve(true)
     }
+
+    // Remove extracted styles and scripts from template.
+    // This also removes script type="application/json" "text/html"
+    for (let el of tmpl.content.querySelectorAll('link[rel="stylesheet"], style, script'))
+      el.remove()
+    // If there's a <script type="text/html">, use that for template. Else rest of the template
+    let html = _.unescape((htmlScript || tmpl).innerHTML)
+
     // Compile the rest of the template -- by default, using a Lodash template
     const compile = config.compile || _.template
     const template = compile(html)
