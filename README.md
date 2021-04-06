@@ -5,7 +5,7 @@ UIFactory is a small easy-to-learn HTML component library.
 - **It's small**. 2 KB minified, gzipped.
 - **There's nothing new to learn**. No shadow DOM. No virtual DOM. Just regular HTML, CSS and JS.
 
-## Installation
+## Install from npm
 
 Using [npm](https://www.npmjs.com/get-npm):
 
@@ -20,100 +20,125 @@ To include it in your script, use
 <script src="node_modules/uifactory/uifactory.js"></script>
 ```
 
-## Components are HTML elements
+## Components are HTML templates
 
-For example, you can create a `<g-repeat value="8">★</g-repeat>` that component that repeats the star (★) 8 times.
+For example, you can create a `<repeat-html value="8">★</repeat-html>` that component that repeats the star (★) 8 times.
 
-![8 stars](docs/g-repeat-8-star.png)
+![8 stars](docs/repeat-8-star.png)
 
-## ... defined as templates
+Just add a `<template component="repeat-html">` to defines a new `<repeat-html>` element.
 
-Any `<template component="x-xx">` defines a new `<x-xx>` element.
+**NOTE**: You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
+[It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
 
-You can use [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals). For example, this creates the `g-repeat` component we saw above:
+You can use [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals) inside the `<template>`. For example:
 
 ```html
-<template component="g-repeat" value="30">
+<template component="repeat-html" value="30">
   ${this.innerHTML.repeat(+value)}
 </template>
 ```
 
-You can use the component as a new HTML tag:
+When you add the component to your page:
 
 ```html
-<g-repeat value="8">★</g-repeat>
+<repeat-html value="8">★</repeat-html>
 ```
 
-![8 stars](docs/g-repeat-8-star.png)
+... it renders this output:
 
-You **MUST** have a dash (hyphen) in the component name (e.g. `g-repeat`).
-[It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
+![8 stars](docs/repeat-8-star.png)
 
+## Lodash templates are supported
 
 For better control, you can use [lodash templates](https://lodash.com/docs/#template):
 
 ```html
-<template component="g-repeat" value="30">
+<template component="repeat-template" value="30">
   <% for (var j=0; j < +value; j++) { %>
     <%= this.innerHTML %>
   <% } %>
 </template>
 ```
 
-This renders the same output:
+When you add the component to your page:
 
-![8 stars](docs/g-repeat-8-star.png).
+```html
+<repeat-template value="8">★</repeat-template>
+```
+
+... it renders this output:
+
+![8 stars](docs/repeat-8-star.png).
 
 Lodash templates use tags as follows:
 
 - Anything inside `<% ... %>` runs as JavaScript
 - Anything inside `<%= ... %>` runs as JavaScript, and the result is "print"ed
 
-## Define properties
+## Define properties using template attributes
 
-Any attributes you add to `<template>` creates a property. For example, `<template component="g-repeat" value="30">` defines a property `.value`:
+Any attributes you add to `<template>` creates a property. For example, `<template component="repeat-html" value="30">` defines a property `.value`:
 
 ```html
 <script>
-let el = document.querySelector('g-repeat')   // Find the first <g-repeat>
-console.log(el.value)                         // Prints the value=".."
-el.value = 10                                 // Changes value="..." and re-renders
+let el = document.querySelector('repeat-html')  // Find first <repeat-html>
+console.log(el.value)                           // Prints the value=".."
+el.value = 10                                   // Re-render with value=10
 </script>
 ```
 
 ![Access and change properties](docs/g-repeat-properties.gif)
 
-Changing a property via `.setAttribute()` or properties via `.value = ...` *re-renders* the component.
+Changing a property via via `.value = ...` *re-renders* the component. So does changing it via `.setAttribute()`.
 
 Notes:
 
-- Attribute names with uppercase letters (e.g. `fontSize`) are converted to lowercase property names (e.g. `fontsize`)
-- Attribute names with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* property names (e.g. `fontSize`).
-- Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<g-repeat new-attr="x">`).
+- Attributes with uppercase letters (e.g. `fontSize`) are converted to lowercase properties (e.g. `fontsize`)
+- Attributes with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* properties (e.g. `fontSize`).
+- Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<my-component extra="x">` does not define a `.extra`).
 
-Attribute values are strings, by default. To specify other types (e.g. number, boolean),
-create properties via JSON inside a `<script type="application/json">...</script>`. For example:
+## Define property types in JSON
+
+Properties defined as attributes are created as strings. To create numbers, booleans, arrays, etc., define properties as JSON, like this:
 
 ```html
-<template component="g-repeat">
-  ... add this JSON properties anywhere in your template:
+<template component="typed-props">
   <script type="application/json">
+    // Add a single object {} under <script type="application/json">.
     {
+      // It should have a "properties": [list of objects]
       "properties": [
-        { "name": "value", "type": "number", "value": 30 },
-        { "name": "data-list", "type": "array", "value": [4, 5] },
+        // Each property has a name, optional type, and value
+        { "name": "name", "type": "string", "value": "" },
+        { "name": "value", "type": "number", "value": 0 },
+        { "name": "is-set", "type": "boolean", "value": false },
+        { "name": "data-list", "type": "array", "value": [] },
+        { "name": "config", "type": "object", "value": {} },
       ]
     }
   </script>
+
+  Use .name as a string: <%= name.repeat(3) %>.
+  Use .value as a number: <%= "x".repeat(value) %>.
+  Use .isSet as a boolean: <%= typeof isSet %>.
+  Use .dataList as array: <%= dataList.length %>.
+  Use .config as object: <%= JSON.stringify(config) %>.
 </template>
+<typed-props name="key" value="10" is-set="true"
+  data-list="[1,2,3,4,5,6,7,8]" config="{x:1}"></typed-props>
 ```
 
-This is an array of property definitions. A property definition object has these keys:
+`"properties":` is an array of objects with these keys:
 
 - `name`: property name. e.g. `"name": "data-list"` defines a property `.dataList` and variable `dataList`
 - `type`: OPTIONAL: property type. Valid values are `string` (default), `number`, `boolean`, `object` or `array`.
-  Other types are converted using `JSON.stringify()`
 - `value`: default value of the correct type. e.g. `"value": true` for `boolean`, `"value": [30, 40]` for array, etc.
+
+Note:
+
+- The attributes needn't be JSON -- JavaScript is fine. For example, `config="{x:1}"` will work even though `{x:1}` is not valid JSON (`{"x":1}` is JSON).
+- The `"properties":` needn't be JSON either. JavaScript is fine. For example, comments are allowed.
 
 
 ## Access properties as variables
@@ -134,7 +159,7 @@ When using the component, e.g. `<g-repeat value="8"></g-repeat>`, the variable `
 
 ## Access `<template>` as `this`
 
-Inside the [template](#-defined-as-templates),
+Inside the [template](#lodash-templates-are-supported),
 `this` is the template element (e.g. `<template component="g-repeat">`).
 For example
 
@@ -142,9 +167,9 @@ For example
 - `this.querySelectorAll('input')` fetches all `<div>`s in your template
 
 
-## Access component as `$target`
+## Access `<component>` as `$target`
 
-Inside the [template](#-defined-as-templates),
+Inside the [template](#lodash-templates-are-supported),
 `$target` is the component you add (e.g. `<g-repeat>`).
 For example, this adds a click event listener to each `g-repeat` component.
 
@@ -232,7 +257,7 @@ $('body').on('connect render', function (e) {
 ![Event cycle for connect and render](docs/g-repeat-connect-render-events.gif)
 
 
-## Import components
+## Import components from HTML files
 
 To re-use components across projects, save the component code in a HTML file.
 For example, `my-component.html` could look like this:
@@ -305,8 +330,8 @@ Instead of `<template component="...">`, you can use `<script type="text/html" c
 ```
 
 Since you can't use a `<script>` tag inside another `<script>` tag, to
-[add events](#add-events-with-js) and [define properties](#define-properties), you need to
-rename all `<script>...</script>` to `<x-script>...</x-script>`. For example:
+[add events](#add-events-with-js) and [define properties](#define-properties-using-template-attributes),
+you need to rename all `<script>...</script>` to `<x-script>...</x-script>`. For example:
 
 ```html
 <script type="text/html" component="table-row">
@@ -337,8 +362,8 @@ uifactory.register({
 The object has these keys:
 
 - `name`: component name, e.g. `"g-repeat"`
-- `template`: component contents as a [template](#-defined-as-templates)
-- `properties`: OPTIONAL: a list of [attributes](#access-attributes-as-variables) as `{name, value}` objects
+- `template`: component contents as a [template](#lodash-templates-are-supported)
+- `properties`: OPTIONAL: a list of [attributes](#access-properties-as-variables) as `{name, value}` objects
 - `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
 - `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
 
@@ -382,7 +407,7 @@ uifactory.register({
 </script>
 ```
 
-![8 stars](docs/g-repeat-8-star.png)
+![8 stars](docs/repeat-8-star.png)
 
 `compile:` must be a function that accepts a string that returns a template function.
 When rendering, the template function is called with the properties object

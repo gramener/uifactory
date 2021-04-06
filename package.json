@@ -11,14 +11,28 @@
     "Bhanu Kamapantula <bhanu.kamapantula@gramener.com>",
     "Samarth Gulati <samarth.gulati@gramener.com>"
   ],
-  "scripts": {},
+  "scripts": {
+    "lint": "remark -q --no-stdout -u validate-links README.MD",
+    "pretest": "npm run lint && browserify -s tape -r tape -o test/tape.js",
+    "test": "node test/server.js"
+  },
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "lodash": "^4.17.21"
+    "lodash": "4"
   },
   "peerDependencies": {
     "lodash": "4"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "browserify": "17",
+    "express": "4",
+    "faucet": "0.0",
+    "puppeteer": "8",
+    "remark-cli": "9",
+    "remark-validate-links": "10",
+    "serve-index": "1",
+    "tap-merge": "0.3",
+    "tape": "5"
+  }
 }

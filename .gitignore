@@ -1,8 +1,8 @@
 # Locally tracked TODOs
 TODO
 
-# Local testing file
-test*.html
+# Generated files
+test/tape.js
 
 # Ignore all node modules
 node_modules/

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="tape.js"></script>
+  <script src="../node_modules/lodash/lodash.min.js"></script>
+  <script src="../uifactory.js"></script>
+</head>
+<body>
+
+<!--
+## Install from npm
+
+Using [npm](https://www.npmjs.com/get-npm):
+
+```bash
+npm install uifactory lodash
+```
+
+To include it in your script, use
+
+```html
+<script src="node_modules/lodash/lodash.min.js"></script>
+<script src="node_modules/uifactory/uifactory.js"></script>
+```
+-->
+  <script>
+    tape('Lodash (_) and uifactory are available as globals', function (t) {
+      t.ok(_)
+      t.ok(uifactory)
+      t.end()
+    })
+  </script>
+
+
+<!--
+## Components are HTML templates
+
+For example, you can create a `<repeat-html value="8">★</repeat-html>` that component that repeats the star (★) 8 times.
+
+![8 stars](docs/repeat-8-star.png)
+
+Just add a `<template component="repeat-html">` to defines a new `<repeat-html>` element.
+
+**NOTE**: You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
+[It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
+
+You can use [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals) inside the `<template>`. For example:
+
+```html
+<template component="repeat-html" value="30">
+  ${this.innerHTML.repeat(+value)}
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<repeat-html value="8">★</repeat-html>
+```
+
+... it renders this output:
+
+![8 stars](docs/repeat-8-star.png)
+-->
+<template component="repeat-html" value="30">
+  ${this.innerHTML.repeat(+value)}
+</template>
+<repeat-html value="8">★</repeat-html>
+<script>
+  tape('Components use template literals', function (t) {
+    let html = document.querySelector('repeat-html').innerHTML
+    t.equals(html.trim(), '★★★★★★★★')
+    t.end()
+  })
+</script>
+
+
+<!--
+## Lodash templates are supported
+
+For better control, you can use [lodash templates](https://lodash.com/docs/#template):
+
+```html
+<template component="repeat-template" value="30">
+  <% for (var j=0; j < +value; j++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<repeat-template value="8">★</repeat-template>
+```
+
+... it renders this output:
+
+![8 stars](docs/repeat-8-star.png).
+
+Lodash templates use tags as follows:
+
+- Anything inside `<% ... %>` runs as JavaScript
+- Anything inside `<%= ... %>` runs as JavaScript, and the result is "print"ed
+-->
+<template component="repeat-template" value="30">
+  <% for (var j=0; j < +value; j++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+</template>
+<repeat-template value="8">★</repeat-template>
+<script>
+  tape('Components use lodash templates', function (t) {
+    let html = document.querySelector('repeat-template').innerHTML
+    t.ok(html.trim().match(/^(★\s*){8}$/))
+    t.end()
+  })
+</script>
+
+<!--
+
+## Define properties using template attributes
+
+Any attributes you add to `<template>` creates a property. For example, `<template component="repeat-html" value="30">` defines a property `.value`:
+
+```html
+<script>
+let el = document.querySelector('repeat-html')  // Find first <repeat-html>
+console.log(el.value)                           // Prints the value=".."
+el.value = 10                                   // Re-render with value=10
+</script>
+```
+
+![Access and change properties](docs/g-repeat-properties.gif)
+
+Changing a property via via `.value = ...` *re-renders* the component. So does changing it via `.setAttribute()`.
+
+Notes:
+
+- Attribute names with uppercase letters (e.g. `fontSize`) are converted to lowercase property names (e.g. `fontsize`)
+- Attribute names with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* property names (e.g. `fontSize`).
+- Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<my-component extra="x">` does not define a `.extra`).
+-->
+<template component="attr-test" mixedCase="mc" font-size="fs"></template>
+<attr-test mixedCase="MC" font-size="FS" extra="E"></attr-test>
+<script>
+  let el = document.querySelector('repeat-html')  // Find first <repeat-html>
+  let at = document.querySelector('attr-test')
+  tape('Define properties using template attributes', function (t) {
+    t.ok(el.value, 'Attributes on template are added as properties')
+
+    el.value = 10
+    t.equals(el.innerHTML.trim(), '★★★★★★★★★★',
+             'Changing a property via via `.value = ...` *re-renders* the component.')
+
+    el.setAttribute('value', "4")
+    t.equals(el.innerHTML.trim(), '★★★★',
+             'So does changing it via `.setAttribute()`.')
+    t.end()
+  })
+  tape('Attribute names with uppercase letters (e.g. `fontSize`) are converted to lowercase property names (e.g. `fontsize`)', function (t) {
+    t.equals(at.mixedcase, 'MC')
+    t.end()
+  })
+  tape('Attribute names with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* property names (e.g. `fontSize`).', function (t) {
+    t.equals(at.fontSize, 'FS')
+    t.end()
+  })
+  tape('Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<g-repeat new-attr="x">`).', function (t) {
+    t.equals(at.extra, undefined)
+    t.end()
+  })
+</script>
+
+
+<!--
+## Define property types in JSON
+
+Properties defined as attributes are created as strings. To create numbers, booleans, arrays, etc., define properties as JSON, like this:
+
+```html
+<template component="typed-props">
+  <script type="application/json">
+    // Add a single object {} under <script type="application/json">.
+    {
+      // It should have a "properties": [list of objects]
+      "properties": [
+        // Each property has a name, optional type, and value
+        { "name": "name", "type": "string", "value": "" },
+        { "name": "value", "type": "number", "value": 0 },
+        { "name": "is-set", "type": "boolean", "value": false },
+        { "name": "data-list", "type": "array", "value": [] },
+        { "name": "config", "type": "object", "value": {} },
+      ]
+    }
+  </script>
+
+  Use .name as a string: <%= name.repeat(3) %>.
+  Use .value as a number: <%= "x".repeat(value) %>.
+  Use .isSet as a boolean: <%= typeof isSet %>.
+  Use .dataList as array: <%= dataList.length %>.
+  Use .config as object: <%= JSON.stringify(config) %>.
+</template>
+<typed-props name="key" value="10" is-set="true"
+  data-list="[1,2,3,4,5,6,7,8]" config="{x:1}"></typed-props>
+```
+
+`"properties":` is an array of objects with these keys:
+
+- `name`: property name. e.g. `"name": "data-list"` defines a property `.dataList` and variable `dataList`
+- `type`: OPTIONAL: property type. Valid values are `string` (default), `number`, `boolean`, `object` or `array`.
+- `value`: default value of the correct type. e.g. `"value": true` for `boolean`, `"value": [30, 40]` for array, etc.
+
+Note:
+
+- The attributes needn't be JSON -- JavaScript is fine. For example, `config="{x:1}"` will work even though `{x:1}` is not valid JSON (`{"x":1}` is JSON).
+- The `"properties":` needn't be JSON either. JavaScript is fine. For example, comments are allowed.
+-->
+<template component="typed-props">
+  <script type="application/json">
+    // Add a single object {} under <script type="application/json">.
+    {
+      // It should have a "properties": [list of objects]
+      "properties": [
+        // Each property has a name, optional type, and value
+        { "name": "name", "type": "string", "value": "" },
+        { "name": "value", "type": "number", "value": 0 },
+        { "name": "is-set", "type": "boolean", "value": false },
+        { "name": "data-list", "type": "array", "value": [] },
+        { "name": "config", "type": "object", "value": {} },
+      ]
+    }
+  </script>
+
+  Use .name as a string: <%= name.repeat(3) %>.
+  Use .value as a number: <%= "x".repeat(value) %>.
+  Use .isSet as a boolean: <%= typeof isSet %>.
+  Use .dataList as array: <%= dataList.length %>.
+  Use .config as object: <%= JSON.stringify(config) %>.
+</template>
+<typed-props name="key" value="10" is-set="true"
+  data-list="[1,2,3,4,5,6,7,8]" config="{x:1}"></typed-props>
+<script>
+  tape('Define property types in JSON', function (t) {
+    let html = document.querySelector('typed-props').innerHTML
+    t.ok(html.match(/string: keykeykey./), 'type: string')
+    t.ok(html.match(/number: xxxxxxxxxx./), 'type: number')
+    t.ok(html.match(/boolean: boolean./))
+    t.ok(html.match(/array: 8./))
+    t.ok(html.match(/object: {"x":1}/))
+    t.end()
+  })
+</script>
+
+</body>

@@ -11,9 +11,10 @@
   }
 
   // Used to serialize and parse values of different types
-  const types = /number|boolean|object|array|json/i
+  const js_parse = s => eval(`(${s})`)
+  const types = /number|boolean|object|array|json|js/i
   const stringify = (type, val) => type.match(types) ? JSON.stringify(val) : val
-  const parse = (type, val) => type && type.match(types) ? JSON.parse(val) : val
+  const parse = (type, val) => type && type.match(types) ? js_parse(val) : val
 
   // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
   const camelize = s => s.replace(/-./g, x => x.toUpperCase()[1])
@@ -163,26 +164,23 @@
     _window.customElements.define(config.name, UIFactory)
   }
 
-  function registerElement(el) {
-    let isScript = el.matches('script')
+  function registerElement(el, options) {
     // Register a template/script element like <template component="comp" attr="val">
     // as a component {name: "comp", properties: {attr: {value: "val", type: "text"}}}
-    let config = {
+    let config = Object.assign({}, options, {
       name: el.getAttribute('component'),
-      // If <template> tag is used unescape the HTML. It'll come through as &lt;tag-name&gt;
-      // But if <script> tag is used, no need to unescape it.
-      template: isScript ? el.innerHTML : _.unescape(el.innerHTML),
+      // Since <template> tag is used unescape the HTML. It'll come through as &lt;tag-name&gt;
+      template: _.unescape(el.innerHTML),
       // Define properties as an object to make merge easier. But later, convert to list
       properties: {}
-    }
+    })
     // Define properties from attributes
     for (let attr of el.attributes)
       config.properties[attr.name] = { name: attr.name, type: 'text', value: attr.value }
     // Merge config with <script type="application/json"> configurations
-    let contents = isScript ? domify(el.innerHTML) : el.content
-    contents.querySelectorAll('[type="application/json"]').forEach(text => {
+    el.content.querySelectorAll('[type="application/json"]').forEach(text => {
       // Copy properties
-      let conf = JSON.parse(text.innerHTML)
+      let conf = js_parse(text.innerHTML)
       for (let attr of conf.properties || [])
         config.properties[attr.name] = Object.assign(config.properties[attr.name] || {}, attr)
     })
@@ -192,50 +190,37 @@
     registerComponent(config)
   }
 
-  // Take all <template component="..."> or <script type="text/html" component="..."> in a document.
-  // Register each element as a component.
-  function registerDocument(doc) {
-    doc.querySelectorAll('template[component],script[type="text/html"][component]').forEach(registerElement)
+  // Register each <template component="..."> in a document as a component.
+  function registerDocument(doc, options) {
+    doc.querySelectorAll('template[component]').forEach(el => registerElement(el, options))
   }
 
-  // Fetch a URL and register the response.
-  // If response is JSON, registerComponent().
-  // If response is not JSON, render it as HTML and register the document
-  function registerURL(url) {
+  // Fetch a HTML template and register it.
+  function registerURL(url, options) {
     fetch(url)
-      .then(response => response.headers.get('Content-Type') == 'application/json' ? response.json() : response.text())
+      .then(response => response.text())
       .then(config => {
-        if (typeof config == 'object')
-          registerComponent(config)
-        else {
-          tmpl.innerHTML = config
-          registerDocument(tmpl.content)
-        }
+        tmpl.innerHTML = config
+        registerDocument(tmpl.content, options)
       })
       .catch(console.error)
   }
 
-  // Register a HTML element, URL or config
-  function register(config) {
-    if (config instanceof HTMLElement)
-      registerElement(config)
-    else if (typeof config == 'string')
-      registerURL(config)
-    else if (typeof config == 'object')
-      registerComponent(config)
-  }
-
-  // uifactory.register({ name: 'g-component', template: '<%= 1 + 2 %>', window: window })
-  //    creates a <g-component> with the lodash template
-  // uifactory.register('g-comp1.json', 'g-comp2.json')
-  //    loads these components from g-comp1.json, etc
   window.uifactory = {
-    register: (...configs) => configs.forEach(register)
+    // Register a HTML element, URL or config
+    register: (config, options) => {
+      if (config instanceof HTMLElement)
+        registerElement(config, options)
+      else if (typeof config == 'string')
+        registerURL(config, options)
+      else if (typeof config == 'object')
+        registerComponent(config)
+    }
   }
 
   // If called via <script src="components.js" import="path.html, ...">, import each file
   let components = doc.currentScript.getAttribute('import') || ''
-  components.trim().split(/[,+ ]+/g).forEach(registerURL)
+  components.trim().split(/[,+ ]+/g).filter(v => v).forEach(registerURL)
 
   // When DOM all elements are loaded, register the current document
   window.addEventListener('DOMContentLoaded', () => registerDocument(doc))
