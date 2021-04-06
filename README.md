@@ -76,6 +76,46 @@ Lodash templates use tags as follows:
 - Anything inside `<% ... %>` runs as JavaScript
 - Anything inside `<%= ... %>` runs as JavaScript, and the result is "print"ed
 
+## HTML scripts are supported
+
+Some Lodash templates may lead to invalid HTML.
+
+For example, HTML doesn't allow `<% for ... %>` inside a `<tbody>`. (Only `<tr>` is allowed.) So this is invalid:
+
+```html
+<template component="table-invalid" rows="3">
+  <table>
+    <tbody>
+      <% for (let i=0; i < +rows; i++) { %>
+        <tr><td>Row <%= i %></td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</template>
+```
+
+Instead, you should wrap your HTML inside a `<script type="text/html">...</script>`.
+Anything you write inside it will be rendered as a Lodash template.
+(Any HTML outside it is ignored.)
+
+```html
+<template component="table-valid" rows="3">
+  <script type="text/html">
+    <table>
+      <tbody>
+        <% for (let i=0; i < +rows; i++) { %>
+          <tr><td>Row <%= i %></td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </script>
+  If you have a script type="text/html",
+  any HTML outside it is ignored.
+</template>
+<table-valid rows="5"></table-valid>
+```
+
+
 ## Define properties using template attributes
 
 Any attributes you add to `<template>` creates a property. For example, `<template component="repeat-html" value="30">` defines a property `.value`:
@@ -97,6 +137,79 @@ Notes:
 - Attributes with uppercase letters (e.g. `fontSize`) are converted to lowercase properties (e.g. `fontsize`)
 - Attributes with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* properties (e.g. `fontSize`).
 - Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<my-component extra="x">` does not define a `.extra`).
+
+## Access properties as variables
+
+Inside templates, properties are available as JavaScript variables.
+For example, `<template value="0">` defines the variable `value` with a default of 0:
+
+```html
+<template component="repeat-value" value="30">
+  <% for (var j=0; j < +value; j++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+</template>
+<repeat-value value="8"></repeat-value>
+```
+
+Inside the template, the variable `value` has a value `"8"`.
+
+
+## Access `<template>` as `this`
+
+Inside the [template](#lodash-templates-are-supported),
+`this` is the template element (e.g. `<template component="g-repeat">`).
+For example
+
+- `this.innerHTML` has the contents of your template.
+- `this.querySelectorAll('div')` fetches all `<div>`s in your template
+
+This `<repeat-icons>` component repeats two
+
+```html
+<template component="repeat-icons" x="3" y="2">
+  <%= this.querySelector('.x').innerHTML.repeat(+x) %>
+  <%= this.querySelector('.y').innerHTML.repeat(+y) %>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<repeat-icons style="padding:3px">
+  <span class="x">🙂</span>
+  <span class="y">😡</span>
+</repeat-icons>
+```
+
+... it renders this output:
+
+🙂🙂🙂😡😡
+
+
+## Access `<component>` as `$target`
+
+Inside the [template](#lodash-templates-are-supported),
+`$target` is the component you add (e.g. `<g-repeat>`).
+For example, this adds a click event listener to each `g-repeat` component.
+
+```html
+<template component="g-repeat" value="30">
+  <% for (var j=0; j < +value; j++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+  <%
+    $target.addEventListener('click', console.log)
+  %>
+</template>
+```
+
+<!-- TODO: Will this add multiple event listeners if the component is re-rendered? -->
+
+![Access $target element](docs/g-repeat-click-event.gif)
+
+You can access component attributes, e.g. `<g-repeat color="red">` as `$target.getAttribute('color')`.
+
 
 ## Define property types in JSON
 
@@ -141,56 +254,6 @@ Note:
 - The `"properties":` needn't be JSON either. JavaScript is fine. For example, comments are allowed.
 
 
-## Access properties as variables
-
-Inside templates, properties are available as JavaScript variables.
-For example, `<template value="30">` defines the variable `value`:
-
-```html
-<template component="g-repeat" value="30">
-  <% for (var j=0; j < +value; j++) { %>
-    <%= this.innerHTML %>
-  <% } %>
-</template>
-```
-
-When using the component, e.g. `<g-repeat value="8"></g-repeat>`, the variable `value` becomes `"8"`.
-
-
-## Access `<template>` as `this`
-
-Inside the [template](#lodash-templates-are-supported),
-`this` is the template element (e.g. `<template component="g-repeat">`).
-For example
-
-- `this.innerHTML` has the contents of your template.
-- `this.querySelectorAll('input')` fetches all `<div>`s in your template
-
-
-## Access `<component>` as `$target`
-
-Inside the [template](#lodash-templates-are-supported),
-`$target` is the component you add (e.g. `<g-repeat>`).
-For example, this adds a click event listener to each `g-repeat` component.
-
-```html
-<template component="g-repeat" value="30">
-  <% for (var j=0; j < +value; j++) { %>
-    <%= this.innerHTML %>
-  <% } %>
-  <%
-    $target.addEventListener('click', console.log)
-  %>
-</template>
-```
-
-<!-- TODO: Will this add multiple event listeners if the component is re-rendered? -->
-
-![Access $target element](docs/g-repeat-click-event.gif)
-
-You can access component attributes, e.g. `<g-repeat color="red">` as `$target.getAttribute('color')`.
-
-
 ## Style components with CSS
 
 Use regular CSS to style the components. The `<template>` is rendered directly inside the component (not a shadow DOM). So you can style the contents directly.
@@ -198,15 +261,23 @@ Use regular CSS to style the components. The `<template>` is rendered directly i
 For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`:
 
 ```html
-<template component="g-repeat" value="30">
+<template component="repeat-style" value="30">
   <style>
-    g-repeat[value="8"] { background-color: yellow; }
+    repeat-style[value="8"] { background-color: yellow; }
   </style>
   <% for (var j=0; j < +value; j++) { %>
     <%= this.innerHTML %>
   <% } %>
 </template>
 ```
+
+When you add the component to your page:
+
+```html
+<repeat-style value="8">★</repeat-style>
+```
+
+... it renders this output:
 
 ![Yellow background applied to g-repeat](docs/g-repeat-8-star-yellow.png)
 
@@ -216,7 +287,7 @@ You can style child elements like this:
 
 ```css
 /* When user hovers on any image inside a g-repeat, add a black border */
-g-repeat img:hover {
+repeat-style img:hover {
   border: 1px solid black;
 }
 ```
@@ -299,52 +370,6 @@ Notes:
   [CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
 
 
-
-
-## Use `<script>` instead of `<template>` for tables
-
-The `<template>` tag only allows valid HTML. So you CANNOT do this:
-
-```html
-<template component="table-row">
-  <tr>
-    <% cells.forEach(function(cell) { %>
-      <td><%= cell></td>
-    <% }) %>
-  </tr>
-</template>
-```
-
-... because `<tr>` only accepts `<td>` or `<th>` as children -- not `<% ... %>`.
-
-Instead of `<template component="...">`, you can use `<script type="text/html" component="...">`.
-
-```html
-<script type="text/html" component="table-row">
-  <tr>
-    <% cells.forEach(function(cell) { %>
-      <td><%= cell></td>
-    <% }) %>
-  </tr>
-</script>
-```
-
-Since you can't use a `<script>` tag inside another `<script>` tag, to
-[add events](#add-events-with-js) and [define properties](#define-properties-using-template-attributes),
-you need to rename all `<script>...</script>` to `<x-script>...</x-script>`. For example:
-
-```html
-<script type="text/html" component="table-row">
-  ...
-  <x-script>
-    // TODO: add events here
-  </x-script>
-  <x-script type="application/json">
-    // TODO: define properties here
-  </x-script>
-</script>
-```
-
 # Advanced options
 
 To register a component with full control over the options, use:
@@ -366,6 +391,9 @@ The object has these keys:
 - `properties`: OPTIONAL: a list of [attributes](#access-properties-as-variables) as `{name, value}` objects
 - `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
 - `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
+
+
+TODO: document other ways of registering
 
 
 ## Use any compiler

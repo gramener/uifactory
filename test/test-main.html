@@ -25,8 +25,8 @@ To include it in your script, use
 -->
   <script>
     tape('Lodash (_) and uifactory are available as globals', function (t) {
-      t.ok(_)
-      t.ok(uifactory)
+      t.ok(_, 'lodash loaded')
+      t.ok(uifactory, 'uifactory loaded')
       t.end()
     })
   </script>
@@ -69,7 +69,7 @@ When you add the component to your page:
 <script>
   tape('Components use template literals', function (t) {
     let html = document.querySelector('repeat-html').innerHTML
-    t.equals(html.trim(), '★★★★★★★★')
+    t.equals(html.trim(), '★★★★★★★★', 'template literals work')
     t.end()
   })
 </script>
@@ -112,7 +112,70 @@ Lodash templates use tags as follows:
 <script>
   tape('Components use lodash templates', function (t) {
     let html = document.querySelector('repeat-template').innerHTML
-    t.ok(html.trim().match(/^(★\s*){8}$/))
+    t.ok(html.trim().match(/^(★\s*){8}$/), 'lodash templates work')
+    t.end()
+  })
+</script>
+
+<!--
+## HTML scripts are supported
+
+Some Lodash templates may lead to invalid HTML.
+
+For example, HTML doesn't allow `<% for ... %>` inside a `<tbody>`. (Only `<tr>` is allowed.) So this is invalid:
+
+```html
+<template component="table-invalid" rows="3">
+  <table>
+    <tbody>
+      <% for (let i=0; i < +rows; i++) { %>
+        <tr><td>Row <%= i %></td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</template>
+```
+
+Instead, you should wrap your HTML inside a `<script type="text/html">...</script>`.
+Anything you write inside it will be rendered as a Lodash template.
+(Any HTML outside it is ignored.)
+
+```html
+<template component="table-valid" rows="3">
+  <script type="text/html">
+    <table>
+      <tbody>
+        <% for (let i=0; i < +rows; i++) { %>
+          <tr><td>Row <%= i %></td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </script>
+  If you have a script type="text/html",
+  any HTML outside it is ignored.
+</template>
+<table-valid rows="5"></table-valid>
+```
+-->
+<template component="table-valid" rows="3">
+  <script type="text/html">
+    <table>
+      <tbody>
+        <% for (let i=0; i < +rows; i++) { %>
+          <tr><td>Row <%= i %></td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </script>
+  If you have a script type="text/html",
+  any HTML outside it is ignored.
+</template>
+<table-valid rows="5"></table-valid>
+<script>
+  tape('HTML scripts are supported', function (t) {
+    let el = document.querySelector('table-valid')
+    t.equals(el.querySelectorAll('table > tbody > tr').length, 5, 'HTML scripts rendered')
+    t.ok(!el.innerHTML.match(/ignored/), 'non-script content ignored')
     t.end()
   })
 </script>
@@ -159,19 +222,99 @@ Notes:
     t.end()
   })
   tape('Attribute names with uppercase letters (e.g. `fontSize`) are converted to lowercase property names (e.g. `fontsize`)', function (t) {
-    t.equals(at.mixedcase, 'MC')
+    t.equals(at.mixedcase, 'MC', 'mixed-case attrs become lowercase')
     t.end()
   })
   tape('Attribute names with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* property names (e.g. `fontSize`).', function (t) {
-    t.equals(at.fontSize, 'FS')
+    t.equals(at.fontSize, 'FS', 'hyphenated attributes become camelCase')
     t.end()
   })
   tape('Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<g-repeat new-attr="x">`).', function (t) {
-    t.equals(at.extra, undefined)
+    t.equals(at.extra, undefined, 'non-template attributes are not properties')
     t.end()
   })
 </script>
 
+
+<!--
+## Access properties as variables
+
+Inside templates, properties are available as JavaScript variables.
+For example, `<template value="0">` defines the variable `value` with a default of 0:
+
+```html
+<template component="repeat-value" value="30">
+  <% for (var j=0; j < +value; j++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+</template>
+<repeat-value value="8"></repeat-value>
+```
+
+Inside the template, the variable `value` has a value `"8"`.
+-->
+<template component="repeat-value" value="30">
+  <% for (var j=0; j < +value; j++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+</template>
+<repeat-value value="8">★</repeat-value>
+<script>
+  tape('Access properties as variables', function (t) {
+    let html = document.querySelector('repeat-value').innerHTML
+    t.ok(html.trim().match(/^(★\s*){8}$/), 'properties are available as variables')
+    t.end()
+  })
+</script>
+
+
+<!--
+## Access `<template>` as `this`
+
+Inside the [template](#lodash-templates-are-supported),
+`this` is the template element (e.g. `<template component="g-repeat">`).
+For example
+
+- `this.innerHTML` has the contents of your template.
+- `this.querySelectorAll('div')` fetches all `<div>`s in your template
+
+This `<repeat-icons>` component repeats two
+
+```html
+<template component="repeat-icons" x="3" y="2">
+  <%= this.querySelector('.x').innerHTML.repeat(+x) %>
+  <%= this.querySelector('.y').innerHTML.repeat(+y) %>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<repeat-icons style="padding:3px">
+  <span class="x">🙂</span>
+  <span class="y">😡</span>
+</repeat-icons>
+```
+
+... it renders this output:
+
+🙂🙂🙂😡😡
+-->
+<template component="repeat-icons" x="3" y="2">
+  <%= this.querySelector('.x').innerHTML.repeat(+x) %>
+  <%= this.querySelector('.y').innerHTML.repeat(+y) %>
+</template>
+<repeat-icons style="padding:3px">
+  <span class="x">🙂</span>
+  <span class="y">😡</span>
+</repeat-icons>
+<script>
+  tape('Access `<template>` as `this`', function (t) {
+    let html = document.querySelector('repeat-icons').innerHTML
+    t.ok(html.match(/🙂🙂🙂\s*😡😡/), 'this.querySelector is accessible')
+    t.end()
+  })
+</script>
 
 <!--
 ## Define property types in JSON
@@ -252,4 +395,63 @@ Note:
   })
 </script>
 
+
+<!--
+## Style components with CSS
+
+Use regular CSS to style the components. The `<template>` is rendered directly inside the component (not a shadow DOM). So you can style the contents directly.
+
+For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`:
+
+```html
+<template component="repeat-style" value="30">
+  <style>
+    repeat-style[value="8"] { background-color: yellow; }
+  </style>
+  <% for (var j=0; j < +value; j++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<repeat-style value="8">★</repeat-style>
+```
+
+... it renders this output:
+
+![Yellow background applied to g-repeat](docs/g-repeat-8-star-yellow.png)
+
+UIFactory copies all `<style>`s and `<link rel="stylesheet">`s into the document's HEAD, and runs them only once (even if you use the component multiple times.)
+
+You can style child elements like this:
+
+```css
+/* When user hovers on any image inside a g-repeat, add a black border */
+repeat-style img:hover {
+  border: 1px solid black;
+}
+```
+-->
+<template component="repeat-style" value="30">
+  <style>
+    repeat-style[value="8"] { background-color: yellow; }
+  </style>
+  <% for (var j=0; j < +value; j++) { %>
+    <%= this.innerHTML %>
+  <% } %>
+</template>
+<repeat-style value="8">★</repeat-style>
+<script>
+  tape('Style components with CSS', function (t) {
+    let el = document.querySelector('repeat-style')
+    t.equals(getComputedStyle(el).backgroundColor, 'rgb(255, 255, 0)', 'style is applied on component')
+    t.end()
+  })
+</script>
+
+
 </body>
+</html>
