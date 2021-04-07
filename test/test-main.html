@@ -404,9 +404,10 @@ Note:
 <simple-list list="[4, 'ok', true]"></simple-list>
 <script>
   tape('Define property types in JSON - array', function (t) {
-    t.deepEqual(
-      Array.from(document.querySelectorAll('simple-list > ul > li')).map(v => v.innerHTML),
-      ['4', 'ok', 'true'])
+    const vals = () => Array.from(document.querySelectorAll('simple-list > ul > li')).map(v => v.innerHTML)
+    t.deepEqual(vals(), ['4', 'ok', 'true'])
+    document.querySelector('simple-list').list = ['next', 'list']
+    t.deepEqual(vals(), ['next', 'list'])
     t.end()
   })
 </script>
@@ -504,6 +505,16 @@ repeat-style img:hover {
   })
 </script>
 
+
+<div id="parent"></div>
+<script>
+document.querySelector('#parent').innerHTML = '<repeat-template value="8">★<repeat-template>'
+let el2 = document.createElement('repeat-template')
+el2.innerHTML = 'x'
+el2.value = 9
+console.log(el2.value)
+document.body.appendChild(el2)
+</script>
 
 </body>
 </html>

@@ -86,7 +86,7 @@
     // Create the custom HTML element
     class UIFactory extends _window.HTMLElement {
       connectedCallback() {
-        // Called when the component is created. "this" is the created HTMLElement.
+        // Called when element is connected to the parent. "this" is the created HTMLElement.
 
         // this.__model is the model, i.e. object passed to the template.
         // template can access the component at $target

@@ -22,16 +22,17 @@ To include it in your script, use
 
 ## Components are HTML templates
 
-For example, you can create a `<repeat-html value="8">★</repeat-html>` that component that repeats the star (★) 8 times.
+For example, you can create a component like this:
+
+```html
+<repeat-html value="8">★</repeat-html>
+```
+
+... that repeats the star (★) 8 times, like this:
 
 ![8 stars](docs/repeat-8-star.png)
 
-Just add a `<template component="repeat-html">` to defines a new `<repeat-html>` element.
-
-**NOTE**: You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
-[It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
-
-You can use [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals) inside the `<template>`. For example:
+To create this `<repeat-html>` component, add a `<template component="repeat-html">` like this:
 
 ```html
 <template component="repeat-html" value="30">
@@ -39,15 +40,20 @@ You can use [template literals](https://developer.mozilla.org/en-US/docs/Web/Jav
 </template>
 ```
 
-When you add the component to your page:
+This uses [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals)
+inside the `<template>` to generate the HTML. Now,
 
 ```html
 <repeat-html value="8">★</repeat-html>
 ```
 
-... it renders this output:
+... renders this output:
 
 ![8 stars](docs/repeat-8-star.png)
+
+**NOTE**: You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
+[It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
+
 
 ## Lodash templates are supported
 
@@ -76,7 +82,7 @@ Lodash templates use tags as follows:
 - Anything inside `<% ... %>` runs as JavaScript
 - Anything inside `<%= ... %>` runs as JavaScript, and the result is "print"ed
 
-## HTML scripts are supported
+## Wrap tables in HTML scripts
 
 Some Lodash templates may lead to invalid HTML.
 
@@ -402,6 +408,30 @@ Notes:
   [CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
 
 
+## Create components with JavaScript
+
+You can dynamically add components at any time. For example:
+
+```html
+<div id="parent"></div>
+<script>
+document.querySelector('#parent').innerHTML = '<repeat-template value="8">★<repeat-template>'
+</script>
+```
+
+... adds `<repeat-template value="8">★<repeat-template>` to the body.
+
+![8 stars](docs/repeat-8-star.png)
+
+This code does the same thing:
+
+```js
+let el = document.createElement('repeat-template')
+el.innerHTML = '★'
+el.setAttribute('value', '8')
+document.body.appendChild(el)
+```
+
 # Advanced options
 
 To register a component with full control over the options, use:
@@ -426,7 +456,6 @@ The object has these keys:
 
 
 TODO: document other ways of registering
-
 
 ## Use any compiler
 
