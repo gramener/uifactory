@@ -1,9 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
   <script src="tape.js"></script>
   <script src="../node_modules/lodash/lodash.min.js"></script>
   <script src="../uifactory.js"></script>
+  <script>
+    // Don't run the tests upfront. Run them after all scripts are loaded. Just cache them for now
+    let __tape = tape
+    let __tests = []
+    tape = function (msg, fn) {
+      __tests.push([msg, fn])
+    }
+  </script>
 </head>
 <body>
 
@@ -23,28 +32,29 @@ To include it in your script, use
 <script src="node_modules/uifactory/uifactory.js"></script>
 ```
 -->
-  <script>
-    tape('Lodash (_) and uifactory are available as globals', function (t) {
-      t.ok(_, 'lodash loaded')
-      t.ok(uifactory, 'uifactory loaded')
-      t.end()
-    })
-  </script>
+<script>
+  tape('Lodash (_) and uifactory are available as globals', function (t) {
+    t.ok(_, 'lodash loaded')
+    t.ok(uifactory, 'uifactory loaded')
+    t.end()
+  })
+</script>
 
 
 <!--
 ## Components are HTML templates
 
-For example, you can create a `<repeat-html value="8">★</repeat-html>` that component that repeats the star (★) 8 times.
+For example, you can create a component like this:
+
+```html
+<repeat-html value="8">★</repeat-html>
+```
+
+... that repeats the star (★) 8 times, like this:
 
 ![8 stars](docs/repeat-8-star.png)
 
-Just add a `<template component="repeat-html">` to defines a new `<repeat-html>` element.
-
-**NOTE**: You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
-[It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
-
-You can use [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals) inside the `<template>`. For example:
+To create this `<repeat-html>` component, add a `<template component="repeat-html">` like this:
 
 ```html
 <template component="repeat-html" value="30">
@@ -52,15 +62,19 @@ You can use [template literals](https://developer.mozilla.org/en-US/docs/Web/Jav
 </template>
 ```
 
-When you add the component to your page:
+This uses [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals)
+inside the `<template>` to generate the HTML. Now,
 
 ```html
 <repeat-html value="8">★</repeat-html>
 ```
 
-... it renders this output:
+... renders this output:
 
 ![8 stars](docs/repeat-8-star.png)
+
+**NOTE**: You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
+[It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
 -->
 <template component="repeat-html" value="30">
   ${this.innerHTML.repeat(+value)}
@@ -68,12 +82,22 @@ When you add the component to your page:
 <repeat-html value="8">★</repeat-html>
 <script>
   tape('Components use template literals', function (t) {
-    let html = document.querySelector('repeat-html').innerHTML
-    t.equals(html.trim(), '★★★★★★★★', 'template literals work')
+    let el = document.querySelector('repeat-html')
+    t.equals(el.innerHTML.trim(), '★★★★★★★★', 'template literals work')
     t.end()
   })
 </script>
-
+<script>
+  tape('You **MUST** have a dash (hyphen) in the component name', function (t) {
+    try {
+      uifactory.register({ name: 'nohyphen', 'template': 'xx' })
+      t.end('Component name without hyphens allowed!')
+    } catch(e) {
+      t.equals(e.name, 'SyntaxError', 'Component name without hyphen disallowed')
+    }
+    t.end()
+  })
+</script>
 
 <!--
 ## Lodash templates are supported
@@ -111,8 +135,8 @@ Lodash templates use tags as follows:
 <repeat-template value="8">★</repeat-template>
 <script>
   tape('Components use lodash templates', function (t) {
-    let html = document.querySelector('repeat-template').innerHTML
-    t.ok(html.trim().match(/^(★\s*){8}$/), 'lodash templates work')
+    let el = document.querySelector('repeat-template')
+    t.ok(el.innerHTML.trim().match(/^(★\s*){8}$/), 'lodash templates work')
     t.end()
   })
 </script>
@@ -181,10 +205,10 @@ Anything you write inside it will be rendered as a Lodash template.
 </script>
 
 <!--
+## Define properties using `<template attr="...">`
 
-## Define properties using template attributes
-
-Any attributes you add to `<template>` creates a property. For example, `<template component="repeat-html" value="30">` defines a property `.value`:
+Any attributes you add to `<template>` can be accessed via `element.attr`.
+For example, `<template component="repeat-html" value="30">` defines a property `.value`:
 
 ```html
 <script>
@@ -196,16 +220,16 @@ el.value = 10                                   // Re-render with value=10
 
 ![Access and change properties](docs/g-repeat-properties.gif)
 
-Changing a property via via `.value = ...` *re-renders* the component. So does changing it via `.setAttribute()`.
+Changing `.value = ...` *re-renders* the component. So does `.setAttribute('value', ...)`.
 
 Notes:
 
-- Attribute names with uppercase letters (e.g. `fontSize`) are converted to lowercase property names (e.g. `fontsize`)
-- Attribute names with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* property names (e.g. `fontSize`).
+- Attributes with uppercase letters (e.g. `fontSize`) are converted to lowercase properties (e.g. `fontsize`)
+- Attributes with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* properties (e.g. `fontSize`).
 - Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<my-component extra="x">` does not define a `.extra`).
 -->
-<template component="attr-test" mixedCase="mc" font-size="fs"></template>
-<attr-test mixedCase="MC" font-size="FS" extra="E"></attr-test>
+<template component="attr-test" mixedCase="mc" font-size="fs" query-selector="qs"></template>
+<attr-test mixedCase="MC" font-size="FS" extra="E" query-selector="QS"></attr-test>
 <script>
   let el = document.querySelector('repeat-html')  // Find first <repeat-html>
   let at = document.querySelector('attr-test')
@@ -261,8 +285,8 @@ Inside the template, the variable `value` has a value `"8"`.
 <repeat-value value="8">★</repeat-value>
 <script>
   tape('Access properties as variables', function (t) {
-    let html = document.querySelector('repeat-value').innerHTML
-    t.ok(html.trim().match(/^(★\s*){8}$/), 'properties are available as variables')
+    let el = document.querySelector('repeat-value')
+    t.ok(el.innerHTML.trim().match(/^(★\s*){8}$/), 'properties are available as variables')
     t.end()
   })
 </script>
@@ -310,13 +334,61 @@ When you add the component to your page:
 </repeat-icons>
 <script>
   tape('Access `<template>` as `this`', function (t) {
-    let html = document.querySelector('repeat-icons').innerHTML
-    t.ok(html.match(/🙂🙂🙂\s*😡😡/), 'this.querySelector is accessible')
+    let el = document.querySelector('repeat-icons')
+    t.ok(el.innerHTML.match(/🙂🙂🙂\s*😡😡/), 'this.querySelector is accessible')
     t.end()
   })
 </script>
 
+
 <!--
+## Access `<component>` as `$target`
+
+The [template](#lodash-templates-are-supported) variable `$target` is the component element itself.
+
+For example, this component makes its parent's background yellow.
+
+```html
+<template component="parent-background" color="yellow">
+  <%
+    $target.parentElement.style.background = color
+  %>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<div>
+  <parent-background></parent-background>
+  This has a yellow background
+</div>
+```
+
+... it renders this output:
+
+![Access $target element](docs/parent-background.png)
+
+This lets you control not just the component, but parents, siblings, and any other elements on a page.
+-->
+<template component="parent-background" color="yellow">
+  <% $target.parentElement.style.background = color %>
+</template>
+<div id="parent-container">
+  <parent-background></parent-background>
+  This has a yellow background
+</div>
+<script>
+  tape('Access `<component>` as `$target`', function (t) {
+    t.equals(document.querySelector('#parent-container').style.background, 'yellow', '$target.parentElement works')
+    t.end()
+  })
+</script>
+
+
+<!--
+## Define property types as JSON
+
 [Properties](#define-properties-using-template-attributes) are strings by default.
 To use numbers, booleans, arrays, etc., you can define properties as JSON.
 
@@ -438,7 +510,8 @@ Note:
   data-list="[1,2,3,4,5,6,7,8]" config="{x:1}"></typed-props>
 <script>
   tape('Define property types in JSON - all', function (t) {
-    let html = document.querySelector('typed-props').innerHTML
+    let el = document.querySelector('typed-props')
+    let html = el.innerHTML
     t.ok(html.match(/string: keykeykey./), 'type: string')
     t.ok(html.match(/number: xxxxxxxxxx./), 'type: number')
     t.ok(html.match(/boolean: boolean./))
@@ -452,7 +525,7 @@ Note:
 <!--
 ## Style components with CSS
 
-Use regular CSS to style the components. The `<template>` is rendered directly inside the component (not a shadow DOM). So you can style the contents directly.
+Use regular CSS in the `<style>` tag to style components.
 
 For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`:
 
@@ -476,16 +549,6 @@ When you add the component to your page:
 ... it renders this output:
 
 ![Yellow background applied to g-repeat](docs/g-repeat-8-star-yellow.png)
-
-UIFactory copies all `<style>`s and `<link rel="stylesheet">`s into the document's HEAD, and runs them only once (even if you use the component multiple times.)
-
-You can style child elements like this:
-
-```css
-/* When user hovers on any image inside a g-repeat, add a black border */
-repeat-style img:hover {
-  border: 1px solid black;
-}
 ```
 -->
 <template component="repeat-style" value="30">
@@ -505,16 +568,401 @@ repeat-style img:hover {
   })
 </script>
 
+<!--
+## Link to external stylesheets
 
-<div id="parent"></div>
+You can link to external stylesheets. For example, this imports Bootstrap 4.6.
+
+```html
+<template component="bootstrap-button" type="primary">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+  <button class="btn btn-<%= type %> m-3"><%= this.innerHTML %></button>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<bootstrap-button type="success">★</bootstrap-button>
+```
+
+... it renders this output:
+
+![Bootstrap button with external style](docs/bootstrap-button.png)
+
+All `<style>`s and `<link rel="stylesheet">`s are appended to the document's HEAD. They run only once (even if you use the component multiple times.)
+-->
+<template component="bootstrap-button" type="primary">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+  <button class="btn btn-<%= type %> m-3"><%= this.innerHTML %></button>
+</template>
+<bootstrap-button type="success">★</bootstrap-button>
 <script>
-document.querySelector('#parent').innerHTML = '<repeat-template value="8">★<repeat-template>'
-let el2 = document.createElement('repeat-template')
-el2.innerHTML = 'x'
-el2.value = 9
-console.log(el2.value)
-document.body.appendChild(el2)
+  tape('Link to external stylesheets', function (t) {
+    let count = 5
+    let successColor = 'rgb(40, 167, 69)'
+    function check() {
+      let el = document.querySelector('bootstrap-button > button')
+      let bg = el ? getComputedStyle(el).backgroundColor : ''
+      if (bg != successColor && count-- >=0)
+        return setTimeout(check, 200)
+      t.equals(bg, successColor, 'external style is applied')
+      t.end()
+    }
+    check()
+  })
 </script>
 
+<!--
+## Override styles normally
+
+UIFactory just copies the HTML into the component. There's no shadow DOM. You can override a component styles normally.
+
+For example, this `<style>` affects buttons inside the component:
+
+```html
+<style>
+  /* When user hovers on any button inside a repeat-style, color it lime */
+  repeat-style.green-hover button:hover {
+    background-color: lime;
+  }
+</style>
+<repeat-style class="green-hover" value="5">
+  🙂<button>★</button>
+</repeat-style>
+```
+
+... it renders this output:
+
+![repeat-style colors button on hover](docs/repeat-style-hover.gif)
+-->
+
+<style>
+  /* When user hovers on any button inside a repeat-style, or a .lime button, color it lime */
+  repeat-style button:hover, repeat-style button.lime {
+    background-color: lime;
+  }
+</style>
+<repeat-style class="green-hover" value="5">
+  🙂<button>★</button>
+</repeat-style>
+<script>
+  tape('Override styles normally', function (t) {
+    let el = document.querySelector('repeat-style.green-hover > button')
+    el.classList.add('lime')
+    t.equals(getComputedStyle(el).backgroundColor, 'rgb(0, 255, 0)', 'style is overridden')
+    t.end()
+  })
+</script>
+
+<!--
+## Add behavior with JavaScript
+
+Use regular JavaScript to add logic and interactivity.
+
+```html
+<template component="text-diff" x="" y="">
+  "${x}" is ${distance(x, y)} steps from "${y}"
+  <script src="https://cdn.jsdelivr.net/npm/levenshtein/lib/levenshtein.js"></script>
+  <script>
+    function distance(x, y) {
+      return (new Levenshtein(x, y)).distance
+    }
+  </script>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<text-diff x="back" y="book"></text-diff>
+```
+
+... it renders this output:
+
+```text
+"back" is 2 steps from "book"
+```
+
+All `<script>`s are copied from the `<template>` and appended to the document's BODY.
+They run only once (even if you use the component multiple times.)
+-->
+<template component="text-diff" x="" y="">
+  "${x}" is ${distance(x, y)} steps from "${y}"
+  <script src="https://cdn.jsdelivr.net/npm/levenshtein/lib/levenshtein.js"></script>
+  <script>
+    function distance(x, y) {
+      return (new Levenshtein(x, y)).distance
+    }
+  </script>
+</template>
+<text-diff x="back" y="book"></text-diff>
+<script>
+  tape('Add behavior with JavaScript', function (t) {
+    let el = document.querySelector('text-diff')
+    document.body.addEventListener('render', function (e) {
+      let target = e.target.closest('text-diff')
+      if (target)
+        check(target)
+    })
+    function check(target) {
+      t.equals(target.innerHTML.trim(), '"back" is 2 steps from "book"', 'scripts are imported and executed'),
+      t.end()
+    }
+    check(el)
+  })
+</script>
+
+
+<!--
+## Always delegate events
+
+`<script>` tags run *before the component is rendered*.
+So **ALWAYS use event delegation**.
+
+```js
+// DON'T DO THIS -- your component has not yet been added to the document!
+document.querySelector('<your-component>').addEventListener('<event>', function (e) {
+  // do what you want -- but it won't work
+})
+// INSTEAD, DO THIS. Listen to your event (e.g. "click") on document.body
+document.body.addEventListener('<your-event>', function (e) {
+  // Check if the clicked element is in YOUR component
+  let target = e.target.closest('<your-component>')
+  if (target) {
+    // do what you want
+  }
+})
+```
+
+For example, this is a simple button component that logs click events to the console:
+
+```html
+<template component="toggle-red">
+  <style>
+    .red { color: red; }
+  </style>
+  <button>Toggle</button> <span>Some text</span>
+  <script>
+    document.body.addEventListener('click', function (e) {
+      let target = e.target.closest('toggle-red button')
+      if (target)
+        target.nextElementSibling.classList.toggle('red')
+    })
+  </script>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<toggle-red></toggle-red>
+```
+
+... it renders this output:
+
+![Add events via event delegation](docs/toggle-red.gif)
+-->
+<template component="toggle-red">
+  <style>
+    .red { color: red; }
+  </style>
+  <button>Toggle</button> <span>Some text</span>
+  <script>
+    document.body.addEventListener('click', function (e) {
+      let target = e.target.closest('toggle-red button')
+      if (target)
+        target.nextElementSibling.classList.toggle('red')
+    })
+  </script>
+</template>
+<toggle-red></toggle-red>
+
+
+<!--
+## Import components from HTML files
+
+To re-use components across projects, save one or more component `<template>`s in a HTML file.
+For example, `tag.html` could look like this:
+
+```html
+<template component="tag-a">
+  This is tag-a
+</template>
+<template component="tag-b">
+  This is tag-b
+</template>
+```
+
+To import it in another file, use:
+
+```html
+<script src="node_modules/uifactory/uifactory.js" import="tag.html"></script>
+```
+
+Now you can use all `<template component="...">` components from `tag.html`. For example:
+
+```html
+<tag-a></tag-a>
+<tag-b></tag-b>
+```
+
+This uses [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch),
+the fetched files must be in the same domain, or
+[CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
+
+You can import multiple component files separated by comma and/or spaces.
+
+```html
+<script src="node_modules/uifactory/uifactory.js" import="tag.html, tag2.html"></script>
+<tag2-a></tag2-a>
+<tag2-b></tag2-b>
+```
+
+You can use relative and absolute paths, too. For example:
+
+```html
+<script src="node_modules/uifactory/uifactory.js" import="
+  ../test/tag3.html
+  https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
+"></script>
+<tag3-a></tag3-a>
+<tag3-b></tag3-b>
+<tag4-a></tag4-a>
+<tag4-b></tag4-b>
+```
+
+You can also import via JavaScript:
+
+```html
+<script>
+uifactory.register('tag5.html')
+</script>
+<tag5-a></tag5-a>
+<tag5-b></tag5-b>
+```
+-->
+<script src="../uifactory.js" import="tag.html"></script>
+<tag-a></tag-a>
+<tag-b></tag-b>
+<script src="../uifactory.js" import="tag.html, tag2.html"></script>
+<tag2-a></tag2-a>
+<tag2-b></tag2-b>
+<script src="../uifactory.js" import="
+  ../test/tag3.html
+  https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
+"></script>
+<tag3-a></tag3-a>
+<tag3-b></tag3-b>
+<tag4-a></tag4-a>
+<tag4-b></tag4-b>
+<script>
+uifactory.register('tag5.html')
+</script>
+<tag5-a></tag5-a>
+<tag5-b></tag5-b>
+<script>
+  tape('Import components from HTML files', function (t) {
+    let tags = ['tag-a', 'tag-b', 'tag2-a', 'tag2-b', 'tag3-a', 'tag3-b', 'tag4-a', 'tag4-b', 'tag5-a', 'tag5-b']
+    t.plan(tags.length)
+    tags.forEach(tag => {
+      function check() {
+        t.equals(document.querySelector(tag).innerHTML.trim(), `This is ${tag}`, `${tag} is imported`)
+      }
+      // TODO: This test can be improved. Wait until a component has been imported
+      setTimeout(check, 500)
+    })
+  })
+</script>
+
+
+<!-- Advanced options -->
+<!-- ----------------------------------------------------------------- -->
+
+<!--
+## Register component with options
+
+To register a component with full control over the options, use:
+
+```html
+<script>
+uifactory.register({
+  name: 'repeat-options',
+  template: '<% for (var j=0; j<+value; j++) { %><%= this.innerHTML %><% } %>',
+  properties: [
+    { name: "value", value: "30", type: "number" }
+  ]
+})
+</script>
+<repeat-options value="8"></repeat-options>
+```
+
+The object has these keys:
+
+- `name`: component name, e.g. `"g-repeat"`
+- `template`: component contents as a [template](#lodash-templates-are-supported)
+- `properties`: OPTIONAL: list of [properties](#define-property-types-as-json) as `{name, value, type}` property definitions
+- `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
+- `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
+-->
+<script>
+uifactory.register({
+  name: 'repeat-options',
+  template: '<% for (var j=0; j<+value; j++) { console.log(j); %><%= this.innerHTML %><% } %>',
+  properties: [
+    { name: "value", value: "30", type: "number" }
+  ]
+})
+</script>
+<repeat-options value="8">★</repeat-options>
+<script>
+  tape('Register component with options', function (t) {
+    let el = document.querySelector('repeat-options')
+    // TODO: This test fails
+    t.equals(el.innerHTML.trim(), '★★★★★★★★', 'uifactory.register() works')
+    t.end()
+  })
+</script>
+
+<!--
+## `el.data[property]` stores all properties
+
+All properties are stored in `el.data` as an object. For example:
+
+```html
+<script>
+let el = document.querySelector('repeat-html')  // Find first <repeat-html>
+console.log(el.data)                            // Prints { "value": ".." }
+el.data.value = 12                              // Updates the value property
+el.render()                                     // You need to explicitly re-render
+</script>
+```
+
+For example, if you define a `<template query-selector="xx">`, will `el.querySelector` be "xx" or the
+[el.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector) function?
+
+ANS: `el.querySelector` is the function. `el.data.querySelector` holds "xx".
+-->
+<script>
+  tape('All properties are stored in `el.data` as an object.', function (t) {
+    t.deepEqual(Object.keys(at.data), ['$target', 'mixedcase', 'fontSize', 'querySelector'], 'all attrs are in .data')
+    t.equals(at.data.$target.tagName, at.tagName, '$target matches')
+    t.equals(at.data.mixedcase, 'MC', 'mixedcase matches')
+    t.equals(at.data.fontSize, 'FS', 'fontSize matches')
+    t.equals(at.data.querySelector, 'QS', 'querySelector matches')
+    t.equals(typeof at.querySelector, 'function', 'el.querySelector is a function')
+    t.end()
+  })
+</script>
+
+
+<script src="works-even-with-missing-script">
+  // If there's a missing script, ensure that tests are not disrupted because of delays in load
+</script>
+
+<script>
+  // Run tests after all scripts are loaded
+  __tests.forEach(([msg, fn]) => __tape(msg, fn))
+</script>
 </body>
 </html>

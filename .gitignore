@@ -4,6 +4,9 @@ TODO
 # Generated files
 test/tape.js
 
+# Temp test file
+test/killme.html
+
 # Ignore all node modules
 node_modules/
 

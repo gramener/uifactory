@@ -4,6 +4,7 @@ UIFactory is a small easy-to-learn HTML component library.
 
 - **It's small**. 2 KB minified, gzipped.
 - **There's nothing new to learn**. No shadow DOM. No virtual DOM. Just regular HTML, CSS and JS.
+- **It's open-source**. [See GitHub](https://github.com/gramener/uifactory).
 
 ## Install from npm
 
@@ -122,9 +123,10 @@ Anything you write inside it will be rendered as a Lodash template.
 ```
 
 
-## Define properties using template attributes
+## Define properties using `<template attr="...">`
 
-Any attributes you add to `<template>` creates a property. For example, `<template component="repeat-html" value="30">` defines a property `.value`:
+Any attributes you add to `<template>` can be accessed via `element.attr`.
+For example, `<template component="repeat-html" value="30">` defines a property `.value`:
 
 ```html
 <script>
@@ -136,7 +138,7 @@ el.value = 10                                   // Re-render with value=10
 
 ![Access and change properties](docs/g-repeat-properties.gif)
 
-Changing a property via via `.value = ...` *re-renders* the component. So does changing it via `.setAttribute()`.
+Changing `.value = ...` *re-renders* the component. So does `.setAttribute('value', ...)`.
 
 Notes:
 
@@ -144,7 +146,8 @@ Notes:
 - Attributes with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* properties (e.g. `fontSize`).
 - Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<my-component extra="x">` does not define a `.extra`).
 
-## Access properties as variables
+
+## Access properties as variables inside templates
 
 Inside templates, properties are available as JavaScript variables.
 For example, `<template value="0">` defines the variable `value` with a default of 0:
@@ -160,8 +163,13 @@ For example, `<template value="0">` defines the variable `value` with a default 
 
 Inside the template, the variable `value` has a value `"8"`.
 
+Remember:
 
-## Access `<template>` as `this`
+- Attributes with uppercase letters (e.g. `fontSize`) are converted to lowercase properties (e.g. `fontsize`)
+- Attributes with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* properties (e.g. `fontSize`).
+
+
+## Access `<template>` as `this` inside templates
 
 Inside the [template](#lodash-templates-are-supported),
 `this` is the template element (e.g. `<template component="g-repeat">`).
@@ -193,33 +201,37 @@ When you add the component to your page:
 🙂🙂🙂😡😡
 
 
-## Access `<component>` as `$target`
+## Access `<component>` as `$target` inside templates
 
-Inside the [template](#lodash-templates-are-supported),
-`$target` is the component you add (e.g. `<g-repeat>`).
-For example, this adds a click event listener to each `g-repeat` component.
+The [template](#lodash-templates-are-supported) variable `$target` is the component element itself.
+
+For example, this component makes its parent's background yellow.
 
 ```html
-<template component="g-repeat" value="30">
-  <% for (var j=0; j < +value; j++) { %>
-    <%= this.innerHTML %>
-  <% } %>
-  <%
-    $target.addEventListener('click', console.log)
-  %>
+<template component="parent-background" color="yellow">
+  <% $target.parentElement.style.background = color %>
 </template>
 ```
 
-<!-- TODO: Will this add multiple event listeners if the component is re-rendered? -->
+When you add the component to your page:
 
-![Access $target element](docs/g-repeat-click-event.gif)
+```html
+<div>
+  <parent-background></parent-background>
+  This has a yellow background
+</div>
+```
 
-You can access component attributes, e.g. `<g-repeat color="red">` as `$target.getAttribute('color')`.
+... it renders this output:
+
+![Access $target element](docs/parent-background.png)
+
+This lets you control not just the component, but parents, siblings, and any other elements on a page.
 
 
 ## Define property types as JSON
 
-[Properties](#define-properties-using-template-attributes) are strings by default.
+[Properties](#define-properties-using-template-attr) are strings by default.
 To use numbers, booleans, arrays, etc., you can define properties as JSON.
 
 For example, this creates a simple list component:
@@ -294,7 +306,7 @@ Note:
 
 ## Style components with CSS
 
-Use regular CSS to style the components. The `<template>` is rendered directly inside the component (not a shadow DOM). So you can style the contents directly.
+Use regular CSS in the `<style>` tag to style components.
 
 For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`:
 
@@ -319,96 +331,249 @@ When you add the component to your page:
 
 ![Yellow background applied to g-repeat](docs/g-repeat-8-star-yellow.png)
 
-UIFactory copies all `<style>`s and `<link rel="stylesheet">`s into the document's HEAD, and runs them only once (even if you use the component multiple times.)
 
-You can style child elements like this:
+## Link to external stylesheets
 
-```css
-/* When user hovers on any image inside a g-repeat, add a black border */
-repeat-style img:hover {
-  border: 1px solid black;
-}
-```
-
-
-## Add events with JS
-
-Use a `<script>` tag to add events or define your component's behavior. For example:
+You can link to external stylesheets. For example, this imports Bootstrap 4.6.
 
 ```html
-<template component="g-repeat" value="30">
-  <% for (var j=0; j < +value; j++) { %>
-    <%= this.innerHTML %>
-  <% } %>
-  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<template component="bootstrap-button" type="primary">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+  <button class="btn btn-<%= type %> m-3"><%= this.innerHTML %></button>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<bootstrap-button type="success">★</bootstrap-button>
+```
+
+... it renders this output:
+
+![Bootstrap button with external style](docs/bootstrap-button.png)
+
+All `<style>`s and `<link rel="stylesheet">`s are copied from the `<template>` and appended to the document's HEAD.
+They run only once (even if you use the component multiple times.)
+
+
+## Override styles normally
+
+UIFactory just copies the HTML into the component. There's no shadow DOM. You can override a component styles normally.
+
+For example, this `<style>` affects buttons inside the component:
+
+```html
+<style>
+  /* When user hovers on any button inside a repeat-style, or a .lime button, color it lime */
+  repeat-style button:hover, repeat-style button.lime {
+    background-color: lime;
+  }
+</style>
+<repeat-style value="5">
+  🙂<button>★</button>
+</repeat-style>
+```
+
+... it renders this output:
+
+![repeat-style colors button on hover](docs/repeat-style-hover.gif)
+
+
+## Add behavior with JavaScript
+
+Use regular JavaScript to add logic and interactivity.
+
+```html
+<template component="text-diff" x="" y="">
+  "${x}" is ${distance(x, y)} steps from "${y}"
+  <script src="https://cdn.jsdelivr.net/npm/levenshtein/lib/levenshtein.js"></script>
   <script>
-    $('body').on('click', 'g-repeat', console.log)
+    function distance(x, y) {
+      return (new Levenshtein(x, y)).distance
+    }
   </script>
 </template>
 ```
 
-![Add events via event delegation](docs/g-repeat-click-delegate.gif)
+When you add the component to your page:
 
-This `<script>` will be executed *before the component is rendered*. So use [event delegation](https://davidwalsh.name/event-delegate), e.g. using [jQuery](https://api.jquery.com/on/) or [delegate](https://www.npmjs.com/package/delegate).
+```html
+<text-diff x="back" y="book"></text-diff>
+```
 
-When a component is added, it fires a `connect` event. Use this to add listeners to the component itself.
+... it renders this output:
 
-When a component is redrawn, it fires a `render` event. Use this to add listeners to the component's children.
+```text
+"back" is 2 steps from "book"
+```
 
-For example, this tracks every component's connect and render event.
+All `<script>`s are copied from the `<template>` and appended to the document's BODY.
+They run only once (even if you use the component multiple times.)
+
+
+## Always delegate events
+
+`<script>` tags run *before the component is rendered*.
+So **ALWAYS use event delegation**.
 
 ```js
-$('body').on('connect render', function (e) {
-  console.log('EVENT', e.type, e.target.tagName)
+// DON'T DO THIS -- your component has not yet been added to the document!
+document.querySelector('<your-component>').addEventListener('<event>', function (e) {
+  // do what you want -- but it won't work
+})
+// INSTEAD, DO THIS. Listen to your event (e.g. "click") on document.body
+document.body.addEventListener('<your-event>', function (e) {
+  // Check if the clicked element is in YOUR component
+  let target = e.target.closest('<your-component>')
+  if (target) {
+    // do what you want
+  }
 })
 ```
 
-![Event cycle for connect and render](docs/g-repeat-connect-render-events.gif)
+For example, this is a component that toggles color when a button is clicked:
+
+```html
+<template component="toggle-red">
+  <style>
+    .red { color: red; }
+  </style>
+  <button>Toggle</button> <span>Some text</span>
+  <script>
+    document.body.addEventListener('click', function (e) {
+      let target = e.target.closest('toggle-red button')
+      if (target)
+        target.nextElementSibling.classList.toggle('red')
+    })
+  </script>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<toggle-red></toggle-red>
+```
+
+... it renders this output:
+
+![Add events via event delegation](docs/toggle-red.gif)
 
 
 ## Import components from HTML files
 
-To re-use components across projects, save the component code in a HTML file.
-For example, `my-component.html` could look like this:
+To re-use components across projects, save one or more component `<template>`s in a HTML file.
+For example, `tag.html` could look like this:
 
 ```html
-<template component="my-component">
-  ... your component code
+<template component="tag-a">
+  This is tag-a
 </template>
-
-<template component="another-component">
-  ... your component code
+<template component="tag-b">
+  This is tag-b
 </template>
 ```
 
 To import it in another file, use:
 
 ```html
-<script src="node_modules/uifactory/uifactory.js" import="path/to/my-component.html"></script>
+<script src="node_modules/uifactory/uifactory.js" import="tag.html"></script>
 ```
 
-This imports all `<template component="...">` components from `path/to-my-component.html`
+Now you can use all `<template component="...">` components from `tag.html`. For example:
+
+```html
+<tag-a></tag-a>
+<tag-b></tag-b>
+```
+
+This uses [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch),
+the fetched files must be in the same domain, or
+[CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
 
 You can import multiple component files separated by comma and/or spaces.
 
 ```html
-<script src="node_modules/uifactory/uifactory.js" import="a.html, b.html, c.html"></script>
+<script src="node_modules/uifactory/uifactory.js" import="tag.html, tag2.html"></script>
+<tag2-a></tag2-a>
+<tag2-b></tag2-b>
+```
+
+You can use relative and absolute paths, too. For example:
+
+```html
+<script src="node_modules/uifactory/uifactory.js" import="
+  ../test/tag3.html
+  https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
+"></script>
+<tag3-a></tag3-a>
+<tag3-b></tag3-b>
+<tag4-a></tag4-a>
+<tag4-b></tag4-b>
 ```
 
 You can also import via JavaScript:
 
-```js
-uifactory.register('path/to/component.html')
+```html
+<script>
+uifactory.register('tag5.html')
+</script>
+<tag5-a></tag5-a>
+<tag5-b></tag5-b>
 ```
 
-Notes:
-
-- Since this uses [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch),
-  the fetched files must be in the same domain, or
-  [CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
+-------------------------------------------------
 
 
-## Create components with JavaScript
+# Advanced options
+
+## Register component with options
+
+To register a component with full control over the options, use:
+
+```html
+<script>
+uifactory.register({
+  name: 'repeat-options',
+  template: '<% for (var j=0; j<+value; j++) { %><%= this.innerHTML %><% } %>',
+  properties: [
+    { name: "value", value: "30", type: "number" }
+  ]
+})
+</script>
+<repeat-options value="8"></repeat-options>
+```
+
+The object has these keys:
+
+- `name`: component name, e.g. `"g-repeat"`
+- `template`: component contents as a [template](#lodash-templates-are-supported)
+- `properties`: OPTIONAL: list of [properties](#define-property-types-as-json) as `{name, value, type}` property definitions
+- `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
+- `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
+
+
+## `el.data[property]` stores all properties
+
+All properties are stored in `el.data` as an object. For example:
+
+```html
+<script>
+let el = document.querySelector('repeat-html')  // Find first <repeat-html>
+console.log(el.data)                            // Prints { "value": ".." }
+el.data.value = 12                              // Updates the value property
+el.render()                                     // You need to explicitly re-render
+</script>
+```
+
+For example, if you define a `<template query-selector="xx">`, will `el.querySelector` be "xx" or the
+[el.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector) function?
+
+ANS: `el.querySelector` is the function. `el.data.querySelector` holds "xx".
+
+
+## Create components dynamically
 
 You can dynamically add components at any time. For example:
 
@@ -432,30 +597,22 @@ el.setAttribute('value', '8')
 document.body.appendChild(el)
 ```
 
-# Advanced options
+## Use `connect` and `render` events
 
-To register a component with full control over the options, use:
+The first time a component is added to the DOM, it fires a `connect` event.
+
+Every time a component is redrawn, it fires a `render` event.
+
+For example, this code logs every component's render event.
 
 ```js
-uifactory.register({
-  name: 'g-repeat',
-  template: '<% for (var j=0; j<+value; j++) { %><%= this.innerHTML %><% } %>',
-  properties: [
-    { name: "value", value: "30" }
-  ]
+document.addEventListener('render', function (e) {
+  console.log(`${e.type} event fired on ${e.target}`)
 })
 ```
 
-The object has these keys:
+![Event cycle for render](docs/render-event.gif)
 
-- `name`: component name, e.g. `"g-repeat"`
-- `template`: component contents as a [template](#lodash-templates-are-supported)
-- `properties`: OPTIONAL: a list of [attributes](#access-properties-as-variables) as `{name, value}` objects
-- `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
-- `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
-
-
-TODO: document other ways of registering
 
 ## Use any compiler
 
@@ -525,7 +682,6 @@ uifactory.register({
 ```
 
 ![g-name component](docs/g-name-walt-disney.png)
-
 
 ## Support
 

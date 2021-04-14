@@ -1,6 +1,6 @@
 /* eslint-env es6 */
 
-(function(window) {
+(function (window) {
   // Used to create document fragments
   const doc = window.document
   const tmpl = doc.createElement('template')
@@ -24,7 +24,7 @@
     // If a component is already registered, don't re-register.
     // TODO: Should this be an error or a warning?
     if (_window.customElements.get(config.name))
-      return console.trace(`Can't redefine component ${config.name} on ${_window}`)
+      return console.warn(`Can't redefine component ${config.name}`)
 
     // Extract specific tags out of the HTML template. Used to remove <style>, <script>, etc.
     tmpl.innerHTML = config.template
@@ -81,38 +81,41 @@
     const properties = config.properties || []
     const attrs = properties.map(prop => prop.name)
     // attrparse[attr-name](val) parses attribute based on its type
-    const attrparse = Object.fromEntries(properties.map(prop => [prop.name, parse.bind(this, prop.type)]))
+    const attrinfo = {}
+    properties.forEach(prop => {
+      attrinfo[prop.name] = {
+        parse: parse.bind(this, prop.type),
+        stringify: stringify.bind(this, prop.type)
+      }
+    })
 
     // Create the custom HTML element
     class UIFactory extends _window.HTMLElement {
       connectedCallback() {
         // Called when element is connected to the parent. "this" is the created HTMLElement.
 
-        // this.__model is the model, i.e. object passed to the template.
+        // this.data is the model, i.e. object passed to the template.
         // template can access the component at $target
-        this.__model = { $target: this }
-        // Initialize with default values from properties, overriding it with attributes' values
+        this.data = { $target: this }
+
+        // Initialize properties from Current Properties > Attribute values > Property defaults
+        // Properties that are already defined CANNOT be used
         const attrs = {}
         for (let { name, value } of this.attributes)
           attrs[name] = value
         for (let { name, value } of properties)
-          this.__set(name, attrs[name] || value)
+          this.update(name, attrs[name] || value)
 
-        // Expose the defined attributes as properties.
-        // <g-component attr-name="val"> exponses el.attrName == "val"
-        // GET .property returns from this.__model[property]
-        // SET .property sets this.__model[property] = val and sets the attr = stringify(val)
+        // Getting / setting properties updates the .data model.
+        let self = this
         properties.forEach(prop => {
           let property = camelize(prop.name)
-          Object.defineProperty(this, property, {
-            get: function () {
-              return this.__model[property]
-            },
-            set: function (val) {
-              this.__model[property] = val
-              this.setAttribute(prop.name, stringify(prop.type, val))
-            }
-          })
+          // If the property is already in HTMLElement, don't override it
+          if (!(property in self))
+            Object.defineProperty(self, property, {
+              get: () => self.data[property],
+              set: (val) => self.update(property, val, { attr: true })
+            })
         })
 
         // templates can access to the original children of the node via "this"
@@ -124,15 +127,23 @@
         scriptsLoad.then(() => this.render())
       }
 
-      // Set the template variables. Convert kebab-case to camelCase
-      __set(name, value) {
-        this.__model[camelize(name)] = typeof value == 'string' ? attrparse[name](value) : value
+      // Set the template variables. Converts kebab-case to camelCase
+      update(name, value, options = {}) {
+        // If the component is not initialized, don't render it
+        if (this.data) {
+          let isString = typeof value == 'string'
+          this.data[camelize(name)] = isString ? attrinfo[name].parse(value) : value
+          if (options.attr)
+            this.setAttribute(name, isString ? value : attrinfo[name].stringify(value))
+          if (options.render)
+            this.render()
+        }
       }
 
       // this.render() re-renders the object based on current and supplied properties
       render(props) {
         // "this" is the HTMLElement. Apply the lodash template
-        this.innerHTML = template.call(this.__originalNode, Object.assign(this.__model, props))
+        this.innerHTML = template.call(this.__originalNode, Object.assign(this.data, props))
         // Generate a render event on this component when re-rendered
         this.dispatchEvent(new CustomEvent('render', { bubbles: true }))
       }
@@ -143,13 +154,9 @@
         return attrs
       }
 
-      // When any attribute changes, update this.__model[property] to convert(val) and re-render
+      // When any attribute changes, update property and re-render
       attributeChangedCallback(name, oldValue, value) {
-        // If the component is not initialized, don't render it
-        if (this.__model) {
-          this.__set(name, value)
-          this.render()
-        }
+        this.update(name, value, { render: true })
       }
     }
 
@@ -169,8 +176,10 @@
       properties: {}
     })
     // Define properties from attributes
-    for (let attr of el.attributes)
-      config.properties[attr.name] = { name: attr.name, type: 'text', value: attr.value }
+    for (let attr of el.attributes) {
+      if (attr.name != 'component')
+        config.properties[attr.name] = { name: attr.name, type: 'text', value: attr.value }
+    }
     // Merge config with <script type="application/json"> configurations
     el.content.querySelectorAll('[type="application/json"]').forEach(text => {
       // Copy properties
@@ -203,8 +212,11 @@
   window.uifactory = {
     // Register a HTML element, URL or config
     register: (config, options) => {
-      if (config instanceof HTMLElement)
+      const _window = options && options.window || window
+      if (config instanceof _window.HTMLElement)
         registerElement(config, options)
+      else if (config instanceof _window.HTMLDocument)
+        registerDocument(config, options)
       else if (typeof config == 'string')
         registerURL(config, options)
       else if (typeof config == 'object')
