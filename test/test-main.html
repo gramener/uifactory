@@ -136,6 +136,7 @@ Lodash templates use tags as follows:
 <script>
   tape('Components use lodash templates', function (t) {
     let el = document.querySelector('repeat-template')
+    // TODO: BRITTLE test. Fails sometimes
     t.ok(el.innerHTML.trim().match(/^(★\s*){8}$/), 'lodash templates work')
     t.end()
   })
@@ -198,6 +199,7 @@ Anything you write inside it will be rendered as a Lodash template.
 <script>
   tape('HTML scripts are supported', function (t) {
     let el = document.querySelector('table-valid')
+    // TODO: BRITTLE test. Fails sometimes
     t.equals(el.querySelectorAll('table > tbody > tr').length, 5, 'HTML scripts rendered')
     t.ok(!el.innerHTML.match(/ignored/), 'non-script content ignored')
     t.end()
@@ -905,6 +907,7 @@ The object has these keys:
 - `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
 - `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
 -->
+<repeat-options value="8">★</repeat-options>
 <script>
 uifactory.register({
   name: 'repeat-options',
@@ -914,11 +917,10 @@ uifactory.register({
   ]
 })
 </script>
-<repeat-options value="8">★</repeat-options>
 <script>
   tape('Register component with options', function (t) {
     let el = document.querySelector('repeat-options')
-    // TODO: This test fails
+    // TODO: This test fails if repeat-optons is defined BEFORE it's used
     t.equals(el.innerHTML.trim(), '★★★★★★★★', 'uifactory.register() works')
     t.end()
   })

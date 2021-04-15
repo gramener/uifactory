@@ -533,6 +533,7 @@ uifactory.register('tag5.html')
 To register a component with full control over the options, use:
 
 ```html
+<repeat-options value="8"></repeat-options>
 <script>
 uifactory.register({
   name: 'repeat-options',
@@ -542,7 +543,6 @@ uifactory.register({
   ]
 })
 </script>
-<repeat-options value="8"></repeat-options>
 ```
 
 The object has these keys:
