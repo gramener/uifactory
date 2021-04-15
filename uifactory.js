@@ -104,7 +104,7 @@
         for (let { name, value } of this.attributes)
           attrs[name] = value
         for (let { name, value } of properties)
-          this.update(name, attrs[name] || value)
+          this.update({ [name]: attrs[name] || value })
 
         // Getting / setting properties updates the .data model.
         let self = this
@@ -114,7 +114,7 @@
           if (!(property in self))
             Object.defineProperty(self, property, {
               get: () => self.data[property],
-              set: (val) => self.update(property, val, { attr: true })
+              set: (val) => self.update({ [property]: val }, { attr: true })
             })
         })
 
@@ -124,26 +124,28 @@
         // Generate a connect event on this component when it's created
         this.dispatchEvent(new CustomEvent('connect', { bubbles: true }))
         // Wait for external scripts to get loaded. Then render.
-        scriptsLoad.then(() => this.render())
+        scriptsLoad.then(() => this._render())
       }
 
       // Set the template variables. Converts kebab-case to camelCase
-      update(name, value, options = {}) {
+      update(props, options = {}) {
         // If the component is not initialized, don't render it
         if (this.data) {
-          let isString = typeof value == 'string'
-          this.data[camelize(name)] = isString ? attrinfo[name].parse(value) : value
-          if (options.attr)
-            this.setAttribute(name, isString ? value : attrinfo[name].stringify(value))
+          for (let [name, value] of Object.entries(props)) {
+            let isString = typeof value == 'string'
+            this.data[camelize(name)] = isString ? attrinfo[name].parse(value) : value
+            if (options.attr)
+              this.setAttribute(name, isString ? value : attrinfo[name].stringify(value))
+          }
           if (options.render)
-            this.render()
+            this._render()
         }
       }
 
-      // this.render() re-renders the object based on current and supplied properties
-      render(props) {
+      // this.render() re-renders the object based on current and supplied properties.
+      _render() {
         // "this" is the HTMLElement. Apply the lodash template
-        this.innerHTML = template.call(this.__originalNode, Object.assign(this.data, props))
+        this.innerHTML = template.call(this.__originalNode, this.data)
         // Generate a render event on this component when re-rendered
         this.dispatchEvent(new CustomEvent('render', { bubbles: true }))
       }
@@ -156,7 +158,7 @@
 
       // When any attribute changes, update property and re-render
       attributeChangedCallback(name, oldValue, value) {
-        this.update(name, value, { render: true })
+        this.update({ [name]: value }, { render: true })
       }
     }
 
