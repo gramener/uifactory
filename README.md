@@ -150,23 +150,44 @@ Notes:
 ## Access properties as variables inside templates
 
 Inside templates, properties are available as JavaScript variables.
-For example, `<template value="0">` defines the variable `value` with a default of 0:
+For example, `<template value:number="0">` defines the variable `value` as a number with a default of 0:
 
 ```html
-<template component="repeat-value" value="30">
-  <% for (var j=0; j < +value; j++) { %>
+<template component="repeat-value" value:number="30">
+  <% for (var j=0; j < value; j++) { %>
     <%= this.innerHTML %>
   <% } %>
 </template>
 <repeat-value value="8"></repeat-value>
 ```
 
-Inside the template, the variable `value` has a value `"8"`.
+Inside the template, the variable `value` has a value `8`.
 
-Remember:
 
-- Attributes with uppercase letters (e.g. `fontSize`) are converted to lowercase properties (e.g. `fontsize`)
-- Attributes with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* properties (e.g. `fontSize`).
+## Define property types using `<template attr:json="...">`
+
+By default, properties are strings. You can specify `number`, `boolean`, `array` or `object`
+like this:
+
+- `<template component="..." value:number="30">` defines `.value` as a number `30`
+- `<template component="..." value:boolean="true">` defines `.value` as a boolean `true`
+- `<template component="..." value:array="[3,4]">` defines `.value` as an array `[3, 4]`
+- `<template component="..." value:object="{x:1}">` defines `.value` as an object `{x: 1`
+
+For example, when you add this to your page:
+
+```html
+<template component="property-types" str="x" num:number="30" bool:boolean="true" arr:array="[3,4]" obj:object="{x:1}">
+  <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj}) %>
+</template>
+<property-types></property-types>
+```
+
+... it renders this:
+
+```json
+{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1}}
+```
 
 
 ## Access `<template>` as `this` inside templates
@@ -181,9 +202,9 @@ For example
 This `<repeat-icons>` component repeats two
 
 ```html
-<template component="repeat-icons" x="3" y="2">
-  <%= this.querySelector('.x').innerHTML.repeat(+x) %>
-  <%= this.querySelector('.y').innerHTML.repeat(+y) %>
+<template component="repeat-icons" x:number="3" y:number="2">
+  <%= this.querySelector('.x').innerHTML.repeat(x) %>
+  <%= this.querySelector('.y').innerHTML.repeat(y) %>
 </template>
 ```
 
@@ -235,8 +256,8 @@ You can change multiple properties together using `.update({prop1: val, prop2: v
 this component has 2 properties, `char` and `value`:
 
 ```html
-<template component="repeat-props" char="★" value="10">
-  ${char.repeat(+value)}
+<template component="repeat-props" char="★" value:number="10">
+  ${char.repeat(value)}
 </template>
 <repeat-props char="★" value="10"></repeat-props>
 ```
@@ -278,7 +299,7 @@ To just re-render the component without changing properties, use `.update()`.
 ## Define property types as JSON
 
 [Properties](#define-properties-using-template-attr) are strings by default.
-To use numbers, booleans, arrays, etc., you can define properties as JSON.
+To use numbers, booleans, arrays, objects, etc., you can define properties as JSON.
 
 For example, this creates a simple list component:
 
@@ -357,11 +378,11 @@ Use regular CSS in the `<style>` tag to style components.
 For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`:
 
 ```html
-<template component="repeat-style" value="30">
+<template component="repeat-style" value:number="30">
   <style>
     repeat-style[value="8"] { background-color: yellow; }
   </style>
-  <% for (var j=0; j < +value; j++) { %>
+  <% for (var j=0; j < value; j++) { %>
     <%= this.innerHTML %>
   <% } %>
 </template>
@@ -683,8 +704,8 @@ It turns the `<strong>` element red when it's ready:
 Every time a component is rendered, it fires a `render` event.
 
 ```html
-<template component="repeat-event" value="10">
-  ${this.innerHTML.repeat(+value)}
+<template component="repeat-event" value:number="10">
+  ${this.innerHTML.repeat(value)}
 </template>
 
 <repeat-event>★</repeat-event>

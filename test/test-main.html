@@ -266,11 +266,11 @@ Notes:
 ## Access properties as variables
 
 Inside templates, properties are available as JavaScript variables.
-For example, `<template value="0">` defines the variable `value` with a default of 0:
+For example, `<template value:number="0">` defines the variable `value` as a number with a default of 0:
 
 ```html
-<template component="repeat-value" value="30">
-  <% for (var j=0; j < +value; j++) { %>
+<template component="repeat-value" value:number="30">
+  <% for (var j=0; j < value; j++) { %>
     <%= this.innerHTML %>
   <% } %>
 </template>
@@ -279,8 +279,8 @@ For example, `<template value="0">` defines the variable `value` with a default 
 
 Inside the template, the variable `value` has a value `"8"`.
 -->
-<template component="repeat-value" value="30">
-  <% for (var j=0; j < +value; j++) { %>
+<template component="repeat-value" value:number="30">
+  <% for (var j=0; j < value; j++) { %>
     <%= this.innerHTML %>
   <% } %>
 </template>
@@ -289,6 +289,46 @@ Inside the template, the variable `value` has a value `"8"`.
   tape('Access properties as variables', function (t) {
     let el = document.querySelector('repeat-value')
     t.ok(el.innerHTML.trim().match(/^(★\s*){8}$/), 'properties are available as variables')
+    t.end()
+  })
+</script>
+
+
+<!--
+## Define property types using `<template attr:json="...">`
+
+By default, properties are strings. You can specify `number`, `boolean`, `array` or `object`
+like this:
+
+- `<template component="..." value:number="30">` defines `.value` as a number `30`
+- `<template component="..." value:boolean="true">` defines `.value` as a boolean `true`
+- `<template component="..." value:array="[3,4]">` defines `.value` as an array `[3, 4]`
+- `<template component="..." value:object="{x:1}">` defines `.value` as an object `{x: 1`
+
+For example, when you add this to your page:
+
+```html
+<template component="property-types" str="x" num:number="30" bool:boolean="true" arr:array="[3,4]" obj:object="{x:1}">
+  <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj}) %>
+</template>
+<property-types></property-types>
+```
+
+... it renders this:
+
+```json
+{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1}}
+```
+-->
+
+<template component="property-types" str="x" num:number="30" bool:boolean="true" arr:array="[3,4]" obj:object="{x:1}">
+  <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj}) %>
+</template>
+<property-types></property-types>
+<script>
+  tape('Define property types using `<template attr:json="...">`', function (t) {
+    let el = document.querySelector('property-types')
+    t.equals(el.innerHTML.trim(), '{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1}}')
     t.end()
   })
 </script>
@@ -307,9 +347,9 @@ For example
 This `<repeat-icons>` component repeats two
 
 ```html
-<template component="repeat-icons" x="3" y="2">
-  <%= this.querySelector('.x').innerHTML.repeat(+x) %>
-  <%= this.querySelector('.y').innerHTML.repeat(+y) %>
+<template component="repeat-icons" x:number="3" y:number="2">
+  <%= this.querySelector('.x').innerHTML.repeat(x) %>
+  <%= this.querySelector('.y').innerHTML.repeat(y) %>
 </template>
 ```
 
@@ -326,9 +366,9 @@ When you add the component to your page:
 
 🙂🙂🙂😡😡
 -->
-<template component="repeat-icons" x="3" y="2">
-  <%= this.querySelector('.x').innerHTML.repeat(+x) %>
-  <%= this.querySelector('.y').innerHTML.repeat(+y) %>
+<template component="repeat-icons" x:number="3" y:number="2">
+  <%= this.querySelector('.x').innerHTML.repeat(x) %>
+  <%= this.querySelector('.y').innerHTML.repeat(y) %>
 </template>
 <repeat-icons style="padding:3px">
   <span class="x">🙂</span>
@@ -394,8 +434,8 @@ You can change multiple properties together using `.update({prop1: val, prop2: v
 this component has 2 properties, `char` and `value`:
 
 ```html
-<template component="repeat-props" char="★" value="10">
-  ${char.repeat(+value)}
+<template component="repeat-props" char="★" value:number="10">
+  ${char.repeat(value)}
 </template>
 <repeat-props char="★" value="10"></repeat-props>
 ```
@@ -434,8 +474,8 @@ To just re-render the component without changing properties, use `.update()`.
 ```
 -->
 
-<template component="repeat-props" char="★" value="10">
-  ${char.repeat(+value)}
+<template component="repeat-props" char="★" value:number="10">
+  ${char.repeat(value)}
 </template>
 <repeat-props char="★" value="10"></repeat-props>
 <script>
@@ -462,7 +502,7 @@ To just re-render the component without changing properties, use `.update()`.
 ## Define property types as JSON
 
 [Properties](#define-properties-using-template-attributes) are strings by default.
-To use numbers, booleans, arrays, etc., you can define properties as JSON.
+To use numbers, booleans, arrays, objects, etc., you can define properties as JSON.
 
 For example, this creates a simple list component:
 
@@ -602,11 +642,11 @@ Use regular CSS in the `<style>` tag to style components.
 For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`:
 
 ```html
-<template component="repeat-style" value="30">
+<template component="repeat-style" value:number="30">
   <style>
     repeat-style[value="8"] { background-color: yellow; }
   </style>
-  <% for (var j=0; j < +value; j++) { %>
+  <% for (var j=0; j < value; j++) { %>
     <%= this.innerHTML %>
   <% } %>
 </template>
@@ -1128,8 +1168,8 @@ It turns the `<strong>` element red when it's ready:
 Every time a component is rendered, it fires a `render` event.
 
 ```html
-<template component="repeat-event" value="10">
-  ${this.innerHTML.repeat(+value)}
+<template component="repeat-event" value:number="10">
+  ${this.innerHTML.repeat(value)}
 </template>
 
 <repeat-event>★</repeat-event>
@@ -1143,8 +1183,8 @@ For example, this code logs the `.value` of the component every time it is rende
   el.value = 3
 ```
 -->
-<template component="repeat-event" value="10">
-  ${this.innerHTML.repeat(+value)}
+<template component="repeat-event" value:number="10">
+  ${this.innerHTML.repeat(value)}
 </template>
 
 <repeat-event>★</repeat-event>
@@ -1153,18 +1193,14 @@ For example, this code logs the `.value` of the component every time it is rende
   tape('ok', function (t) {
     t.plan(3)
     let el = document.querySelector('repeat-event')
-    el.addEventListener('render', e => t.equals(e.target.value, '3'), { once: true })
+    el.addEventListener('render', e => t.equals(e.target.value, 3), { once: true })
     el.value = 3
-    el.addEventListener('render', e => t.equals(e.target.value, '4'), { once: true })
+    el.addEventListener('render', e => t.equals(e.target.value, 4), { once: true })
     el.value = 4
-    el.addEventListener('render', e => t.equals(e.target.value, '5'), { once: true })
+    el.addEventListener('render', e => t.equals(e.target.value, 5), { once: true })
     el.value = 5
   })
 </script>
-
-
-
-
 
 
 <script src="works-even-with-missing-script">

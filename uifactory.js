@@ -7,7 +7,7 @@
 
   // Used to serialize and parse values of different types
   const js_parse = s => eval(`(${s})`)
-  const types = /number|boolean|object|array|json|js/i
+  const types = /number|boolean|array|object/i
   const stringify = (type, val) => type.match(types) ? JSON.stringify(val) : val
   const parse = (type, val) => type && type.match(types) ? js_parse(val) : val
 
@@ -108,7 +108,7 @@
         this.data = { $target: this }
 
         // Initialize properties from Current Properties > Attribute values > Property defaults
-        // Properties that are already defined CANNOT be used
+        // Properties that are already defined on HTMLElement CANNOT be used
         const attrs = {}
         for (let { name, value } of this.attributes)
           attrs[name] = value
@@ -188,8 +188,10 @@
     })
     // Define properties from attributes
     for (let attr of el.attributes) {
-      if (attr.name != 'component')
-        config.properties[attr.name] = { name: attr.name, type: 'text', value: attr.value }
+      if (attr.name != 'component') {
+        let [name, type] = attr.name.split(':')
+        config.properties[name] = { name: name, type: type || 'text', value: attr.value }
+      }
     }
     // Merge config with <script type="application/json"> configurations
     el.content.querySelectorAll('[type="application/json"]').forEach(text => {
