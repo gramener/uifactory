@@ -20,6 +20,7 @@ async function run_tests(files) {
   for (let i = 0; i < files.length; i++) {
     console.log(`# Loading: ${files[i]}`)
     await page.goto(`http://localhost:${port}/${files[i]}`)
+    await page.waitForFunction('window.renderComplete')
   }
   await browser.close()
 }

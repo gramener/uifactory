@@ -6,7 +6,8 @@
   <script src="../node_modules/lodash/lodash.min.js"></script>
   <script src="../uifactory.js"></script>
   <script>
-    // Don't run the tests upfront. Run them after all scripts are loaded. Just cache them for now
+    // Don't run the tests upfront. Run them after all scripts are loaded. Just cache them for now.
+    // Component rendering happens asynchronously
     let __tape = tape
     let __tests = []
     tape = function (msg, fn) {
@@ -136,7 +137,6 @@ Lodash templates use tags as follows:
 <script>
   tape('Components use lodash templates', function (t) {
     let el = document.querySelector('repeat-template')
-    // TODO: BRITTLE test. Fails sometimes
     t.ok(el.innerHTML.trim().match(/^(★\s*){8}$/), 'lodash templates work')
     t.end()
   })
@@ -387,6 +387,76 @@ This lets you control not just the component, but parents, siblings, and any oth
   })
 </script>
 
+<!--
+## Update properties with `.update()`
+
+You can change multiple properties together using `.update({prop1: val, prop2: val})`. For example,
+this component has 2 properties, `char` and `value`:
+
+```html
+<template component="repeat-props" char="★" value="10">
+  ${char.repeat(+value)}
+</template>
+<repeat-props char="★" value="10"></repeat-props>
+```
+
+When you add this script to your page:
+
+```html
+<script>
+  document.querySelector('repeat-props').update({ char: '⚡', value: 8 })
+</script>
+```
+
+... updates both `char` and `value` to generate this output:
+
+![update() changes multiple properties](docs/repeat-props.png)
+
+`.update()` also updates the attributes and re-renders the component. `.update()` takes a second dict with options:
+
+- `attr: false` does not update the attribute. Default: `true`
+- `render: false` does not re-render the component. Default: `true`
+
+For example, this updates the properties without changing the attributes and without re-rendering.
+
+```html
+<script>
+  document.querySelector('repeat-props').update({ char: '⚽', value: 5 }, { attr: false, render: false })
+</script>
+```
+
+To just re-render the component without changing properties, use `.update()`.
+
+```html
+<script>
+  document.querySelector('repeat-props').update()
+</script>
+```
+-->
+
+<template component="repeat-props" char="★" value="10">
+  ${char.repeat(+value)}
+</template>
+<repeat-props char="★" value="10"></repeat-props>
+<script>
+  tape('Access `<component>` as `$target`', function (t) {
+    let el = document.querySelector('repeat-props')
+    el.update({ char: '⚡', value: 8 })
+    t.equals(el.innerHTML.trim(), '⚡⚡⚡⚡⚡⚡⚡⚡', '.update() updates both props')
+    t.equals(el.getAttribute('char'), '⚡', '.update() updates char')
+    t.equals(el.getAttribute('value'), '8', '.update() updates value')
+
+    el.update({ char: '⚽', value: 5 }, { attr: false, render: false })
+    t.equals(el.innerHTML.trim(), '⚡⚡⚡⚡⚡⚡⚡⚡', '.update({}, { render: false }) does not render')
+    t.equals(el.getAttribute('char'), '⚡', '.update({}, { attr: false }) does not set char="" attr')
+    t.equals(el.getAttribute('value'), '8', '.update({}, { attr: false }) does not set value="" attr')
+
+    el.update()
+    t.equals(el.innerHTML.trim(), '⚽⚽⚽⚽⚽', '.update() re-renders')
+
+    t.end()
+  })
+</script>
 
 <!--
 ## Define property types as JSON
@@ -601,12 +671,11 @@ All `<style>`s and `<link rel="stylesheet">`s are appended to the document's HEA
 <bootstrap-button type="success">★</bootstrap-button>
 <script>
   tape('Link to external stylesheets', function (t) {
-    let count = 5
     let successColor = 'rgb(40, 167, 69)'
     function check() {
       let el = document.querySelector('bootstrap-button > button')
       let bg = el ? getComputedStyle(el).backgroundColor : ''
-      if (bg != successColor && count-- >=0)
+      if (bg != successColor)
         return setTimeout(check, 200)
       t.equals(bg, successColor, 'external style is applied')
       t.end()
@@ -667,9 +736,7 @@ Use regular JavaScript to add logic and interactivity.
   "${x}" is ${distance(x, y)} steps from "${y}"
   <script src="https://cdn.jsdelivr.net/npm/levenshtein/lib/levenshtein.js"></script>
   <script>
-    function distance(x, y) {
-      return (new Levenshtein(x, y)).distance
-    }
+    distance = (x, y) => (new Levenshtein(x, y)).distance
   </script>
 </template>
 ```
@@ -686,32 +753,24 @@ When you add the component to your page:
 "back" is 2 steps from "book"
 ```
 
-All `<script>`s are copied from the `<template>` and appended to the document's BODY.
+All `<script>`s are copied from the `<template>` and appended to the document's BODY in order.
 They run only once (even if you use the component multiple times.)
 -->
 <template component="text-diff" x="" y="">
   "${x}" is ${distance(x, y)} steps from "${y}"
   <script src="https://cdn.jsdelivr.net/npm/levenshtein/lib/levenshtein.js"></script>
   <script>
-    function distance(x, y) {
-      return (new Levenshtein(x, y)).distance
-    }
+    distance = (x, y) => (new Levenshtein(x, y)).distance
   </script>
 </template>
 <text-diff x="back" y="book"></text-diff>
 <script>
   tape('Add behavior with JavaScript', function (t) {
     let el = document.querySelector('text-diff')
-    document.body.addEventListener('render', function (e) {
-      let target = e.target.closest('text-diff')
-      if (target)
-        check(target)
-    })
-    function check(target) {
-      t.equals(target.innerHTML.trim(), '"back" is 2 steps from "book"', 'scripts are imported and executed'),
+    el.ui.ready.then(() => {
+      t.equals(el.innerHTML.trim(), '"back" is 2 steps from "book"', 'scripts are imported and executed')
       t.end()
-    }
-    check(el)
+    })
   })
 </script>
 
@@ -816,63 +875,65 @@ the fetched files must be in the same domain, or
 You can import multiple component files separated by comma and/or spaces.
 
 ```html
-<script src="node_modules/uifactory/uifactory.js" import="tag.html, tag2.html"></script>
 <tag2-a></tag2-a>
 <tag2-b></tag2-b>
+<script src="node_modules/uifactory/uifactory.js" import="tag.html, tag2.html"></script>
 ```
 
 You can use relative and absolute paths, too. For example:
 
 ```html
-<script src="node_modules/uifactory/uifactory.js" import="
-  ../test/tag3.html
-  https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
-"></script>
 <tag3-a></tag3-a>
 <tag3-b></tag3-b>
 <tag4-a></tag4-a>
 <tag4-b></tag4-b>
+<script src="node_modules/uifactory/uifactory.js" import="
+  ../test/tag3.html
+  https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
+"></script>
 ```
 
 You can also import via JavaScript:
 
 ```html
+<tag5-a></tag5-a>
+<tag5-b></tag5-b>
 <script>
 uifactory.register('tag5.html')
 </script>
-<tag5-a></tag5-a>
-<tag5-b></tag5-b>
 ```
 -->
 <script src="../uifactory.js" import="tag.html"></script>
 <tag-a></tag-a>
 <tag-b></tag-b>
-<script src="../uifactory.js" import="tag.html, tag2.html"></script>
+
 <tag2-a></tag2-a>
 <tag2-b></tag2-b>
-<script src="../uifactory.js" import="
-  ../test/tag3.html
-  https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
-"></script>
+<script src="../uifactory.js" import="tag.html, tag2.html"></script>
+
 <tag3-a></tag3-a>
 <tag3-b></tag3-b>
 <tag4-a></tag4-a>
 <tag4-b></tag4-b>
+<script src="../uifactory.js" import="
+  ../test/tag3.html
+  https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
+"></script>
+
+<tag5-a></tag5-a>
+<tag5-b></tag5-b>
 <script>
 uifactory.register('tag5.html')
 </script>
-<tag5-a></tag5-a>
-<tag5-b></tag5-b>
+
 <script>
   tape('Import components from HTML files', function (t) {
     let tags = ['tag-a', 'tag-b', 'tag2-a', 'tag2-b', 'tag3-a', 'tag3-b', 'tag4-a', 'tag4-b', 'tag5-a', 'tag5-b']
     t.plan(tags.length)
     tags.forEach(tag => {
-      function check() {
+      document.querySelector(tag).ui.ready.then(function () {
         t.equals(document.querySelector(tag).innerHTML.trim(), `This is ${tag}`, `${tag} is imported`)
-      }
-      // TODO: This test can be improved. Wait until a component has been imported
-      setTimeout(check, 500)
+      })
     })
   })
 </script>
@@ -911,7 +972,7 @@ The object has these keys:
 <script>
 uifactory.register({
   name: 'repeat-options',
-  template: '<% for (var j=0; j<+value; j++) { console.log(j); %><%= this.innerHTML %><% } %>',
+  template: '<% for (var j=0; j<+value; j++) { %><%= this.innerHTML %><% } %>',
   properties: [
     { name: "value", value: "30", type: "number" }
   ]
@@ -920,7 +981,7 @@ uifactory.register({
 <script>
   tape('Register component with options', function (t) {
     let el = document.querySelector('repeat-options')
-    // TODO: This test fails if repeat-optons is defined BEFORE it's used
+    // NOTE: This test NEED NOT WORK if repeat-optons is defined BEFORE it's used
     t.equals(el.innerHTML.trim(), '★★★★★★★★', 'uifactory.register() works')
     t.end()
   })
@@ -936,7 +997,7 @@ All properties are stored in `el.data` as an object. For example:
 let el = document.querySelector('repeat-html')  // Find first <repeat-html>
 console.log(el.data)                            // Prints { "value": ".." }
 el.data.value = 12                              // Updates the value property
-el.render()                                     // You need to explicitly re-render
+el.update()                                     // You need to explicitly re-render
 </script>
 ```
 
@@ -958,6 +1019,154 @@ ANS: `el.querySelector` is the function. `el.data.querySelector` holds "xx".
 </script>
 
 
+<!--
+## Create components dynamically
+
+You can dynamically add components at any time. For example:
+
+```html
+<div id="parent1"></div>
+<script>
+  document.querySelector('#parent1').innerHTML = '<repeat-html value="8">★<repeat-html>'
+</script>
+```
+
+... adds `<repeat-html value="8">★<repeat-html>` to the body.
+
+![8 stars](docs/repeat-8-star.png)
+
+This code does the same thing:
+
+```html
+<div id="parent2"></div>
+<script>
+  let el = document.createElement('repeat-html')
+  el.innerHTML = '★'
+  el.setAttribute('value', '8')
+  document.querySelector('#parent2').appendChild(el)
+</script>
+```
+-->
+
+<div id="parent1"></div>
+<script>
+  document.querySelector('#parent1').innerHTML = '<repeat-html value="8">★</repeat-html>'
+</script>
+<div id="parent2"></div>
+<script>
+  (function () {
+    let el = document.createElement('repeat-html')
+    el.innerHTML = '★'
+    el.setAttribute('value', '8')
+    document.querySelector('#parent2').appendChild(el)
+  })()
+</script>
+<script>
+  tape('Create components dynamically', async function (t) {
+    let el1 = await document.querySelector('#parent1 repeat-html').ui.ready
+    let el2 = await document.querySelector('#parent2 repeat-html').ui.ready
+    t.equals(el1.innerHTML.trim(), '★★★★★★★★', 'create via .innerHTML')
+    t.equals(el2.innerHTML.trim(), '★★★★★★★★', 'create via .createElement')
+  })
+</script>
+
+<!--
+## Check if ready with `.ui.ready`
+
+You can check if a component is ready (i.e. rendered for the first time), using the
+`.ui.rendered` Promise. For example, this component uses an external script. It may time to
+get read.
+
+```html
+<template component="text-diff2" x="" y="">
+  ${x} is <strong>${distance(x, y)} steps</strong> from ${y}
+  <script src="https://cdn.jsdelivr.net/npm/levenshtein@1.0.5/lib/levenshtein.js"></script>
+  <script>
+    distance = (x, y) => (new Levenshtein(x, y)).distance
+  </script>
+</template>
+
+<text-diff2 x="back" y="book"></text-diff>
+```
+
+When check if it has been ready, use:
+
+```js
+  let el = await document.querySelector('text-diff2').ui.ready
+  // The <strong> child will be present only after the component is ready.
+  el.querySelector('strong').style.color = 'red'
+```
+
+It turns the `<strong>` element red when it's ready:
+
+![When ready, element is rendered](docs/text-diff2.png)
+-->
+<template component="text-diff2" x="" y="">
+  ${x} is <strong>${distance(x, y)} steps</strong> from ${y}
+  <script src="https://cdn.jsdelivr.net/npm/levenshtein@1.0.5/lib/levenshtein.js"></script>
+  <script>
+    distance = (x, y) => (new Levenshtein(x, y)).distance
+  </script>
+</template>
+
+<text-diff2 x="back" y="book"></text-diff2>
+
+
+<script>
+  tape('Check if ready with `.ui.ready`', async function (t) {
+    let el = await document.querySelector('text-diff2').ui.ready
+    // The <strong> child will be present only after the component is ready.
+    el.querySelector('strong').style.color = 'red'
+    t.equals(el.querySelector('strong').style.color, 'red', '.ui.ready works')
+  })
+</script>
+
+
+<!--
+## Every render triggers a `render` event
+
+Every time a component is rendered, it fires a `render` event.
+
+```html
+<template component="repeat-event" value="10">
+  ${this.innerHTML.repeat(+value)}
+</template>
+
+<repeat-event>★</repeat-event>
+```
+
+For example, this code logs the `.value` of the component every time it is rendered:
+
+```js
+  let el = document.querySelector('repeat-event')
+  el.addEventListener('render', e => console.log(e.target.value))
+  el.value = 3
+```
+-->
+<template component="repeat-event" value="10">
+  ${this.innerHTML.repeat(+value)}
+</template>
+
+<repeat-event>★</repeat-event>
+
+<script>
+  tape('ok', function (t) {
+    t.plan(3)
+    let el = document.querySelector('repeat-event')
+    el.addEventListener('render', e => t.equals(e.target.value, '3'), { once: true })
+    el.value = 3
+    el.addEventListener('render', e => t.equals(e.target.value, '4'), { once: true })
+    el.value = 4
+    el.addEventListener('render', e => t.equals(e.target.value, '5'), { once: true })
+    el.value = 5
+  })
+</script>
+
+
+
+
+
+
 <script src="works-even-with-missing-script">
   // If there's a missing script, ensure that tests are not disrupted because of delays in load
 </script>
@@ -965,6 +1174,10 @@ ANS: `el.querySelector` is the function. `el.data.querySelector` holds "xx".
 <script>
   // Run tests after all scripts are loaded
   __tests.forEach(([msg, fn]) => __tape(msg, fn))
+  // server.js needs a renderComplete to know that the tests are done
+  __tape.onFinish(function () {
+    window.renderComplete = true
+  })
 </script>
 </body>
 </html>

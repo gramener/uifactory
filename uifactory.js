@@ -91,8 +91,17 @@
 
     // Create the custom HTML element
     class UIFactory extends _window.HTMLElement {
+      constructor() {
+        super()
+
+        this.ui = {}
+        this.ui.ready = new Promise((resolve, reject) => {
+          this.ui._ready = resolve
+        })
+      }
+
       connectedCallback() {
-        // Called when element is connected to the parent. "this" is the created HTMLElement.
+        // Called when element is connected to the parent. "this" is the HTMLElement.
 
         // this.data is the model, i.e. object passed to the template.
         // template can access the component at $target
@@ -104,7 +113,7 @@
         for (let { name, value } of this.attributes)
           attrs[name] = value
         for (let { name, value } of properties)
-          this.update({ [name]: attrs[name] || value })
+          this.update({ [name]: attrs[name] || value }, { attr: false, render: false })
 
         // Getting / setting properties updates the .data model.
         let self = this
@@ -114,21 +123,19 @@
           if (!(property in self))
             Object.defineProperty(self, property, {
               get: () => self.data[property],
-              set: (val) => self.update({ [property]: val }, { attr: true })
+              set: (val) => self.update({ [property]: val }, { attr: true, render: false })
             })
         })
 
         // templates can access to the original children of the node via "this"
         this.__originalNode = this.cloneNode(true)
 
-        // Generate a connect event on this component when it's created
-        this.dispatchEvent(new CustomEvent('connect', { bubbles: true }))
         // Wait for external scripts to get loaded. Then render.
         scriptsLoad.then(() => this._render())
       }
 
       // Set the template variables. Converts kebab-case to camelCase
-      update(props, options = {}) {
+      update(props = {}, options = { attr: true, render: true }) {
         // If the component is not initialized, don't render it
         if (this.data) {
           for (let [name, value] of Object.entries(props)) {
@@ -146,7 +153,9 @@
       _render() {
         // "this" is the HTMLElement. Apply the lodash template
         this.innerHTML = template.call(this.__originalNode, this.data)
-        // Generate a render event on this component when re-rendered
+        // Resolve the "ui.ready" Promise
+        this.ui._ready(this)
+        // Generate a render event on this component when rendered
         this.dispatchEvent(new CustomEvent('render', { bubbles: true }))
       }
 
@@ -158,7 +167,7 @@
 
       // When any attribute changes, update property and re-render
       attributeChangedCallback(name, oldValue, value) {
-        this.update({ [name]: value }, { render: true })
+        this.update({ [name]: value }, { attr: false, render: true })
       }
     }
 

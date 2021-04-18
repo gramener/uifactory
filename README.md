@@ -229,6 +229,52 @@ When you add the component to your page:
 This lets you control not just the component, but parents, siblings, and any other elements on a page.
 
 
+## Update properties with `.update()`
+
+You can change multiple properties together using `.update({prop1: val, prop2: val})`. For example,
+this component has 2 properties, `char` and `value`:
+
+```html
+<template component="repeat-props" char="★" value="10">
+  ${char.repeat(+value)}
+</template>
+<repeat-props char="★" value="10"></repeat-props>
+```
+
+When you add this script to your page:
+
+```html
+<script>
+  document.querySelector('repeat-props').update({ char: '⚡', value: 8 })
+</script>
+```
+
+... updates both `char` and `value` to generate this output:
+
+![update() changes multiple properties](docs/repeat-props.png)
+
+`.update()` also updates the attributes and re-renders the component. `.update()` takes a second dict with options:
+
+- `attr: false` does not update the attribute. Default: `true`
+- `render: false` does not re-render the component. Default: `true`
+
+For example, this updates the properties without changing the attributes and without re-rendering.
+
+```html
+<script>
+  document.querySelector('repeat-props').update({ char: '⚽', value: 5 }, { attr: false, render: false })
+</script>
+```
+
+To just re-render the component without changing properties, use `.update()`.
+
+```html
+<script>
+  document.querySelector('repeat-props').update()
+</script>
+```
+
+
 ## Define property types as JSON
 
 [Properties](#define-properties-using-template-attr) are strings by default.
@@ -389,9 +435,7 @@ Use regular JavaScript to add logic and interactivity.
   "${x}" is ${distance(x, y)} steps from "${y}"
   <script src="https://cdn.jsdelivr.net/npm/levenshtein/lib/levenshtein.js"></script>
   <script>
-    function distance(x, y) {
-      return (new Levenshtein(x, y)).distance
-    }
+    distance = (x, y) => (new Levenshtein(x, y)).distance
   </script>
 </template>
 ```
@@ -408,7 +452,7 @@ When you add the component to your page:
 "back" is 2 steps from "book"
 ```
 
-All `<script>`s are copied from the `<template>` and appended to the document's BODY.
+All `<script>`s are copied from the `<template>` and appended to the document's BODY in order.
 They run only once (even if you use the component multiple times.)
 
 
@@ -495,32 +539,32 @@ the fetched files must be in the same domain, or
 You can import multiple component files separated by comma and/or spaces.
 
 ```html
-<script src="node_modules/uifactory/uifactory.js" import="tag.html, tag2.html"></script>
 <tag2-a></tag2-a>
 <tag2-b></tag2-b>
+<script src="node_modules/uifactory/uifactory.js" import="tag.html, tag2.html"></script>
 ```
 
 You can use relative and absolute paths, too. For example:
 
 ```html
-<script src="node_modules/uifactory/uifactory.js" import="
-  ../test/tag3.html
-  https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
-"></script>
 <tag3-a></tag3-a>
 <tag3-b></tag3-b>
 <tag4-a></tag4-a>
 <tag4-b></tag4-b>
+<script src="node_modules/uifactory/uifactory.js" import="
+  ../test/tag3.html
+  https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
+"></script>
 ```
 
 You can also import via JavaScript:
 
 ```html
+<tag5-a></tag5-a>
+<tag5-b></tag5-b>
 <script>
 uifactory.register('tag5.html')
 </script>
-<tag5-a></tag5-a>
-<tag5-b></tag5-b>
 ```
 
 -------------------------------------------------
@@ -535,6 +579,8 @@ To register a component with full control over the options, use:
 ```html
 <repeat-options value="8"></repeat-options>
 <script>
+// Add this AFTER the component is defined, not before. Else this.innerHTML won't be defined.
+// See https://github.com/WICG/webcomponents/issues/551
 uifactory.register({
   name: 'repeat-options',
   template: '<% for (var j=0; j<+value; j++) { %><%= this.innerHTML %><% } %>',
@@ -563,7 +609,7 @@ All properties are stored in `el.data` as an object. For example:
 let el = document.querySelector('repeat-html')  // Find first <repeat-html>
 console.log(el.data)                            // Prints { "value": ".." }
 el.data.value = 12                              // Updates the value property
-el.render()                                     // You need to explicitly re-render
+el.update()                                     // You need to explicitly re-render
 </script>
 ```
 
@@ -578,40 +624,79 @@ ANS: `el.querySelector` is the function. `el.data.querySelector` holds "xx".
 You can dynamically add components at any time. For example:
 
 ```html
-<div id="parent"></div>
+<div id="parent1"></div>
 <script>
-document.querySelector('#parent').innerHTML = '<repeat-template value="8">★<repeat-template>'
+  document.querySelector('#parent1').innerHTML = '<repeat-html value="8">★</repeat-html>'
 </script>
 ```
 
-... adds `<repeat-template value="8">★<repeat-template>` to the body.
+... adds `<repeat-html value="8">★<repeat-html>` to the body.
 
 ![8 stars](docs/repeat-8-star.png)
 
 This code does the same thing:
 
-```js
-let el = document.createElement('repeat-template')
-el.innerHTML = '★'
-el.setAttribute('value', '8')
-document.body.appendChild(el)
+```html
+<div id="parent2"></div>
+<script>
+  let el = document.createElement('repeat-html')
+  el.innerHTML = '★'
+  el.setAttribute('value', '8')
+  document.querySelector('#parent2').appendChild(el)
+</script>
 ```
 
-## Use `connect` and `render` events
 
-The first time a component is added to the DOM, it fires a `connect` event.
+## Check if ready with `.ui.ready`
 
-Every time a component is redrawn, it fires a `render` event.
+You can check if a component is ready (i.e. rendered for the first time), using the
+`.ui.rendered` Promise. For example, this component uses an external script. It may time to
+get read.
 
-For example, this code logs every component's render event.
+```html
+<template component="text-diff2" x="" y="">
+  ${x} is <strong>${distance(x, y)} steps</strong> from ${y}
+  <script src="https://cdn.jsdelivr.net/npm/levenshtein@1.0.5/lib/levenshtein.js"></script>
+  <script>
+    distance = (x, y) => (new Levenshtein(x, y)).distance
+  </script>
+</template>
 
-```js
-document.addEventListener('render', function (e) {
-  console.log(`${e.type} event fired on ${e.target}`)
-})
+<text-diff2 x="back" y="book"></text-diff>
 ```
 
-![Event cycle for render](docs/render-event.gif)
+When check if it has been ready, use:
+
+```js
+  let el = await document.querySelector('text-diff2').ui.ready
+  // The <strong> child will be present only after the component is ready.
+  el.querySelector('strong').style.color = 'red'
+```
+
+It turns the `<strong>` element red when it's ready:
+
+![When ready, element is rendered](docs/text-diff2.png)
+
+
+## Every render triggers a `render` event
+
+Every time a component is rendered, it fires a `render` event.
+
+```html
+<template component="repeat-event" value="10">
+  ${this.innerHTML.repeat(+value)}
+</template>
+
+<repeat-event>★</repeat-event>
+```
+
+For example, this code logs the `.value` of the component every time it is rendered:
+
+```js
+  let el = document.querySelector('repeat-event')
+  el.addEventListener('render', e => console.log(e.target.value))
+  el.value = 3
+```
 
 
 ## Use any compiler
