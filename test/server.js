@@ -1,5 +1,3 @@
-/* eslint-env es6 */
-
 const express = require('express')
 const glob = require('glob')
 const path = require('path')

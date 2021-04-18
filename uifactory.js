@@ -1,4 +1,5 @@
-/* eslint-env es6 */
+/* eslint-env browser */
+/* globals _ */
 
 (function (window) {
   // Used to create document fragments
@@ -31,7 +32,7 @@
     const htmlScript = tmpl.content.querySelector('script[type="text/html"]')
     // When the scripts are loaded, resolve this promise.
     let scriptsResolve
-    const scriptsLoad = new Promise((resolve, rejected) => scriptsResolve = resolve)
+    const scriptsLoad = new Promise(resolve => scriptsResolve = resolve)
     // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
     loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style'))
     loadExtract('body', tmpl.content.querySelectorAll('script'))
@@ -95,9 +96,7 @@
         super()
 
         this.ui = {}
-        this.ui.ready = new Promise((resolve, reject) => {
-          this.ui._ready = resolve
-        })
+        this.ui.ready = new Promise(resolve => this.ui._ready = resolve)
       }
 
       connectedCallback() {
@@ -123,7 +122,9 @@
           if (!(property in self))
             Object.defineProperty(self, property, {
               get: () => self.data[property],
-              set: (val) => self.update({ [property]: val }, { attr: true, render: false })
+              set: function (val) {
+                self.update({ [property]: val }, { attr: true, render: false })
+              }
             })
         })
 
