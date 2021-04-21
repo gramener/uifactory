@@ -367,8 +367,9 @@ Here's an example that shows all types possible:
 
 Note:
 
-- The attributes needn't be JSON -- JavaScript is fine. For example, `config="{x:1}"` will work even though `{x:1}` is not valid JSON (`{"x":1}` is JSON).
-- The `"properties":` needn't be JSON either. JavaScript is fine. For example, comments are allowed.
+- The `"properties":` override the `<template>` attributes
+- The `"properties":` needn't be JSON either. JavaScript is fine. For example, `config="{x:1}"`
+  will work even though `{x:1}` is not valid JSON (`{"x":1}` is JSON). Comments are allowed.
 
 
 ## Style components with CSS
