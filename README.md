@@ -166,27 +166,29 @@ Inside the template, the variable `value` has a value `8`.
 
 ## Define property types using `<template attr:json="...">`
 
-By default, properties are strings. You can specify `number`, `boolean`, `array` or `object`
+By default, properties are strings. You can specify `number`, `boolean`, `array`, `object` or `js`
 like this:
 
 - `<template component="..." value:number="30">` defines `.value` as a number `30`
 - `<template component="..." value:boolean="true">` defines `.value` as a boolean `true`
 - `<template component="..." value:array="[3,4]">` defines `.value` as an array `[3, 4]`
-- `<template component="..." value:object="{x:1}">` defines `.value` as an object `{x: 1`
+- `<template component="..." value:object="{x:1}">` defines `.value` as an object `{x: 1}`
+- `<template component="..." value:js="3 + 2">` defines `.value` as a JS expression evaluating to `5`
 
 For example, when you add this to your page:
 
 ```html
-<template component="property-types" str="x" num:number="30" bool:boolean="true" arr:array="[3,4]" obj:object="{x:1}">
-  <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj}) %>
+<template component="property-types" str="x" num:number="30" bool:boolean="true"
+          arr:array="[3,4]" obj:object="{x:1}" expr:js="3 + 2">
+  <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj, expr: 5}) %>
 </template>
 <property-types></property-types>
 ```
 
-... it renders this:
+... it renders this output:
 
 ```json
-{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1}}
+{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":5}
 ```
 
 
@@ -718,6 +720,53 @@ For example, this code logs the `.value` of the component every time it is rende
   let el = document.querySelector('repeat-event')
   el.addEventListener('render', e => console.log(e.target.value))
   el.value = 3
+```
+
+
+## Get registered components from `uifactory.components`
+
+If you register a `<ui-config>` component, `uifactory.components['ui-config']` has the component's
+configuration, i.e. its name, properties, template, and any other options used to register the
+component.
+
+For example, this component renders its own configuration.
+
+```html
+<template component="ui-config" str="x" arr:array="[3,4]" expr:js="3 + 2">
+  <%= JSON.stringify(uifactory.components['ui-config']) %>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<ui-config></ui-config>
+```
+
+... it renders this output:
+
+```json
+{
+  "name": "ui-config",
+  "template": "\n <%= JSON.stringify(uifactory.components['ui-config']) %>\n",
+  "properties": [
+    {
+      "name": "str",
+      "type": "text",
+      "value": "x"
+    },
+    {
+      "name": "arr",
+      "type": "array",
+      "value": "[3,4]"
+    },
+    {
+      "name": "expr",
+      "type": "js",
+      "value": "3 + 2"
+    }
+  ]
+}
 ```
 
 

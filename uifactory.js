@@ -8,7 +8,7 @@
 
   // Used to serialize and parse values of different types
   const js_parse = s => eval(`(${s})`)
-  const types = /number|boolean|array|object/i
+  const types = /number|boolean|array|object|js/i
   const stringify = (type, val) => type.match(types) ? JSON.stringify(val) : val
   const parse = (type, val) => type && type.match(types) ? js_parse(val) : val
 
@@ -175,6 +175,8 @@
     // Use customElements from current window.
     // To use a different window, use createComponent.call(your_window, component)
     _window.customElements.define(config.name, UIFactory)
+    // Add component config to the window uifactactory is defined in
+    window.uifactory.components[config.name] = config
   }
 
   function registerElement(el, options) {
@@ -224,6 +226,8 @@
   }
 
   window.uifactory = {
+    // List of all UI components and their configuration
+    components: [],
     // Register a HTML element, URL or config
     register: (config, options) => {
       const _window = options && options.window || window
