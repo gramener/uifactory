@@ -227,7 +227,7 @@
 
   window.uifactory = {
     // List of all UI components and their configuration
-    components: [],
+    components: {},
     // Register a HTML element, URL or config
     register: (config, options) => {
       const _window = options && options.window || window
