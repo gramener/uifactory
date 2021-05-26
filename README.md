@@ -150,7 +150,7 @@ Notes:
 ## Access properties as variables inside templates
 
 Inside templates, properties are available as JavaScript variables.
-For example, `<template value:number="0">` defines the variable `value` as a number with a default of 0:
+For example, `<template value:number="30">` defines the variable `value` as a number with a default of 30:
 
 ```html
 <template component="repeat-value" value:number="30">
@@ -162,6 +162,31 @@ For example, `<template value:number="0">` defines the variable `value` as a num
 ```
 
 Inside the template, the variable `value` has a value `8`.
+
+
+## Access all properties via `obj` inside templates
+
+The `obj` JavaScript variable holds all properties.
+For example, `obj.value` is the same as `value`.
+
+This is useful if you don't know whether a property is defined or not.
+For example, when you add this to your page:
+
+```html
+<template component="obj-values" x:number="0" y:number="0">
+  <p>Properties are:</p>
+  <ul>
+    <% for (let key in obj) { %>
+      <li><%= key %> = <%= obj[key] %></li>
+    <% } %>
+  </ul>
+  <p>The property 'z' is <%= 'z' in obj ? 'defined' : 'undefined' %>
+}
+<obj-values x="10" y="20"></obj-values>
+```
+
+... it
+
 
 
 ## Define property types using `<template attr:json="...">`
@@ -254,7 +279,7 @@ This lets you control not just the component, but parents, siblings, and any oth
 
 ## Update properties with `.update()`
 
-You can change multiple properties together using `.update({prop1: val, prop2: val})`. For example,
+You can change multiple properties together using `.update({attr1: val, attr2: val})`. For example,
 this component has 2 properties, `char` and `value`:
 
 ```html
