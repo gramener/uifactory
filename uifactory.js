@@ -7,10 +7,18 @@
   const tmpl = doc.createElement('template')
 
   // Used to serialize and parse values of different types
-  const js_parse = s => eval(`(${s})`)
-  const types = /number|boolean|array|object|js/i
-  const stringify = (type, val) => type.match(types) ? JSON.stringify(val) : val
-  const parse = (type, val) => type && type.match(types) ? js_parse(val) : val
+  const jsParse = s => eval(`(${s})`)
+  let types = {
+    str: {
+      parse: v => v,
+      stringify: s => s
+    },
+    js: {
+      parse: jsParse,
+      stringify: JSON.stringify
+    }
+  }
+  types.number = types.boolean = types.array = types.object = types.json = types.js
 
   // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
   const camelize = s => s.replace(/-./g, x => x.toUpperCase()[1])
@@ -85,10 +93,7 @@
     // attrparse[attr-name](val) parses attribute based on its type
     const attrinfo = {}
     properties.forEach(prop => {
-      attrinfo[prop.name] = Object.assign({
-        parse: parse.bind(this, prop.type),
-        stringify: stringify.bind(this, prop.type)
-      }, prop)
+      attrinfo[prop.name] = Object.assign({}, prop)
     })
 
     // Create the custom HTML element
@@ -111,19 +116,14 @@
         this.data = { $target: this }
 
         // Update properties from template attributes
-        for (let {name, value} of Object.values(this.ui.attrinfo))
-          this.update({[name]: value}, { attr: false, render: false })
-        // Update properties from template attributes
+        for (let { name, value } of Object.values(this.ui.attrinfo))
+          this.update({ [name]: value }, { attr: false, render: false })
+        // Override with properties from instance attributes
         for (let attr of this.attributes) {
           let [name, type] = attr.name.split(':')
           // If the name has a : in it (e.g. x:number), add it as a type-convertible property
           if (type)
-            this.ui.attrinfo[name] = Object.assign({
-              name, type,
-              value: attr.value,
-              parse: parse.bind(type),
-              stringify: stringify.bind(type)
-            }, this.ui.attrinfo[name])
+            this.ui.attrinfo[name] = Object.assign({ name, type, value: attr.value}, this.ui.attrinfo[name])
           // If the name is a property, update it.
           // Note: If the template has name:type= but component has just name=, we STILL update it
           if (name in this.ui.attrinfo)
@@ -155,10 +155,13 @@
         // If the component is not initialized, don't render it
         if (this.data) {
           for (let [name, value] of Object.entries(props)) {
+            // TODO: not sure why we need window.uifactory.types here, instead of just types
+            // But without it, the tests fail. Need to investigate and resolve.
+            let type = window.uifactory.types[this.ui.attrinfo[name].type] || types.str
             let isString = typeof value == 'string'
-            this.data[camelize(name)] = isString ? this.ui.attrinfo[name].parse(value) : value
+            this.data[camelize(name)] = isString ? type.parse(value) : value
             if (options.attr)
-              this.setAttribute(name, isString ? value : this.ui.attrinfo[name].stringify(value))
+              this.setAttribute(name, isString ? value : type.stringify(value))
           }
           if (options.render)
             this._render()
@@ -214,7 +217,7 @@
     // Merge config with <script type="application/json"> configurations
     el.content.querySelectorAll('[type="application/json"]').forEach(text => {
       // Copy properties
-      let conf = js_parse(text.innerHTML)
+      let conf = jsParse(text.innerHTML)
       for (let attr of conf.properties || [])
         config.properties[attr.name] = Object.assign(config.properties[attr.name] || {}, attr)
     })
@@ -254,7 +257,9 @@
         registerURL(config, options)
       else if (typeof config == 'object')
         registerComponent(config)
-    }
+    },
+    // Registry of all attribute types and their convertors
+    types: types
   }
 
   // If called via <script src="components.js" import="path.html, ...">, import each file

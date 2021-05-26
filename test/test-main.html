@@ -274,7 +274,7 @@ Notes:
 ## Access properties as variables
 
 Inside templates, properties are available as JavaScript variables.
-For example, `<template value:number="0">` defines the variable `value` as a number with a default of 0:
+For example, `<template value:number="30">` defines the variable `value` as a number with a default of 30:
 
 ```html
 <template component="repeat-value" value:number="30">
@@ -355,7 +355,8 @@ For example
 - `this.innerHTML` has the contents of your template.
 - `this.querySelectorAll('div')` fetches all `<div>`s in your template
 
-This `<repeat-icons>` component repeats two
+This `<repeat-icons>` component repeats everything under `class="x"` x times, and everything under
+`class="y"` y times.
 
 ```html
 <template component="repeat-icons" x:number="3" y:number="2">
@@ -1077,7 +1078,38 @@ For example, if you define a `<template query-selector="xx">`, will `el.querySel
 [el.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector) function?
 
 ANS: `el.querySelector` is the function. `el.data.querySelector` holds "xx".
+
+This is be useful if you don't know whether a property is defined or not.
+For example, when you add this to your page:
+
+```html
+<template component="obj-values" x:number="0" y:number="0">
+  Properties:
+    <% for (let key in $target.data) { %>
+      <%= key %>=<%= $target.data[key] %>
+    <% } %>
+  z=<%= 'z' in $target.data ? 'defined' : 'undefined' %>
+</template>
+<obj-values x="10" y="20"></obj-values>
+```
+
+... it renders this output:
+
+```text
+Properties are:
+x = 10
+y = 20
+z is undefined
+```
 -->
+<template component="obj-values" x:number="0" y:number="0">
+  Properties:
+    <% for (let key in $target.data) { %>
+      <%= key %>=<%= $target.data[key] %>
+    <% } %>
+  z=<%= 'z' in $target.data ? 'defined' : 'undefined' %>
+</template>
+<obj-values x="10" y="20"></obj-values>
 <script>
   tape('All properties are stored in `el.data` as an object.', function (t) {
     t.deepEqual(Object.keys(at.data), ['$target', 'mixedcase', 'fontSize', 'querySelector'], 'all attrs are in .data')
@@ -1086,6 +1118,9 @@ ANS: `el.querySelector` is the function. `el.data.querySelector` holds "xx".
     t.equals(at.data.fontSize, 'FS', 'fontSize matches')
     t.equals(at.data.querySelector, 'QS', 'querySelector matches')
     t.equals(typeof at.querySelector, 'function', 'el.querySelector is a function')
+
+    let el = document.querySelector('obj-values')
+    t.equals(el.innerHTML.trim().split(/\s+/).join(' '), 'Properties: $target=[object HTMLElement] x=10 y=20 z=undefined', '$target.data works')
     t.end()
   })
 </script>
@@ -1141,6 +1176,136 @@ This code does the same thing:
     t.equals(el2.innerHTML.trim(), '★★★★★★★★', 'create via .createElement')
   })
 </script>
+
+
+<!--
+## Add properties to an instance using types
+
+You can [defining properties on templates](#define-properties-using-template-attr). But you can
+add properties on an instance too.
+
+For example, if you have a `<base-component>` with a `base` attribute like this:
+
+```html
+<template component="base-component" base:number="10">
+  Instance properties:
+  <% for (let key in $target.data) { %>
+    <%= key %>=<%= $target.data[key] %>
+  <% } %>
+</template>
+```
+
+... you can add a custom property when creating the element, by adding a type (e.g. `:number`) like this:
+
+```html
+<base-component child:number="20"></base-component>
+```
+
+This will render:
+
+```text
+Instance properties: $target=[object HTMLElement] base=10 child=20
+```
+
+The `child` JavaScript variable is now available to use in the template.
+-->
+<template component="base-component" base:number="10">
+  Instance properties:
+  <% for (let key in $target.data) { %>
+    <%= key %>=<%= $target.data[key] %>
+  <% } %>
+</template>
+<base-component child:number="20">Hello world</base-component>
+<script>
+  tape('Add properties to an instance using types', function (t) {
+    let el = document.querySelector('base-component')
+    t.equals(el.innerHTML.trim().split(/\s+/).join(' '),
+      `Instance properties: $target=[object HTMLElement] base=10 child=20`,
+      `Instance property added`)
+    t.end()
+  })
+</script>
+
+
+<!--
+## Add custom types
+
+We define property types on attributes like this: `attr:type="value"`. The default types are
+`number`, `boolean`, `array`, `object` or `js`.
+
+You can add a new custom type by extending `uifactory.types`. For example:
+
+```js
+uifactory.types.newtype = {
+  parse: string => ...,         // Function to convert string to value
+  stringify: value => ...       // Function to convert value to string
+}
+```
+
+Let's add type called `:range`, which creates an array of values:
+
+```js
+uifactory.types.range = {
+  // Parse a string like seq:range="0,10,2" into [0, 2, 4, 6, 8]
+  parse: string => {
+    // Pick start, step, end as the first 3 numbers in the string
+    let [start, end, step] = string.split(/\D+/)
+    // Convert it into an array
+    return _.range(+start || 0, +end || 1, +step || 1)
+  },
+  // Stringify an array like [0, 2, 4, 6, 8] into "0,10,2"
+  stringify: value => {
+    let start = value[0]                      // First value, e.g. 0
+    let step = value[1] - value[0]            // 2nd - 1st value, e.g. 2
+    let end = value[value.length - 1] + step  // Last value + step, e.g. 8 + 2 = 10
+    return `${start},${end},${step}`
+  }
+}
+```
+
+When you add a component using this custom type to your page:
+
+```html
+<template component="custom-range" series:range="">
+  Values are <%= JSON.stringify(series) %>
+</template>
+<custom-range series="0,10,2"></custom-range>
+```
+
+... it renders this output:
+
+`Values are [0,2,4,6,8]`
+-->
+<script>
+uifactory.types.range = {
+  // Parse a string like seq:range="0,10,2" into [0, 2, 4, 6, 8]
+  parse: string => {
+    // Pick start, step, end as the first 3 numbers in the string
+    let [start, end, step] = string.split(/\D+/)
+    // Convert it into an array
+    return _.range(+start || 0, +end || 1, +step || 1)
+  },
+  // Stringify an array like [0, 2, 4, 6, 8] into "0,10,2"
+  stringify: value => {
+    let start = value[0]                      // First value, e.g. 0
+    let step = value[1] - value[0]            // 2nd - 1st value, e.g. 2
+    let end = value[value.length - 1] + step  // Last value + step, e.g. 8 + 2 = 10
+    return `${start},${end},${step}`
+  }
+}
+</script>
+<template component="custom-range" series:range="">
+  Values are <%= JSON.stringify(series) %>
+</template>
+<custom-range series="0,10,2"></custom-range>
+<script>
+  tape('Add custom types', function (t) {
+    let el = document.querySelector('custom-range')
+    t.equals(el.innerHTML.trim(), 'Values are [0,2,4,6,8]')
+    t.end()
+  })
+</script>
+
 
 <!--
 ## Check if ready with `.ui.ready`
