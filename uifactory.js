@@ -78,16 +78,17 @@
     // Compile the rest of the template -- by default, using a Lodash template
     const compile = config.compile || _.template
     const template = compile(html)
+
     // The {name: ...} from the properties list become the observable attrs
     const properties = config.properties || []
     const attrs = properties.map(prop => prop.name)
     // attrparse[attr-name](val) parses attribute based on its type
     const attrinfo = {}
     properties.forEach(prop => {
-      attrinfo[prop.name] = {
+      attrinfo[prop.name] = Object.assign({
         parse: parse.bind(this, prop.type),
         stringify: stringify.bind(this, prop.type)
-      }
+      }, prop)
     })
 
     // Create the custom HTML element
@@ -97,27 +98,41 @@
 
         this.ui = {}
         this.ui.ready = new Promise(resolve => this.ui._ready = resolve)
+        // Each instance has its own attrinfo that can be updated by adding typed attributes
+        this.ui.attrinfo = Object.assign({}, attrinfo)
       }
 
       connectedCallback() {
         // Called when element is connected to the parent. "this" is the HTMLElement.
+        let self = this
 
         // this.data is the model, i.e. object passed to the template.
         // template can access the component at $target
         this.data = { $target: this }
 
-        // Initialize properties from Current Properties > Attribute values > Property defaults
-        // Properties that are already defined on HTMLElement CANNOT be used
-        const attrs = {}
-        for (let { name, value } of this.attributes)
-          attrs[name] = value
-        for (let { name, value } of properties)
-          this.update({ [name]: attrs[name] || value }, { attr: false, render: false })
+        // Update properties from template attributes
+        for (let {name, value} of Object.values(this.ui.attrinfo))
+          this.update({[name]: value}, { attr: false, render: false })
+        // Update properties from template attributes
+        for (let attr of this.attributes) {
+          let [name, type] = attr.name.split(':')
+          // If the name has a : in it (e.g. x:number), add it as a type-convertible property
+          if (type)
+            this.ui.attrinfo[name] = Object.assign({
+              name, type,
+              value: attr.value,
+              parse: parse.bind(type),
+              stringify: stringify.bind(type)
+            }, this.ui.attrinfo[name])
+          // If the name is a property, update it.
+          // Note: If the template has name:type= but component has just name=, we STILL update it
+          if (name in this.ui.attrinfo)
+            this.update({ [name]: attr.value }, { attr: false, render: false })
+        }
 
         // Getting / setting properties updates the .data model.
-        let self = this
-        properties.forEach(prop => {
-          let property = camelize(prop.name)
+        for (let name in this.ui.attrinfo) {
+          let property = camelize(name)
           // If the property is already in HTMLElement, don't override it
           if (!(property in self))
             Object.defineProperty(self, property, {
@@ -126,7 +141,7 @@
                 self.update({ [property]: val }, { attr: true, render: false })
               }
             })
-        })
+        }
 
         // templates can access to the original children of the node via "this"
         this.__originalNode = this.cloneNode(true)
@@ -141,9 +156,9 @@
         if (this.data) {
           for (let [name, value] of Object.entries(props)) {
             let isString = typeof value == 'string'
-            this.data[camelize(name)] = isString ? attrinfo[name].parse(value) : value
+            this.data[camelize(name)] = isString ? this.ui.attrinfo[name].parse(value) : value
             if (options.attr)
-              this.setAttribute(name, isString ? value : attrinfo[name].stringify(value))
+              this.setAttribute(name, isString ? value : this.ui.attrinfo[name].stringify(value))
           }
           if (options.render)
             this._render()
