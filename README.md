@@ -770,6 +770,53 @@ When you add a component using this custom type to your page:
 `Values are [0,2,4,6,8]`
 
 
+## Custom types need a parse and stringify function
+
+Each [custom type](#add-custom-types) you add to `uifactory.types` needs a `parse` and `stringify`
+functions with the following signature:
+
+- `parse(string, name, data)`: Converts the attribute `name:type="string"` into the property `$el.data.name`
+  - `string`: string value of the attribute
+  - `name`: name of the attribute. (Property names are in camelCase. This is in kebab-case)
+  - `data`: all properties of the component, computed so far
+- `stringify(value, name, data)`: Converts the property `$el.data.name == value` into a attribute value string
+  - `value`: JavaScript object holding the property value
+  - `name`: name of the attribute. (Property names are in camelCase. This is in kebab-case)
+  - `data`: all properties of the component, computed so far
+
+It can be quite useful to have all properties available as `data`. This lets you parse attributes
+based on previous attributes.
+
+For example, let's create a `:formula` type that executes JavaScript. For example:
+
+```js
+uifactory.types.formula = {
+  // Compile string into a JavaScript function, call it with data, return the result
+  parse: (string, name, data) => {
+    let fn = new Function('data', `with (data) { return (${string}) }`)
+    return fn(data)
+  },
+  // Just convert the value into a JSON string
+  stringify: value => JSON.stringify(value)
+}
+```
+
+When you add a component using this custom type to your page:
+
+```html
+<template component="custom-formula" x:number="0">
+  x=<%= x %>, y=<%= y %>, z=<%= z %>
+</template>
+<custom-formula x="10" y:formula="x * x" z:formula="2 * y + x"></custom-formula>
+```
+
+... it renders this output:
+
+`x=10, y=100, z=210`
+
+The `:formula` type evaluates values in the context of previous values.
+
+
 ## Check if ready with `.ui.ready`
 
 You can check if a component is ready (i.e. rendered for the first time), using the
