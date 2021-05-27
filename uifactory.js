@@ -159,9 +159,9 @@
             // But without it, the tests fail. Need to investigate and resolve.
             let type = window.uifactory.types[this.ui.attrinfo[name].type] || types.str
             let isString = typeof value == 'string'
-            this.data[camelize(name)] = isString ? type.parse(value) : value
+            this.data[camelize(name)] = isString ? type.parse(value, name, this.data) : value
             if (options.attr)
-              this.setAttribute(name, isString ? value : type.stringify(value))
+              this.setAttribute(name, isString ? value : type.stringify(value, name, this.data))
           }
           if (options.render)
             this._render()
