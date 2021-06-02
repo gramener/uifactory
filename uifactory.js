@@ -19,6 +19,21 @@
     }
   }
   types.number = types.boolean = types.array = types.object = types.json = types.js
+  types.url = {
+    parse: value => {
+      if (!value)
+        return value
+      let response
+      return fetch(value).then(r => {
+        response = r
+        return r.text()
+      }).then(text => new Promise(resolve => {
+        response.text = text
+        resolve(response)
+      }))
+    },
+    stringify: s => s
+  }
 
   // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
   const camelize = s => s.replace(/-./g, x => x.toUpperCase()[1])
@@ -151,7 +166,8 @@
       }
 
       // Set the template variables. Converts kebab-case to camelCase
-      update(props = {}, options = { attr: true, render: true }) {
+      // TODO: Change these to "false" defaults -- that's the real default value!
+      update(props = {}, options = { attr: true, render: true, noparse: false }) {
         // If the component is not initialized, don't render it
         if (this.data) {
           for (let [name, value] of Object.entries(props)) {
@@ -159,7 +175,18 @@
             // But without it, the tests fail. Need to investigate and resolve.
             let type = window.uifactory.types[this.ui.attrinfo[name].type] || types.str
             let isString = typeof value == 'string'
-            this.data[camelize(name)] = isString ? type.parse(value, name, this.data) : value
+            let result = (isString && !options.noparse) ? type.parse(value, name, this.data) : value
+            // If parse() returns a Promise, re-update the element after it resolves
+            // TODO: Catch exception?
+            if (result && typeof result.then == 'function') {
+              result.then(r => this.update({ [name]: r }, {
+                render: true,   // Re-render
+                noparse: true,  // Don't re-parse result
+                attr: false,    // Promises return complex objects. Don't serialize the result
+              }))
+              result = null     // For now, set the result to a null value
+            }
+            this.data[camelize(name)] = result
             if (options.attr)
               this.setAttribute(name, isString ? value : type.stringify(value, name, this.data))
           }

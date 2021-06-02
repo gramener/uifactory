@@ -192,6 +192,39 @@ For example, when you add this to your page:
 ```
 
 
+## Fetch URLs using the `:url` type
+
+To fetch a URL as text, specify `:url` as the property type. For example, this `<fetch-page>`
+component displays "Loading..." until a URL is loaded, and then displays it.
+
+```html
+<template component="fetch-page" src:url="">
+  <% if (!src) { %>
+    Loading...
+  <% } else { %>
+    <%= src.text %>
+  <% } %>
+</template>
+<fetch-page src="page.txt"></fetch-page>
+```
+
+... it renders the contents of [page.txt](test/page.txt):
+
+```text
+Contents of page.txt
+```
+
+The `:url` object is a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object
+with one change: `.text` has the text of response. The following keys maybe useful:
+
+- `.headers`: response [headers](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)
+- `.status`: HTTP status code
+- `.statusText`: HTTP status message corresponding to the status code (e.g., OK for 200)
+- `.ok`: `true` if the HTTP status is the range 200-299
+- `.url`: The URL of the response -- after any redirections
+- `.text`: Text from the loaded page. This is **not a Promise**, but the actual text
+
+
 ## Access `<template>` as `this` inside templates
 
 Inside the [template](#lodash-templates-are-supported),
