@@ -1023,3 +1023,25 @@ uifactory.register({
 Tested in Chrome 74+, Firefox 66+, Edge 18+, and Safari 11+. IE is not supported.
 
 You can raise issues and feature requests at <https://github.com/gramener/uifactory/issues>.
+
+## Change log
+
+- 0.0.9 (2 Jun 2021): The `:url` attribute type [fetches data from a URL](#fetch-urls-using-the-url-type)
+- 0.0.8 (27 May 2021): Custom types' `.parse()` receives `this.data` as input
+- 0.0.7 (26 May 2021): Allow [custom types](#custom-types-need-a-parse-and-stringify-function)
+- 0.0.6 (21 Apr 2021): Allow [property type definitions](#define-properties-using-template-attr)
+
+## Release
+
+To release a new version:
+
+- In `README.md`, update the [Change log](#change-log)
+- In [package.json](package.json), update `version`
+
+Then run:
+
+```bash
+git commit . -m"Release x.x.x"
+git push
+npm publish
+```
