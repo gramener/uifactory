@@ -751,7 +751,19 @@ This will render:
 Instance properties: $target=[object HTMLElement] base=10 child=20
 ```
 
-The `child` JavaScript variable is now available to use in the template.
+The `child` JavaScript variable is now available (as a number).
+
+The instance types **override** the template. For example:
+
+```html
+<base-component child:number="20" base:js="1 + 2"></base-component>
+```
+
+This will render:
+
+```text
+Instance properties: $target=[object HTMLElement] base=3 child=20
+```
 
 
 ## Add custom types

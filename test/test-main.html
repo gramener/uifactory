@@ -1262,7 +1262,19 @@ This will render:
 Instance properties: $target=[object HTMLElement] base=10 child=20
 ```
 
-The `child` JavaScript variable is now available to use in the template.
+The `child` JavaScript variable is now available (as a number).
+
+The instance types **override** the template. For example:
+
+```html
+<base-component child:number="20" base:js="1 + 2"></base-component>
+```
+
+This will render:
+
+```text
+Instance properties: $target=[object HTMLElement] base=3 child=20
+```
 -->
 <template component="base-component" base:number="10">
   Instance properties:
@@ -1271,12 +1283,16 @@ The `child` JavaScript variable is now available to use in the template.
   <% } %>
 </template>
 <base-component child:number="20">Hello world</base-component>
+<base-component child:number="20" base:js="1 + 2"></base-component>
 <script>
   tape('Add properties to an instance using types', function (t) {
-    let el = document.querySelector('base-component')
-    t.equals(el.innerHTML.trim().split(/\s+/).join(' '),
+    let els = document.querySelectorAll('base-component')
+    t.equals(els[0].innerHTML.trim().split(/\s+/).join(' '),
       `Instance properties: $target=[object HTMLElement] base=10 child=20`,
       `Instance property added`)
+    t.equals(els[1].innerHTML.trim().split(/\s+/).join(' '),
+      `Instance properties: $target=[object HTMLElement] base=3 child=20`,
+      `Instance property overrides`)
     t.end()
   })
 </script>
