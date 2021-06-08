@@ -728,10 +728,10 @@ This code does the same thing:
 You can [defining properties on templates](#define-properties-using-template-attr). But you can
 add properties on an instance too.
 
-For example, if you have a `<base-component>` with a `base` attribute like this:
+For example, if you have a `<base-component>` with a `base` or `root` attributes like this:
 
 ```html
-<template component="base-component" base:number="10">
+<template component="base-component" base:number="10" root:url="">
   Instance properties:
   <% for (let key in $target.data) { %>
     <%= key %>=<%= $target.data[key] %>
@@ -748,21 +748,22 @@ For example, if you have a `<base-component>` with a `base` attribute like this:
 This will render:
 
 ```text
-Instance properties: $target=[object HTMLElement] base=10 child=20
+Instance properties: $target=[object HTMLElement] base=10 root= child=20
 ```
 
 The `child` JavaScript variable is now available (as a number).
 
-The instance types **override** the template. For example:
+The instance types **override** the template. For example, here, `base` and `root` are defined as
+`:js`, which overrides the template's `base:number`:
 
 ```html
-<base-component child:number="20" base:js="1 + 2"></base-component>
+<base-component child:number="20" base:js="1 + 2" root:js="2 + 3"></base-component>
 ```
 
 This will render:
 
 ```text
-Instance properties: $target=[object HTMLElement] base=3 child=20
+Instance properties: $target=[object HTMLElement] base=3 src=5 child=20
 ```
 
 

@@ -136,9 +136,9 @@
         // Override with properties from instance attributes
         for (let attr of this.attributes) {
           let [name, type] = attr.name.split(':')
-          // If the name has a : in it (e.g. x:number), add it as a type-convertible property
+          // If the name has a : in it (e.g. x:number), add it as a typed property
           if (type)
-            this.ui.attrinfo[name] = Object.assign({ name, type, value: attr.value}, this.ui.attrinfo[name])
+            this.ui.attrinfo[name] = { name, type, value: attr.value}
           // If the name is a property, update it.
           // Note: If the template has name:type= but component has just name=, we STILL update it
           if (name in this.ui.attrinfo)
