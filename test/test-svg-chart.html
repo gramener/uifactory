@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="tape.js"></script>
+  <script src="../node_modules/lodash/lodash.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-format@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-interpolate@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-time@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-time-format@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
+  <script src="../uifactory.js" import="../components/svg-chart.html"></script>
+</head>
+<body>
+
+  <script>
+    const renderEvents = {}
+    document.body.addEventListener('render', function (e) {
+      const id = e.target.getAttribute('id')
+      renderEvents[id] = renderEvents[id] || []
+      renderEvents[id].push({e: e, html: e.target.innerHTML})
+    })
+  </script>
+
+  <svg-chart id="as-is">
+    Contents as-is
+  </svg-chart>
+  <script>
+    tape('By default, svg-chart contents are rendered as-is', function (t) {
+      t.equals(document.querySelector('#as-is').innerHTML.trim(), 'Contents as-is')
+      t.end()
+    })
+  </script>
+
+  <svg-chart id="just-src" src="svg-chart-circles.svg">Default content</svg-chart>
+  <script>
+    tape('Loads src', function (t) {
+      let el = document.querySelector('#just-src')
+      function check() {
+        let events = renderEvents['just-src']
+        if (!events || events.length < 2)
+          return setTimeout(check, 100)
+        t.equals(events[0].html.trim(), 'Default content')
+        t.equals(el.querySelector('svg').getAttribute('width'), '300')
+        t.end()
+      }
+      check()
+    })
+  </script>
+
+
+  <script>
+    let scale = d3.scaleLinear()
+      .domain([0, 0.5, 1])
+      .range(["red", "yellow", "green"])
+  </script>
+  <svg-chart id="add-rule" src="svg-chart-circles.svg" rules:js="{
+    'circle': {
+      stroke: 'black',
+      'stroke-width': (d, i) => i * 3 + 3,
+      fill: (d, i) => scale(d.color[i])
+    }
+  }" data:js="{color: [0.1, 0.4, 0.9]}">Default content</svg-chart>
+  <script>
+    tape('Rules', function (t) {
+      let el = document.querySelector('#add-rule')
+      function check() {
+        let events = renderEvents['add-rule']
+        if (!events || events.length < 2)
+          return setTimeout(check, 100)
+        t.equals(events[0].html.trim(), 'Default content')
+        let circles = el.querySelectorAll('svg > circle')
+        t.equals(circles.length, 3)
+        t.equals(circles[0].getAttribute('stroke'), 'black')
+        t.equals(circles[1].getAttribute('stroke'), 'black')
+        t.equals(circles[2].getAttribute('stroke'), 'black')
+        t.equals(circles[0].getAttribute('stroke-width'), '3')
+        t.equals(circles[1].getAttribute('stroke-width'), '6')
+        t.equals(circles[2].getAttribute('stroke-width'), '9')
+        t.equals(circles[0].getAttribute('fill'), 'rgb(255, 51, 0)')
+        t.equals(circles[1].getAttribute('fill'), 'rgb(255, 204, 0)')
+        t.equals(circles[2].getAttribute('fill'), 'rgb(51, 153, 0)')
+
+        // Data update
+        el.update({data: {color: [0, 0.5, 1]}})
+        circles = el.querySelectorAll('svg > circle')
+        t.equals(circles[0].getAttribute('fill'), 'rgb(255, 0, 0)')
+        t.equals(circles[1].getAttribute('fill'), 'rgb(255, 255, 0)')
+        t.equals(circles[2].getAttribute('fill'), 'rgb(0, 128, 0)')
+        t.end()
+      }
+      check()
+    })
+  </script>
+
+
+<script>
+  // server.js needs a renderComplete to know that the tests are done
+  tape.onFinish(function () {
+    window.renderComplete = true
+  })
+</script>
+
+</body>
+</html>
