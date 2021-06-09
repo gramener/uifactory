@@ -7,18 +7,19 @@
   const tmpl = doc.createElement('template')
 
   // Used to serialize and parse values of different types
-  const jsParse = s => eval(`(${s})`)
   let types = {
     str: {
       parse: v => v,
       stringify: s => s
-    },
-    js: {
-      parse: jsParse,
-      stringify: JSON.stringify
     }
   }
-  types.number = types.boolean = types.array = types.object = types.json = types.js
+  types.number = types.boolean = types.array = types.object = types.json = types.js = {
+    parse: (value, name, data) => {
+      let fn = new Function('data', `with (data) { return (${value}) }`)
+      return fn(data)
+    },
+    stringify: JSON.stringify
+  }
   types.url = {
     parse: value => {
       if (!value)
@@ -244,7 +245,7 @@
     // Merge config with <script type="application/json"> configurations
     el.content.querySelectorAll('[type="application/json"]').forEach(text => {
       // Copy properties
-      let conf = jsParse(text.innerHTML)
+      let conf = types.js.parse(text.innerHTML, '', {})
       for (let attr of conf.properties || [])
         config.properties[attr.name] = Object.assign(config.properties[attr.name] || {}, attr)
     })

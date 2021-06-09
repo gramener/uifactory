@@ -303,43 +303,44 @@ Inside the template, the variable `value` has a value `"8"`.
 
 
 <!--
-## Define property types using `<template attr:json="...">`
+## Define property types using `<template attr:js="...">`
 
 By default, properties are strings. You can specify `number`, `boolean`, `array`, `object` or `js`
 like this:
 
-- `<template component="..." value:number="30">` defines `.value` as a number `30`
-- `<template component="..." value:boolean="true">` defines `.value` as a boolean `true`
-- `<template component="..." value:array="[3,4]">` defines `.value` as an array `[3, 4]`
-- `<template component="..." value:object="{x:1}">` defines `.value` as an object `{x: 1}`
-- `<template component="..." value:js="3 + 2">` defines `.value` as a JS expression evaluating to `5`
+- `<template component="..." num:number="30">` defines `.num` as a number `30`
+- `<template component="..." bool:boolean="true">` defines `.bool` as a boolean `true`
+- `<template component="..." arr:array="[3,4]">` defines `.arr` as an array `[3, 4]`
+- `<template component="..." obj:object="{x:1}">` defines `.obj` as an object `{x: 1}`
+- `<template component="..." expr:js="Math.ceil(2.2) + num">` defines `.expr` as a JS expression
+  evaluating to `3 + num`. `num` could be a global variable or another property.
 
 For example, when you add this to your page:
 
 ```html
 <template component="property-types" str="x" num:number="30" bool:boolean="true"
-          arr:array="[3,4]" obj:object="{x:1}" expr:js="3 + 2">
+          arr:array="[3,4]" obj:object="{x:1}" expr:js="Math.ceil(2.2) + num">
   <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj, expr: expr}) %>
 </template>
 <property-types></property-types>
 ```
 
-... it renders this:
+... it renders this output:
 
 ```json
-{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":5}
+{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":33}
 ```
 -->
 
 <template component="property-types" str="x" num:number="30" bool:boolean="true"
-          arr:array="[3,4]" obj:object="{x:1}" expr:js="3 + 2">
+          arr:array="[3,4]" obj:object="{x:1}" expr:js="Math.ceil(2.2) + num">
   <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj, expr: expr}) %>
 </template>
 <property-types></property-types>
 <script>
-  tape('Define property types using `<template attr:json="...">`', function (t) {
+  tape('Define property types using `<template attr:js="...">`', function (t) {
     let el = document.querySelector('property-types')
-    t.equals(el.innerHTML.trim(), '{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":5}')
+    t.equals(el.innerHTML.trim(), '{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":33}')
     t.end()
   })
 </script>
@@ -388,7 +389,7 @@ with one change: `.text` has the text of response. The following keys maybe usef
 <fetch-page src="page.txt"></fetch-page>
 <script>
   let el2 = document.querySelector('fetch-page')
-  tape('Define property types using `<template attr:json="...">`', function (t) {
+  tape('Fetch URLs using the `:url` type', function (t) {
     el2.addEventListener('render', function (e) {
       t.ok(e.target.src.ok)
       t.equals(e.target.src.status, 200)
@@ -1239,10 +1240,10 @@ This code does the same thing:
 You can [defining properties on templates](#define-properties-using-template-attr). But you can
 add properties on an instance too.
 
-For example, if you have a `<base-component>` with a `base` attribute like this:
+For example, if you have a `<base-component>` with a `base` or `root` attributes like this:
 
 ```html
-<template component="base-component" base:number="10">
+<template component="base-component" base:number="10" root:url="">
   Instance properties:
   <% for (let key in $target.data) { %>
     <%= key %>=<%= $target.data[key] %>
@@ -1259,39 +1260,40 @@ For example, if you have a `<base-component>` with a `base` attribute like this:
 This will render:
 
 ```text
-Instance properties: $target=[object HTMLElement] base=10 child=20
+Instance properties: $target=[object HTMLElement] base=10 root= child=20
 ```
 
 The `child` JavaScript variable is now available (as a number).
 
-The instance types **override** the template. For example:
+The instance types **override** the template. For example, here, `base` and `root` are defined as
+`:js`, which overrides the template's `base:number`:
 
 ```html
-<base-component child:number="20" base:js="1 + 2"></base-component>
+<base-component child:number="20" base:js="1 + 2" root:js="2 + 3"></base-component>
 ```
 
 This will render:
 
 ```text
-Instance properties: $target=[object HTMLElement] base=3 child=20
+Instance properties: $target=[object HTMLElement] base=3 root=5 child=20
 ```
 -->
-<template component="base-component" base:number="10">
+<template component="base-component" base:number="10" root:url="">
   Instance properties:
   <% for (let key in $target.data) { %>
     <%= key %>=<%= $target.data[key] %>
   <% } %>
 </template>
 <base-component child:number="20">Hello world</base-component>
-<base-component child:number="20" base:js="1 + 2"></base-component>
+<base-component child:number="20" base:js="1 + 2" root:js="2 + 3"></base-component>
 <script>
   tape('Add properties to an instance using types', function (t) {
     let els = document.querySelectorAll('base-component')
     t.equals(els[0].innerHTML.trim().split(/\s+/).join(' '),
-      `Instance properties: $target=[object HTMLElement] base=10 child=20`,
+      `Instance properties: $target=[object HTMLElement] base=10 root= child=20`,
       `Instance property added`)
     t.equals(els[1].innerHTML.trim().split(/\s+/).join(' '),
-      `Instance properties: $target=[object HTMLElement] base=3 child=20`,
+      `Instance properties: $target=[object HTMLElement] base=3 root=5 child=20`,
       `Instance property overrides`)
     t.end()
   })

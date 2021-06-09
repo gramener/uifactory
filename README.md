@@ -164,23 +164,24 @@ For example, `<template value:number="30">` defines the variable `value` as a nu
 Inside the template, the variable `value` has a value `8`.
 
 
-## Define property types using `<template attr:json="...">`
+## Define property types using `<template attr:js="...">`
 
 By default, properties are strings. You can specify `number`, `boolean`, `array`, `object` or `js`
 like this:
 
-- `<template component="..." value:number="30">` defines `.value` as a number `30`
-- `<template component="..." value:boolean="true">` defines `.value` as a boolean `true`
-- `<template component="..." value:array="[3,4]">` defines `.value` as an array `[3, 4]`
-- `<template component="..." value:object="{x:1}">` defines `.value` as an object `{x: 1}`
-- `<template component="..." value:js="3 + 2">` defines `.value` as a JS expression evaluating to `5`
+- `<template component="..." num:number="30">` defines `.num` as a number `30`
+- `<template component="..." bool:boolean="true">` defines `.bool` as a boolean `true`
+- `<template component="..." arr:array="[3,4]">` defines `.arr` as an array `[3, 4]`
+- `<template component="..." obj:object="{x:1}">` defines `.obj` as an object `{x: 1}`
+- `<template component="..." expr:js="Math.ceil(2.2) + num">` defines `.expr` as a JS expression
+  evaluating to `3 + num`. `num` could be a global variable or another property.
 
 For example, when you add this to your page:
 
 ```html
 <template component="property-types" str="x" num:number="30" bool:boolean="true"
-          arr:array="[3,4]" obj:object="{x:1}" expr:js="3 + 2">
-  <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj, expr: 5}) %>
+          arr:array="[3,4]" obj:object="{x:1}" expr:js="Math.ceil(2.2) + num">
+  <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj, expr: expr}) %>
 </template>
 <property-types></property-types>
 ```
@@ -188,7 +189,7 @@ For example, when you add this to your page:
 ... it renders this output:
 
 ```json
-{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":5}
+{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":33}
 ```
 
 
