@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <script src="tape.js"></script>
   <script src="../node_modules/lodash/lodash.min.js"></script>
-  <script src="../uifactory.js"></script>
+  <script src="../src/uifactory.js"></script>
   <script>
     // Don't run the tests upfront. Run them after all scripts are loaded. Just cache them for now.
     // Component rendering happens asynchronously
@@ -1032,19 +1032,19 @@ uifactory.register('tag5.html')
 </script>
 ```
 -->
-<script src="../uifactory.js" import="tag.html"></script>
+<script src="../src/uifactory.js" import="tag.html"></script>
 <tag-a></tag-a>
 <tag-b></tag-b>
 
 <tag2-a></tag2-a>
 <tag2-b></tag2-b>
-<script src="../uifactory.js" import="tag.html, tag2.html"></script>
+<script src="../src/uifactory.js" import="tag.html, tag2.html"></script>
 
 <tag3-a></tag3-a>
 <tag3-b></tag3-b>
 <tag4-a></tag4-a>
 <tag4-b></tag4-b>
-<script src="../uifactory.js" import="
+<script src="../src/uifactory.js" import="
   ../test/tag3.html
   https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
 "></script>
@@ -1060,6 +1060,7 @@ uifactory.register('tag5.html')
     let tags = ['tag-a', 'tag-b', 'tag2-a', 'tag2-b', 'tag3-a', 'tag3-b', 'tag4-a', 'tag4-b', 'tag5-a', 'tag5-b']
     t.plan(tags.length)
     tags.forEach(tag => {
+      console.log(tag, document.querySelector(tag))
       document.querySelector(tag).ui.ready.then(function () {
         t.equals(document.querySelector(tag).innerHTML.trim(), `This is ${tag}`, `${tag} is imported`)
       })

@@ -2,8 +2,6 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <script src="tape.js"></script>
-  <script src="../node_modules/lodash/lodash.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-array@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-color@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-format@3"></script>
@@ -11,7 +9,9 @@
   <script src="https://cdn.jsdelivr.net/npm/d3-time@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-time-format@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-scale@4"></script>
-  <script src="../uifactory.js" import="../components/svg-chart.html"></script>
+  <script src="tape.js"></script>
+  <script src="../node_modules/lodash/lodash.min.js"></script>
+  <script src="../src/uifactory.js" import="../src/svg-chart.html"></script>
 </head>
 <body>
 
@@ -21,6 +21,10 @@
       const id = e.target.getAttribute('id')
       renderEvents[id] = renderEvents[id] || []
       renderEvents[id].push({e: e, html: e.target.innerHTML})
+    })
+    // server.js needs a renderComplete to know that the tests are done
+    tape.onFinish(function () {
+      window.renderComplete = true
     })
   </script>
 
@@ -94,14 +98,6 @@
       check()
     })
   </script>
-
-
-<script>
-  // server.js needs a renderComplete to know that the tests are done
-  tape.onFinish(function () {
-    window.renderComplete = true
-  })
-</script>
 
 </body>
 </html>
