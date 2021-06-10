@@ -55,8 +55,9 @@
     tmpl.innerHTML = config.template
     const htmlScript = tmpl.content.querySelector('script[type="text/html"]')
     // When the scripts are loaded, resolve this promise.
-    let scriptsResolve
-    const scriptsLoad = new Promise(resolve => scriptsResolve = resolve)
+    let scriptsLoaded     // boolean: have all external scripts been loaded?
+    let _scriptsResolve    // fn: resolves the scriptsLoad promise
+    const scriptsResolve = new Promise(resolve => _scriptsResolve = resolve)
     // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
     loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style'))
     loadExtract('body', tmpl.content.querySelectorAll('script'))
@@ -88,8 +89,10 @@
           return
       }
       // If we've loaded all scripts -- internal and external -- mark scripts as loaded
-      if (target == 'body' && index == els.length)
-        scriptsResolve(true)
+      if (target == 'body' && index == els.length) {
+        scriptsLoaded = true
+        _scriptsResolve(true)
+      }
     }
 
     // Remove extracted styles and scripts from template.
@@ -163,7 +166,7 @@
         this.__originalNode = this.cloneNode(true)
 
         // Wait for external scripts to get loaded. Then render.
-        scriptsLoad.then(() => this._render())
+        scriptsResolve.then(() => this._render())
       }
 
       // Set the template variables. Converts kebab-case to camelCase
@@ -191,7 +194,7 @@
             if (options.attr)
               this.setAttribute(name, isString ? value : type.stringify(value, name, this.data))
           }
-          if (options.render)
+          if (options.render && scriptsLoaded)
             this._render()
         }
       }
