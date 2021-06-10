@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="tape.js"></script>
+  <script src="../node_modules/lodash/lodash.min.js"></script>
+  <script src="../src/uifactory.js" import="@md-text"></script>
+</head>
+<body>
+
+  <script>
+    const renderEvents = {}
+    document.body.addEventListener('render', function (e) {
+      const id = e.target.getAttribute('id')
+      renderEvents[id] = renderEvents[id] || []
+      renderEvents[id].push({e: e, html: e.target.innerHTML})
+    })
+    // server.js needs a renderComplete to know that the tests are done
+    tape.onFinish(function () {
+      window.renderComplete = true
+    })
+  </script>
+
+  <md-text id="inline">
+
+    # Heading
+    Content
+  </md-text>
+  <script>
+    tape('Inline markdown is rendered as-is', function (t) {
+      let el = document.querySelector('#inline')
+      function check() {
+        let events = renderEvents['inline']
+        if (!events || events.length < 1)
+          return setTimeout(check, 100)
+        t.equals(el.querySelector('h1').innerHTML.trim(), 'Heading')
+        t.equals(el.querySelector('p').innerHTML.trim(), 'Content')
+        t.end()
+      }
+      check()
+    })
+  </script>
+
+  <md-text id="external" src="../README.md" base-url="../">
+    # Heading
+    Content
+  </md-text>
+  <script>
+    tape('By default, svg-chart contents are rendered as-is', function (t) {
+      let el = document.querySelector('#external')
+      function check() {
+        let events = renderEvents['external']
+        if (!events || events.length < 1)
+          return setTimeout(check, 100)
+        t.equals(el.querySelector('h1').innerHTML.trim(), 'UIFactory')
+        t.end()
+      }
+      check()
+    })
+  </script>
+
+</body>
+</html>

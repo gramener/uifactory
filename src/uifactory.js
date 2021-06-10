@@ -264,7 +264,12 @@
   }
 
   // Fetch a HTML template and register it.
+  // If the URL is specified as @component-name, load component-name.html from the same directory
+  // as uifactory. (This may be the src/ or dist/ folder.)
   function registerURL(url, options) {
+    if (url[0] == '@') {
+      url = doc.currentScript.src.replace(/[^/]+$/, url.slice(1).replace(/\.html$/i, '') + '.html')
+    }
     fetch(url)
       .then(response => response.text())
       .then(config => {

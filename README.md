@@ -18,7 +18,7 @@ To include it in your script, use
 
 ```html
 <script src="node_modules/lodash/lodash.min.js"></script>
-<script src="node_modules/uifactory/uifactory.js"></script>
+<script src="node_modules/uifactory/src/uifactory.js"></script>
 ```
 
 ## Components are HTML templates
@@ -564,7 +564,7 @@ When you add the component to your page:
 ![Add events via event delegation](docs/toggle-red.gif)
 
 
-## Import components from HTML files
+## Import components with `import="file.html"`
 
 To re-use components across projects, save one or more component `<template>`s in a HTML file.
 For example, `tag.html` could look like this:
@@ -581,7 +581,7 @@ For example, `tag.html` could look like this:
 To import it in another file, use:
 
 ```html
-<script src="node_modules/uifactory/uifactory.js" import="tag.html"></script>
+<script src="node_modules/uifactory/src/uifactory.js" import="tag.html"></script>
 ```
 
 Now you can use all `<template component="...">` components from `tag.html`. For example:
@@ -600,7 +600,7 @@ You can import multiple component files separated by comma and/or spaces.
 ```html
 <tag2-a></tag2-a>
 <tag2-b></tag2-b>
-<script src="node_modules/uifactory/uifactory.js" import="tag.html, tag2.html"></script>
+<script src="node_modules/uifactory/src/uifactory.js" import="tag.html, tag2.html"></script>
 ```
 
 You can use relative and absolute paths, too. For example:
@@ -610,7 +610,7 @@ You can use relative and absolute paths, too. For example:
 <tag3-b></tag3-b>
 <tag4-a></tag4-a>
 <tag4-b></tag4-b>
-<script src="node_modules/uifactory/uifactory.js" import="
+<script src="node_modules/uifactory/src/uifactory.js" import="
   ../test/tag3.html
   https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
 "></script>
@@ -625,6 +625,40 @@ You can also import via JavaScript:
 uifactory.register('tag5.html')
 </script>
 ```
+
+## Import standard components with `import="@component-name"`
+
+UIFactory has pre-defined HTML components that you can import, e.g. `<svg-chart>`. To import these,
+use `import="@component-name"`.
+
+You can import multiple component files separated by comma and/or spaces.
+
+For example, this imports the `<svg-chart>` and `<md-text>` components:
+
+```html
+<script src="node_modules/uifactory/src/uifactory.js" import="@svg-chart @md-text"></script>
+```
+
+This is the same as:
+
+```html
+<script src="node_modules/uifactory/src/uifactory.js" import="
+             node_modules/uifactory/src/svg-chart.html
+             node_modules/uifactory/src/md-text.html
+"></script>
+```
+
+When you add the component to your page:
+
+```html
+<md-text>**Strong text** and *italics*</md-text>
+```
+
+... it renders this output:
+
+**Strong text** and *italics*
+
+
 
 -------------------------------------------------
 

@@ -1,0 +1,37 @@
+<template component="md-text"
+  src:url=""
+  dedent:boolean="true"
+  base-url=""
+  breaks:boolean="false"
+  gfm:boolean="false"
+  header-ids:boolean="true"
+  header-prefix=""
+  highlight:js="null"
+  lang-prefix="language-"
+  mangle:boolean="true"
+  pedantic:boolean="false"
+  sanitize:boolean="false"
+  sanitizer:js="null"
+  silent:boolean="true"
+  smart-lists:boolean="false"
+  smartypants:boolean="false"
+  xhtml:boolean="false"
+>
+  <%
+    let content
+    if (src)
+      content = src.text
+    else {
+      content = this.innerHTML
+      if (dedent) {
+        content = content.replace(/^\n+/, '')
+        const match = content.match(/^\s+/)
+        if (match)
+          content = content.replace(new RegExp(`^${match[0]}`, 'gm'), '')
+      }
+    }
+  %>
+  <%= marked(content, {baseUrl, breaks, gfm, headerIds, headerPrefix, highlight,
+      langPrefix, mangle, pedantic, sanitize, sanitizer, silent, smartLists, smartypants, xhtml}) %>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</template>
