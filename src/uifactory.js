@@ -15,8 +15,7 @@
   }
   types.number = types.boolean = types.array = types.object = types.json = types.js = {
     parse: (value, name, data) => {
-      // TODO: Allow using a global variable like "data"
-      let fn = new Function('data', `with (data) { return (${value}) }`)
+      let fn = new Function('data', `with (data) { return (${value || '""'}) }`)
       return fn(data || {})
     },
     stringify: JSON.stringify

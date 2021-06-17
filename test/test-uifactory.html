@@ -321,34 +321,39 @@ like this:
 - `<template component="..." arr:array="[3,4]">` defines `.arr` as an array `[3, 4]`
 - `<template component="..." obj:object="{x:1}">` defines `.obj` as an object `{x: 1}`
 - `<template component="..." expr:js="Math.ceil(2.2) + num">` defines `.expr` as a JS expression
-  evaluating to `3 + num`. `num` could be a global variable or another property.
+  evaluating to `3 + num`.
+    - You can use global variables like `Math.ceil`
+    - You can use other properties like `num`
+    - You can use use `data[property]` to access other properties, like `data["num"]` or `data.num`
 
 For example, when you add this to your page:
 
 ```html
-<template component="property-types" str="x" num:number="30" bool:boolean="true"
-          arr:array="[3,4]" obj:object="{x:1}" expr:js="Math.ceil(2.2) + num">
+<template component="property-types" str="" num:number="" bool:boolean=""
+  arr:array="" obj:object="" expr:js="">
   <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj, expr: expr}) %>
 </template>
-<property-types></property-types>
+<property-types str="x" num="30" bool="true" arr="[3,4]" obj="{x:1}"
+  expr="Math.ceil(2.2) + num + data.num"></property-types>
 ```
 
 ... it renders this output:
 
 ```json
-{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":33}
+{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63}
 ```
 -->
 
-<template component="property-types" str="x" num:number="30" bool:boolean="true"
-          arr:array="[3,4]" obj:object="{x:1}" expr:js="Math.ceil(2.2) + num">
+<template component="property-types" str="" num:number="" bool:boolean=""
+  arr:array="" obj:object="" expr:js="">
   <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj, expr: expr}) %>
 </template>
-<property-types></property-types>
+<property-types str="x" num="30" bool="true" arr="[3,4]" obj="{x:1}"
+  expr="Math.ceil(2.2) + num + data.num"></property-types>
 <script>
   tape('Define property types using `<template attr:js="...">`', function (t) {
     let el = document.querySelector('property-types')
-    t.equals(el.innerHTML.trim(), '{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":33}')
+    t.equals(el.innerHTML.trim(), '{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63}')
     t.end()
   })
 </script>
