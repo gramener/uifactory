@@ -15,8 +15,9 @@
   }
   types.number = types.boolean = types.array = types.object = types.json = types.js = {
     parse: (value, name, data) => {
+      // TODO: Allow using a global variable like "data"
       let fn = new Function('data', `with (data) { return (${value}) }`)
-      return fn(data)
+      return fn(data || {})
     },
     stringify: JSON.stringify
   }
@@ -33,6 +34,14 @@
         resolve(response)
       }))
     },
+    stringify: s => s
+  }
+  types.urljson = {
+    parse: value => value ? fetch(value).then(r => r.json()) : value,
+    stringify: s => s
+  }
+  types.urltext = {
+    parse: value => value ? fetch(value).then(r => r.text()) : value,
     stringify: s => s
   }
 
@@ -177,17 +186,19 @@
           for (let [name, value] of Object.entries(props)) {
             // TODO: not sure why we need window.uifactory.types here, instead of just types
             // But without it, the tests fail. Need to investigate and resolve.
-            let type = window.uifactory.types[this.ui.attrinfo[name].type] || types.str
+            let type = window.uifactory.types[this.ui.attrinfo[name] && this.ui.attrinfo[name].type] || types.str
             let isString = typeof value == 'string'
             let result = (isString && !options.noparse) ? type.parse(value, name, this.data) : value
             // If parse() returns a Promise, re-update the element after it resolves
             // TODO: Catch exception?
             if (result && typeof result.then == 'function') {
-              result.then(r => this.update({ [name]: r }, {
-                render: true,   // Re-render
-                noparse: true,  // Don't re-parse result
-                attr: false,    // Promises return complex objects. Don't serialize the result
-              }))
+              result.then(r => {
+                this.update({ [name]: r }, {
+                  render: true,   // Re-render
+                  noparse: true,  // Don't re-parse result
+                  attr: false,    // Promises return complex objects. Don't serialize the result
+                })
+              })
               result = null     // For now, set the result to a null value
             }
             this.data[camelize(name)] = result

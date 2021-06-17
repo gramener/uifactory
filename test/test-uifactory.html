@@ -5,6 +5,8 @@
   <script src="tape.js"></script>
   <script src="../node_modules/lodash/lodash.min.js"></script>
   <script src="../src/uifactory.js"></script>
+</head>
+<body>
   <script>
     // Don't run the tests upfront. Run them after all scripts are loaded. Just cache them for now.
     // Component rendering happens asynchronously
@@ -13,9 +15,15 @@
     tape = function (msg, fn) {
       __tests.push([msg, fn])
     }
+    const renderEvents = {}
+    document.body.addEventListener('render', function (e) {
+      const tag = e.target.tagName.toLowerCase()
+      const id = e.target.getAttribute('id')
+      const key = tag + (id ? '#' + id : '')
+      renderEvents[key] = renderEvents[key] || []
+      renderEvents[key].push({e: e, html: e.target.innerHTML})
+    })
   </script>
-</head>
-<body>
 
 <!--
 
@@ -241,9 +249,8 @@ Notes:
 <template component="attr-test" mixedCase="mc" font-size="fs" query-selector="qs"></template>
 <attr-test mixedCase="MC" font-size="FS" extra="E" query-selector="QS"></attr-test>
 <script>
-  let el = document.querySelector('repeat-html')  // Find first <repeat-html>
-  let at = document.querySelector('attr-test')
   tape('Define properties using template attributes', function (t) {
+    let el = document.querySelector('repeat-html')  // Find first <repeat-html>
     t.ok(el.value, 'Attributes on template are added as properties')
 
     el.value = 10
@@ -255,6 +262,7 @@ Notes:
              'So does changing it via `.setAttribute()`.')
     t.end()
   })
+  let at = document.querySelector('attr-test')
   tape('Attribute names with uppercase letters (e.g. `fontSize`) are converted to lowercase property names (e.g. `fontsize`)', function (t) {
     t.equals(at.mixedcase, 'MC', 'mixed-case attrs become lowercase')
     t.end()
@@ -347,6 +355,86 @@ For example, when you add this to your page:
 
 
 <!--
+## Fetch URLs as text using the `:urltext` type
+
+To fetch a URL as text, specify `:urltext` as the property type. For example, this `<fetch-text>`
+component displays "Loading..." until a URL is loaded, and then displays its text.
+
+```html
+<template component="fetch-text" src:urltext="">
+  <%= src === null ? 'Loading...' : src %>
+</template>
+<fetch-text src="page.txt"></fetch-text>
+```
+
+... it renders the contents of [page.txt](test/page.txt) as text:
+
+```text
+Contents of page.txt
+```
+
+The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
+-->
+<template component="fetch-text" src:urltext="">
+  <%= src === null ? 'Loading...' : src %>
+</template>
+<fetch-text src="page.txt"></fetch-text>
+<script>
+  tape('Fetch URLs as text using the `:urltext` type', function (t) {
+    let el = document.querySelector('fetch-text')
+    function check() {
+      let events = renderEvents['fetch-text']
+      if (!events || events.length < 2)
+        return setTimeout(check, 100)
+      t.equals(el.innerHTML.trim(), 'Contents of page.txt')
+      t.end()
+    }
+    check()
+  })
+</script>
+
+
+<!--
+## Fetch URLs as JSON using the `:urljson` type
+
+To fetch a URL as JSON, specify `:urljson` as the property type. For example, this `<fetch-json>`
+component displays "Loading..." until a URL is loaded, and then displays its JSON.
+
+```html
+<template component="fetch-json" src:urljson="">
+  <%= src === null ? 'Loading...' : JSON.stringify(src) %>
+</template>
+<fetch-url src="page.json"></fetch-url>
+```
+
+... it renders the contents of [page.json](test/page.json):
+
+```text
+{"text":"abc","number":10,"object":{"x":[1,2,3]}}
+```
+
+The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
+-->
+<template component="fetch-json" src:urljson="">
+  <%= src === null ? 'Loading...' : JSON.stringify(src) %>
+</template>
+<fetch-json src="page.json"></fetch-json>
+<script>
+  tape('Fetch URLs as json using the `:urljson` type', function (t) {
+    let el = document.querySelector('fetch-json')
+    function check() {
+      let events = renderEvents['fetch-json']
+      if (!events || events.length < 2)
+        return setTimeout(check, 100)
+      t.equals(el.innerHTML.trim(), '{"text":"abc","number":10,"object":{"x":[1,2,3]}}')
+      t.end()
+    }
+    check()
+  })
+</script>
+
+
+<!--
 ## Fetch URLs using the `:url` type
 
 To fetch a URL as text, specify `:url` as the property type. For example, this `<fetch-page>`
@@ -354,11 +442,7 @@ component displays "Loading..." until a URL is loaded, and then displays it.
 
 ```html
 <template component="fetch-page" src:url="">
-  <% if (!src) { %>
-    Loading...
-  <% } else { %>
-    <%= src.text %>
-  <% } %>
+  <%= src === null ? 'Loading...' : src.text %>
 </template>
 <fetch-page src="page.txt"></fetch-page>
 ```
@@ -369,7 +453,8 @@ component displays "Loading..." until a URL is loaded, and then displays it.
 Contents of page.txt
 ```
 
-The `:url` object is a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object
+The `:url` property is null until it is loaded. Once loaded, it is a
+[Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object
 with one change: `.text` has the text of response. The following keys maybe useful:
 
 - `.headers`: response [headers](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)
@@ -380,24 +465,24 @@ with one change: `.text` has the text of response. The following keys maybe usef
 - `.text`: Text from the loaded page. This is **not a Promise**, but the actual text
 -->
 <template component="fetch-page" src:url="">
-  <% if (!src) { %>
-    Loading...
-  <% } else { %>
-    <%= src.text %>
-  <% } %>
+  <%= src === null ? 'Loading...' : src.text %>
 </template>
 <fetch-page src="page.txt"></fetch-page>
 <script>
-  let el2 = document.querySelector('fetch-page')
   tape('Fetch URLs using the `:url` type', function (t) {
-    el2.addEventListener('render', function (e) {
-      t.ok(e.target.src.ok)
-      t.equals(e.target.src.status, 200)
-      t.ok(e.target.src.headers.get('Content-Type').match(/text\/plain/))
-      t.equals(e.target.src.text.trim(), 'Contents of page.txt')
-      t.equals(e.target.innerHTML.trim(), 'Contents of page.txt')
+    let el = document.querySelector('fetch-page')
+    function check() {
+      let events = renderEvents['fetch-page']
+      if (!events || events.length < 2)
+        return setTimeout(check, 100)
+      t.ok(el.src.ok)
+      t.equals(el.src.status, 200)
+      t.ok(el.src.headers.get('Content-Type').match(/text\/plain/))
+      t.equals(el.src.text.trim(), 'Contents of page.txt')
+      t.equals(el.innerHTML.trim(), 'Contents of page.txt')
       t.end()
-    })
+    }
+    check()
   })
 </script>
 

@@ -1,17 +1,22 @@
-<template component="svg-chart" src:url="" rules:url="" data:js="{}">
-  <%= src && src.text ? uifactory.svgChart(this, src.text, rules, data) : this.innerHTML %>
+<template component="svg-chart" src:urltext="" rules:urljson="" data:urljson="">
+  <%= src ? uifactory.svgChart(this, src, rules, data) : this.innerHTML %>
 
-  <script type="application/javascript">
+  <script>
     uifactory.svgChart = function (self, src, rules, data) {
       const parser = new DOMParser()
       const doc = parser.parseFromString(src, 'image/svg+xml')
-      if (rules)
+      if (rules) {
         for (let [selector, attrs] of Object.entries(rules)) {
           let selection = Array.from(doc.querySelectorAll(selector))
           for (let [attr, value] of Object.entries(attrs)) {
-            selection.forEach((node, index) => node.setAttribute(attr, typeof value == 'function' ? value.bind(node)(data, index) : value))
+            let method = attr == 'text' ? (node, val) => node.innerHTML = val : (node, val) => node.setAttribute(attr, val)
+            selection.forEach((node, index) => {
+              let val = typeof value == 'function' ? value.bind(node)(data, index) : value
+              method(node, val)
+            })
           }
         }
+      }
       const serializer = new XMLSerializer()
       return serializer.serializeToString(doc)
     }

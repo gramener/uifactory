@@ -4,8 +4,15 @@ module.exports = {
     "sourceType": "module",
   },
   "env": {
+    "browser": true,    // Include browser environment
     "node": true,       // Include node globals
     "es6": true,        // Include ES6 features
+  },
+  "plugins": [
+    "html"
+  ],
+  "globals": {
+    "uifactory": true
   },
   "extends": "eslint:recommended",
   "rules": {

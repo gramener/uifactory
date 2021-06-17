@@ -47,6 +47,7 @@
         if (!events || events.length < 2)
           return setTimeout(check, 100)
         t.equals(events[0].html.trim(), 'Default content')
+        console.log(el)
         t.equals(el.querySelector('svg').getAttribute('width'), '300')
         t.end()
       }

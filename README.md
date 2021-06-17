@@ -193,6 +193,48 @@ For example, when you add this to your page:
 ```
 
 
+## Fetch URLs as text using the `:urltext` type
+
+To fetch a URL as text, specify `:urltext` as the property type. For example, this `<fetch-text>`
+component displays "Loading..." until a URL is loaded, and then displays its text.
+
+```html
+<template component="fetch-text" src:urltext="">
+  <%= src === null ? 'Loading...' : src %>
+</template>
+<fetch-text src="page.txt"></fetch-text>
+```
+
+... it renders the contents of [page.txt](test/page.txt) as text:
+
+```text
+Contents of page.txt
+```
+
+The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
+
+
+## Fetch URLs as JSON using the `:urljson` type
+
+To fetch a URL as JSON, specify `:urljson` as the property type. For example, this `<fetch-json>`
+component displays "Loading..." until a URL is loaded, and then displays its JSON.
+
+```html
+<template component="fetch-json" src:urljson="">
+  <%= src === null ? 'Loading...' : JSON.stringify(src) %>
+</template>
+<fetch-url src="page.json"></fetch-url>
+```
+
+... it renders the contents of [page.json](test/page.json):
+
+```text
+{"text":"abc","number":10,"object":{"x":[1,2,3]}}
+```
+
+The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
+
+
 ## Fetch URLs using the `:url` type
 
 To fetch a URL as text, specify `:url` as the property type. For example, this `<fetch-page>`
@@ -200,11 +242,7 @@ component displays "Loading..." until a URL is loaded, and then displays it.
 
 ```html
 <template component="fetch-page" src:url="">
-  <% if (!src) { %>
-    Loading...
-  <% } else { %>
-    <%= src.text %>
-  <% } %>
+  <%= src === null ? 'Loading...' : src.text %>
 </template>
 <fetch-page src="page.txt"></fetch-page>
 ```
@@ -215,7 +253,8 @@ component displays "Loading..." until a URL is loaded, and then displays it.
 Contents of page.txt
 ```
 
-The `:url` object is a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object
+The `:url` property is null until it is loaded. Once loaded, it is a
+[Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object
 with one change: `.text` has the text of response. The following keys maybe useful:
 
 - `.headers`: response [headers](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)
@@ -766,7 +805,7 @@ add properties on an instance too.
 For example, if you have a `<base-component>` with a `base` or `root` attributes like this:
 
 ```html
-<template component="base-component" base:number="10" root:url="">
+<template component="base-component" base:number="10" root="">
   Instance properties:
   <% for (let key in $target.data) { %>
     <%= key %>=<%= $target.data[key] %>
