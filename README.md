@@ -1117,7 +1117,10 @@ You can raise issues and feature requests at <https://github.com/gramener/uifact
 
 ## Change log
 
-- 0.0.10 (9 Jun 2021): `<svg-chart>` component added. `:js` allows properties as variables.
+- 0.0.11 (17 Jun 2021): [`:urljson`](#fetch-urls-as-json-using-the-urljson-type) and
+  [`:urltext`](#fetch-urls-as-text-using-the-urltext-type) types added.
+  [`"import=@component-name"` support](#import-standard-components-with-importcomponent-name)
+- 0.0.10 (9 Jun 2021): `<svg-chart>` component added. `:js` allows properties as variables
 - 0.0.9 (2 Jun 2021): The `:url` attribute type [fetches data from a URL](#fetch-urls-using-the-url-type)
 - 0.0.8 (27 May 2021): Custom types' `.parse()` receives `this.data` as input
 - 0.0.7 (26 May 2021): Allow [custom types](#custom-types-need-a-parse-and-stringify-function)
