@@ -189,7 +189,8 @@
           for (let [name, value] of Object.entries(props)) {
             // TODO: not sure why we need window.uifactory.types here, instead of just types
             // But without it, the tests fail. Need to investigate and resolve.
-            let type = window.uifactory.types[this.ui.attrinfo[name] && this.ui.attrinfo[name].type] || types.str
+            let typeName = this.ui.attrinfo[name] && this.ui.attrinfo[name].type
+            let type = window.uifactory.types[typeName] || types.str
             let isString = typeof value == 'string'
             let result = (isString && !options.noparse) ? type.parse(value, name, this.data) : value
             // If parse() returns a Promise, re-update the element after it resolves

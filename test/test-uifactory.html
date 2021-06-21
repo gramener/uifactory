@@ -355,10 +355,14 @@ like this:
 </script>
 <property-types str="x" num="30" bool="true" arr="[3,4]" obj="{x:1}"
   expr="Math.ceil(2.2) + num + data.num" rules="rules"></property-types>
+<property-types></property-types>
 <script>
   tape('Define property types using `<template attr:js="...">`', function (t) {
-    let el = document.querySelector('property-types')
-    t.equals(el.innerHTML.trim(), '{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}')
+    let el = document.querySelectorAll('property-types')
+    t.equals(el[0].innerHTML.trim(), '{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}')
+    // NOTE: Currently, the default value is an empty string. In the future, this may change.
+    // e.g. we may want num: 0, bool: false, arr: [], obj: {}.
+    t.equals(el[1].innerHTML.trim(), '{"str":"","num":"","bool":"","arr":"","obj":"","expr":"","rules":""}')
     t.end()
   })
 </script>
