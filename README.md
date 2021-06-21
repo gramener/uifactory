@@ -164,7 +164,7 @@ For example, `<template value:number="30">` defines the variable `value` as a nu
 Inside the template, the variable `value` has a value `8`.
 
 
-## Define property types using `<template attr:js="...">`
+## Define property types using `<template attr:type="...">`
 
 By default, properties are strings. You can specify `number`, `boolean`, `array`, `object` or `js`
 like this:
@@ -177,23 +177,26 @@ like this:
   evaluating to `3 + num`.
     - You can use global variables like `Math.ceil`
     - You can use other properties like `num`
-    - You can use use `data[property]` to access other properties, like `data["num"]` or `data.num`
+    - You can use use `data[property]` to access previously defined properties, like `data["num"]` or `data.num`
 
 For example, when you add this to your page:
 
 ```html
 <template component="property-types" str="" num:number="" bool:boolean=""
-  arr:array="" obj:object="" expr:js="">
-  <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj, expr: expr}) %>
+  arr:array="" obj:object="" expr:js="" rules:js="">
+  <%= JSON.stringify({str, num, bool, arr, obj, expr, rules}) %>
 </template>
+<script>
+  var rules = {r: 1}
+</script>
 <property-types str="x" num="30" bool="true" arr="[3,4]" obj="{x:1}"
-  expr="Math.ceil(2.2) + num + data.num"></property-types>
+  expr="Math.ceil(2.2) + num + data.num" rules="rules"></property-types>
 ```
 
 ... it renders this output:
 
 ```json
-{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63}
+{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}
 ```
 
 

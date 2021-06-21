@@ -14,9 +14,13 @@
     }
   }
   types.number = types.boolean = types.array = types.object = types.json = types.js = {
+    // Parse value as a JavaScript expression
     parse: (value, name, data) => {
       let fn = new Function('data', `with (data) { return (${value || '""'}) }`)
-      return fn(data || {})
+      // If we use <my-comp rules:js="rules">, we want "rules" to be window.rules,
+      // not the default value of <template component="my-comp" rules="">.
+      // So replace "rules" (the name of the attribute) with window["rules"].
+      return fn(Object.assign({}, data, {[name]: window[name]}))
     },
     stringify: JSON.stringify
   }
@@ -179,7 +183,7 @@
 
       // Set the template variables. Converts kebab-case to camelCase
       // TODO: Change these to "false" defaults -- that's the real default value!
-      update(props = {}, options = { attr: true, render: true, noparse: false }) {
+      update(props = {}, options = { attr: true, render: true }) {
         // If the component is not initialized, don't render it
         if (this.data) {
           for (let [name, value] of Object.entries(props)) {
@@ -278,6 +282,7 @@
   // as uifactory. (This may be the src/ or dist/ folder.)
   function registerURL(url, options) {
     if (url[0] == '@') {
+      // @ts-ignore
       url = doc.currentScript.src.replace(/[^/]+$/, url.slice(1).replace(/\.html$/i, '') + '.html')
     }
     fetch(url)

@@ -311,7 +311,7 @@ Inside the template, the variable `value` has a value `"8"`.
 
 
 <!--
-## Define property types using `<template attr:js="...">`
+## Define property types using `<template attr:type="...">`
 
 By default, properties are strings. You can specify `number`, `boolean`, `array`, `object` or `js`
 like this:
@@ -326,34 +326,39 @@ like this:
     - You can use other properties like `num`
     - You can use use `data[property]` to access other properties, like `data["num"]` or `data.num`
 
-For example, when you add this to your page:
-
 ```html
 <template component="property-types" str="" num:number="" bool:boolean=""
-  arr:array="" obj:object="" expr:js="">
-  <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj, expr: expr}) %>
+  arr:array="" obj:object="" expr:js="" rules:js="">
+  <%= JSON.stringify({str, num, bool, arr, obj, expr, rules}) %>
 </template>
+<script>
+  var rules = {r: 1}
+</script>
 <property-types str="x" num="30" bool="true" arr="[3,4]" obj="{x:1}"
-  expr="Math.ceil(2.2) + num + data.num"></property-types>
+  expr="Math.ceil(2.2) + num + data.num" rules="rules"></property-types>
 ```
 
 ... it renders this output:
 
 ```json
-{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63}
+{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}
 ```
 -->
 
 <template component="property-types" str="" num:number="" bool:boolean=""
-  arr:array="" obj:object="" expr:js="">
-  <%= JSON.stringify({str: str, num: num, bool: bool, arr: arr, obj: obj, expr: expr}) %>
+  arr:array="" obj:object="" expr:js="" rules:js="">
+  <%= JSON.stringify({str, num, bool, arr, obj, expr, rules}) %>
 </template>
+<script>
+  /* exported rules */
+  var rules = {r: 1}
+</script>
 <property-types str="x" num="30" bool="true" arr="[3,4]" obj="{x:1}"
-  expr="Math.ceil(2.2) + num + data.num"></property-types>
+  expr="Math.ceil(2.2) + num + data.num" rules="rules"></property-types>
 <script>
   tape('Define property types using `<template attr:js="...">`', function (t) {
     let el = document.querySelector('property-types')
-    t.equals(el.innerHTML.trim(), '{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63}')
+    t.equals(el.innerHTML.trim(), '{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}')
     t.end()
   })
 </script>
@@ -381,18 +386,25 @@ Contents of page.txt
 The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
 -->
 <template component="fetch-text" src:urltext="">
+  <% console.log('RENDERING', src) %>
   <%= src === null ? 'Loading...' : src %>
 </template>
 <fetch-text src="page.txt"></fetch-text>
 <script>
   tape('Fetch URLs as text using the `:urltext` type', function (t) {
     let el = document.querySelector('fetch-text')
+    let refreshed = false
     function check() {
       let events = renderEvents['fetch-text']
-      if (!events || events.length < 2)
-        return setTimeout(check, 100)
-      t.equals(el.innerHTML.trim(), 'Contents of page.txt')
-      t.end()
+      if (events.length == 2 && !refreshed) {
+        t.equals(el.innerHTML.trim(), 'Contents of page.txt')
+        el.update({src: 'page2.txt'})
+        refreshed = true
+      } else if (events.length >= 4) {
+        t.equals(el.innerHTML.trim(), 'Contents of page2.txt')
+        return t.end()
+      }
+      setTimeout(check, 100)
     }
     check()
   })
