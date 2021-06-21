@@ -16,6 +16,7 @@
 <body>
 
   <script>
+    /* globals tape, d3 */
     const renderEvents = {}
     document.body.addEventListener('render', function (e) {
       const id = e.target.getAttribute('id')
@@ -57,6 +58,7 @@
 
 
   <script>
+    /* exported scale */
     let scale = d3.scaleLinear()
       .domain([0, 0.5, 1])
       .range(["red", "yellow", "green"])

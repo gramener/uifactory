@@ -1,3 +1,5 @@
+/* eslint-env node */
+
 const express = require('express')
 const glob = require('glob')
 const path = require('path')

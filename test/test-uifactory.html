@@ -8,10 +8,12 @@
 </head>
 <body>
   <script>
+    /* globals _, tape */
     // Don't run the tests upfront. Run them after all scripts are loaded. Just cache them for now.
     // Component rendering happens asynchronously
     let __tape = tape
     let __tests = []
+    // eslint-disable-next-line no-global-assign
     tape = function (msg, fn) {
       __tests.push([msg, fn])
     }
@@ -254,12 +256,10 @@ Notes:
     t.ok(el.value, 'Attributes on template are added as properties')
 
     el.value = 10
-    t.equals(el.innerHTML.trim(), '★★★★★★★★★★',
-             'Changing a property via via `.value = ...` *re-renders* the component.')
+    t.equals(el.innerHTML.trim(), '★★★★★★★★★★', 'Changing a property via via `.value = ...` *re-renders* the component.')
 
     el.setAttribute('value', "4")
-    t.equals(el.innerHTML.trim(), '★★★★',
-             'So does changing it via `.setAttribute()`.')
+    t.equals(el.innerHTML.trim(), '★★★★', 'So does changing it via `.setAttribute()`.')
     t.end()
   })
   let at = document.querySelector('attr-test')
@@ -979,7 +979,8 @@ They run only once (even if you use the component multiple times.)
   "${x}" is ${distance(x, y)} steps from "${y}"
   <script src="https://cdn.jsdelivr.net/npm/levenshtein/lib/levenshtein.js"></script>
   <script>
-    distance = (x, y) => (new Levenshtein(x, y)).distance
+    /* globals Levenshtein */
+    var distance = (x, y) => (new Levenshtein(x, y)).distance
   </script>
 </template>
 <text-diff x="back" y="book"></text-diff>

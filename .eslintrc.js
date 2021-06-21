@@ -1,11 +1,11 @@
+/* eslint-env node */
+
 module.exports = {
   "parserOptions": {
-    "ecmaVersion": 8,
-    "sourceType": "module",
+    "ecmaVersion": 8
   },
   "env": {
     "browser": true,    // Include browser environment
-    "node": true,       // Include node globals
     "es6": true,        // Include ES6 features
   },
   "plugins": [
@@ -22,5 +22,8 @@ module.exports = {
     "semi": ["error", "never"],                   // Force no-semicolon style
     "no-cond-assign": ["off", "always"],          // Allow this for loops
     "quotes": ["off", "double"]                   // We may go for a double-quotes style
-  }
+  },
+  "ignorePatterns": [
+    "test/tape.js"
+  ]
 }
