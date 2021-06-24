@@ -26,26 +26,27 @@
   }
   types.url = {
     parse: value => {
-      if (!value)
+      if (value && typeof value == 'string') {
+        let response
+        return fetch(value).then(r => {
+          response = r
+          return r.text()
+        }).then(text => new Promise(resolve => {
+          response.text = text
+          resolve(response)
+        }))
+      } else
         return value
-      let response
-      return fetch(value).then(r => {
-        response = r
-        return r.text()
-      }).then(text => new Promise(resolve => {
-        response.text = text
-        resolve(response)
-      }))
-    },
-    stringify: s => s
+    }
+    // No stringify for :url. Don't set attribute if property is set to an object
   }
   types.urljson = {
-    parse: value => value ? fetch(value).then(r => r.json()) : value,
-    stringify: s => s
+    parse: value => value && typeof value == 'string' ? fetch(value).then(r => r.json()) : value
+    // No stringify for :urljson. Don't set attribute if property is set to an object
   }
   types.urltext = {
-    parse: value => value ? fetch(value).then(r => r.text()) : value,
-    stringify: s => s
+    parse: value => value && typeof value == 'string' ? fetch(value).then(r => r.text()) : value
+    // No stringify for :urljson. Don't set attribute if property is set to an object
   }
 
   // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
@@ -206,7 +207,9 @@
               result = null     // For now, set the result to a null value
             }
             this.data[camelize(name)] = result
-            if (options.attr)
+            // Set the attribute if requested.
+            // But if value is not a string, and no stringify is available, SKIP.
+            if (options.attr && (isString || type.stringify))
               this.setAttribute(name, isString ? value : type.stringify(value, name, this.data))
           }
           if (options.render && scriptsLoaded)

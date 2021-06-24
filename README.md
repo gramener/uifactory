@@ -220,6 +220,13 @@ Contents of page.txt
 
 The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
 
+You can set the property to another URL (which is fetched) or a JS object (which is used as-is).
+For example:
+
+```js
+document.querySelector('.fetch-text').update({ src: 'page2.txt' })  // Loads page2.txt, re-renders
+document.querySelector('.fetch-text').update({ src: null })         // Sets src=null, re-renders
+```
 
 ## Fetch URLs as JSON using the `:urljson` type
 
@@ -240,6 +247,14 @@ component displays "Loading..." until a URL is loaded, and then displays its JSO
 ```
 
 The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
+
+You can set the property to another URL (which is fetched) or a JS object (which is used as-is).
+For example:
+
+```js
+document.querySelector('.fetch-text').update({ src: 'page2.json' })  // Loads page2.json, re-renders
+document.querySelector('.fetch-text').update({ src: {x: 1} })        // Sets src={x:1}, re-renders
+```
 
 
 ## Fetch URLs using the `:url` type
