@@ -26,7 +26,7 @@ To include it in your script, use
 For example, you can create a component like this:
 
 ```html
-<repeat-html value="8">★</repeat-html>
+<repeat-html icon="★" value="8"></repeat-html>
 ```
 
 ... that repeats the star (★) 8 times, like this:
@@ -36,8 +36,8 @@ For example, you can create a component like this:
 To create this `<repeat-html>` component, add a `<template component="repeat-html">` like this:
 
 ```html
-<template component="repeat-html" value="30">
-  ${this.innerHTML.repeat(+value)}
+<template component="repeat-html" icon="X" value="30">
+  ${icon.repeat(+value)}
 </template>
 ```
 
@@ -45,7 +45,7 @@ This uses [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaS
 inside the `<template>` to generate the HTML. Now,
 
 ```html
-<repeat-html value="8">★</repeat-html>
+<repeat-html icon="★" value="8"></repeat-html>
 ```
 
 ... renders this output:
@@ -63,7 +63,7 @@ For better control, you can use [lodash templates](https://lodash.com/docs/#temp
 ```html
 <template component="repeat-template" value="30">
   <% for (var j=0; j < +value; j++) { %>
-    <%= this.innerHTML %>
+    <slot></slot>
   <% } %>
 </template>
 ```
@@ -82,6 +82,47 @@ Lodash templates use tags as follows:
 
 - Anything inside `<% ... %>` runs as JavaScript
 - Anything inside `<%= ... %>` runs as JavaScript, and the result is "print"ed
+
+
+## Use `<slot>`s in templates
+
+Use [`<slot>`s in `<template>`s](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
+to render different parts. For example:
+
+```html
+<template component="repeat-slots" a="1" b="1">
+  <% for (var j=0; j < +a; j++) { %>
+    <slot name="a">A</slot>
+  <% } %>
+  <% for (var j=0; j < +a; j++) { %>
+    <slot name="b">B</slot>
+  <% } %>
+  <slot></slot>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<repeat-slots a="5" b="5">
+  <span slot="a">🔴</span>
+  <span slot="b">🟩</span>
+  <span slot="a"><strong>x</strong></span>
+  <span slot="b"><em>y</em></span>
+</repeat-slots>
+```
+
+... it renders this output:
+
+🔴**x** 🔴**x** 🔴**x** 🔴**x** 🔴**x** 🟩*y* 🟩*y* 🟩*y* 🟩*y* 🟩*y* 🔴 🟩 **x** *y*
+
+- `<slot name="a">` is replaced with all `slot="a"` elements (🔴 and **x**).
+- `<slot name="b">` is replaced with all `slot="b"` elements (🟩 and *y*).
+- `<slot>` is replaced with the component's child nodes (🔴 🟩 **x** *y*).
+
+See ["Using templates and slots" on MDN](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
+for more.
+
 
 ## Wrap tables in HTML scripts
 
@@ -126,12 +167,14 @@ Anything you write inside it will be rendered as a Lodash template.
 ## Define properties using `<template attr="...">`
 
 Any attributes you add to `<template>` can be accessed via `element.attr`.
-For example, `<template component="repeat-html" value="30">` defines a property `.value`:
+For example, `<template component="repeat-html" icon="★" value="30">` defines properties
+`.icon` and `.value`:
 
 ```html
 <script>
 let el = document.querySelector('repeat-html')  // Find first <repeat-html>
-console.log(el.value)                           // Prints the value=".."
+console.log(el.icon)                            // Prints the value of icon=""
+console.log(el.value)                           // Prints the value of value=""
 el.value = 10                                   // Re-render with value=10
 </script>
 ```
@@ -155,7 +198,7 @@ For example, `<template value:number="30">` defines the variable `value` as a nu
 ```html
 <template component="repeat-value" value:number="30">
   <% for (var j=0; j < value; j++) { %>
-    <%= this.innerHTML %>
+    <slot></slot>
   <% } %>
 </template>
 <repeat-value value="8"></repeat-value>
@@ -293,8 +336,8 @@ Inside the [template](#lodash-templates-are-supported),
 `this` is the template element (e.g. `<template component="g-repeat">`).
 For example
 
-- `this.innerHTML` has the contents of your template.
-- `this.querySelectorAll('div')` fetches all `<div>`s in your template
+- `this.innerHTML` has the contents of your template. `<%= this.innerHTML %>` is the same as `<slot></slot>`
+- `this.querySelectorAll('slot[name="a"]')` fetches all `<slot name="a">`s in your template
 
 This `<repeat-icons>` component repeats everything under `class="x"` x times, and everything under
 `class="y"` y times.
@@ -482,7 +525,7 @@ For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`
     repeat-style[value="8"] { background-color: yellow; }
   </style>
   <% for (var j=0; j < value; j++) { %>
-    <%= this.innerHTML %>
+    <slot></slot>
   <% } %>
 </template>
 ```
@@ -505,7 +548,7 @@ You can link to external stylesheets. For example, this imports Bootstrap 4.6.
 ```html
 <template component="bootstrap-button" type="primary">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
-  <button class="btn btn-<%= type %> m-3"><%= this.innerHTML %></button>
+  <button class="btn btn-<%= type %> m-3"><slot></slot></button>
 </template>
 ```
 
@@ -737,7 +780,7 @@ To register a component with full control over the options, use:
 // See https://github.com/WICG/webcomponents/issues/551
 uifactory.register({
   name: 'repeat-options',
-  template: '<% for (var j=0; j<+value; j++) { %><%= this.innerHTML %><% } %>',
+  template: '<% for (var j=0; j<+value; j++) { %><slot></slot><% } %>',
   properties: [
     { name: "value", value: "30", type: "number" }
   ]
@@ -798,11 +841,11 @@ You can dynamically add components at any time. For example:
 ```html
 <div id="parent1"></div>
 <script>
-  document.querySelector('#parent1').innerHTML = '<repeat-html value="8">★</repeat-html>'
+  document.querySelector('#parent1').innerHTML = '<repeat-html icon="★" value="8"><repeat-html>'
 </script>
 ```
 
-... adds `<repeat-html value="8">★<repeat-html>` to the body.
+... adds `<repeat-html icon="★" value="8"><repeat-html>` to the body.
 
 ![8 stars](docs/repeat-8-star.png)
 
@@ -812,7 +855,7 @@ This code does the same thing:
 <div id="parent2"></div>
 <script>
   let el = document.createElement('repeat-html')
-  el.innerHTML = '★'
+  el.setAttribute('icon', '★')
   el.setAttribute('value', '8')
   document.querySelector('#parent2').appendChild(el)
 </script>

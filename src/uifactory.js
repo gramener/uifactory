@@ -3,8 +3,10 @@
 
 (function (window) {
   // Used to create document fragments
-  const doc = window.document
-  const tmpl = doc.createElement('template')
+  let doc = window.document
+  let tmpl = doc.createElement('template')
+  let parser = new DOMParser()
+  let serializer = new XMLSerializer()
 
   // Used to serialize and parse values of different types
   let types = {
@@ -50,13 +52,13 @@
   }
 
   // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
-  const camelize = s => s.replace(/-./g, x => x.toUpperCase()[1])
+  let camelize = s => s.replace(/-./g, x => x.toUpperCase()[1])
 
   // Register a single component
   function registerComponent(config) {
     // The custom element is defined on this window. This need not be the global window.
     // For an iframe, you can use registerComponent({window: iframe.contentWindow}).
-    const _window = config.window || window
+    let _window = config.window || window
 
     // Each window has its own component registry. "this" picks the registry of the current window
     // If a component is already registered, don't re-register.
@@ -66,11 +68,11 @@
 
     // Extract specific tags out of the HTML template. Used to remove <style>, <script>, etc.
     tmpl.innerHTML = config.template
-    const htmlScript = tmpl.content.querySelector('script[type="text/html"]')
+    let htmlScript = tmpl.content.querySelector('script[type="text/html"]')
     // When the scripts are loaded, resolve this promise.
     let scriptsLoaded     // boolean: have all external scripts been loaded?
     let _scriptsResolve    // fn: resolves the scriptsLoad promise
-    const scriptsResolve = new Promise(resolve => _scriptsResolve = resolve)
+    let scriptsResolve = new Promise(resolve => _scriptsResolve = resolve)
     // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
     loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style'))
     loadExtract('body', tmpl.content.querySelectorAll('script'))
@@ -82,7 +84,7 @@
         let el = els[index]
         // Copy the element into the target document with attributes.
         // NOTE: Just inserting el into the document doesn't let <script> elements execute.
-        const clone = _window.document.createElement(el.tagName)
+        let clone = _window.document.createElement(el.tagName)
         for (let attr of el.attributes)
           clone.setAttribute(attr.name, attr.value)
         clone.innerHTML = el.innerHTML
@@ -116,14 +118,14 @@
     let html = _.unescape((htmlScript || tmpl).innerHTML)
 
     // Compile the rest of the template -- by default, using a Lodash template
-    const compile = config.compile || _.template
-    const template = compile(html)
+    let compile = config.compile || _.template
+    let template = compile(html)
 
     // The {name: ...} from the properties list become the observable attrs
-    const properties = config.properties || []
-    const attrs = properties.map(prop => prop.name)
+    let properties = config.properties || []
+    let attrs = properties.map(prop => prop.name)
     // attrparse[attr-name](val) parses attribute based on its type
-    const attrinfo = {}
+    let attrinfo = {}
     properties.forEach(prop => {
       attrinfo[prop.name] = Object.assign({}, prop)
     })
@@ -190,8 +192,7 @@
           for (let [name, value] of Object.entries(props)) {
             // TODO: not sure why we need window.uifactory.types here, instead of just types
             // But without it, the tests fail. Need to investigate and resolve.
-            let typeName = this.ui.attrinfo[name] && this.ui.attrinfo[name].type
-            let type = window.uifactory.types[typeName] || types.str
+            let type = window.uifactory.types[this.ui.attrinfo[name] && this.ui.attrinfo[name].type] || types.str
             let isString = typeof value == 'string'
             let result = (isString && !options.noparse) ? type.parse(value, name, this.data) : value
             // If parse() returns a Promise, re-update the element after it resolves
@@ -219,8 +220,19 @@
 
       // this.render() re-renders the object based on current and supplied properties.
       _render() {
+        // Render the contents of the <template> as lodash
+        let src = template.call(this.__originalNode, this.data)
+        // Render slots
+        let doc = parser.parseFromString(src, 'text/html')
+        doc.querySelectorAll('slot').forEach(slot => {
+          let name = slot.getAttribute('name')
+          let replacements = name ? this.__originalNode.querySelectorAll(`[slot="${name}"]`) : this.__originalNode.childNodes
+          if (replacements.length)
+            slot.replaceWith(...Array.from(replacements).map(v => v.cloneNode(true)))
+        })
         // "this" is the HTMLElement. Apply the lodash template
-        this.innerHTML = template.call(this.__originalNode, this.data)
+        this.innerHTML = serializer.serializeToString(doc)
+
         // Resolve the "ui.ready" Promise
         this.ui._ready(this)
         // Generate a render event on this component when rendered
@@ -303,7 +315,7 @@
     components: {},
     // Register a HTML element, URL or config
     register: (config, options) => {
-      const _window = options && options.window || window
+      let _window = options && options.window || window
       if (config instanceof _window.HTMLElement)
         registerElement(config, options)
       else if (config instanceof _window.HTMLDocument)
