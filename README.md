@@ -1178,6 +1178,7 @@ You can raise issues and feature requests at <https://github.com/gramener/uifact
 
 ## Change log
 
+- 0.0.13 (29 Jun 2021): Minify code into `dist/uifactory.min.js`
 - 0.0.12 (25 Jun 2021): [`<slot>` support](#use-slots-in-templates)
 - 0.0.11 (17 Jun 2021): [`:urljson`](#fetch-urls-as-json-using-the-urljson-type) and
   [`:urltext`](#fetch-urls-as-text-using-the-urltext-type) types added.
