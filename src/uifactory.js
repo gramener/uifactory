@@ -70,8 +70,8 @@
     tmpl.innerHTML = config.template
     let htmlScript = tmpl.content.querySelector('script[type="text/html"]')
     // When the scripts are loaded, resolve this promise.
-    let scriptsLoaded     // boolean: have all external scripts been loaded?
-    let _scriptsResolve    // fn: resolves the scriptsLoad promise
+    let scriptsLoaded       // boolean: have all external scripts been loaded?
+    let _scriptsResolve     // fn: resolves the scriptsLoad promise
     let scriptsResolve = new Promise(resolve => _scriptsResolve = resolve)
     // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
     loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style'))
@@ -226,9 +226,11 @@
         let doc = parser.parseFromString(src, 'text/html')
         doc.querySelectorAll('slot').forEach(slot => {
           let name = slot.getAttribute('name')
+          // TODO: For default slot, remove any slot="" elements
           let replacements = name ? this.__originalNode.querySelectorAll(`[slot="${name}"]`) : this.__originalNode.childNodes
           if (replacements.length)
             slot.replaceWith(...Array.from(replacements).map(v => v.cloneNode(true)))
+          // TODO: if (slot.firstElementChild) slot.replaceWith(slot.firstElementChild)
         })
         // "this" is the HTMLElement. Apply the lodash template
         this.innerHTML = serializer.serializeToString(doc)

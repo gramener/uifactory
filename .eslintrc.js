@@ -4,6 +4,14 @@ module.exports = {
   "parserOptions": {
     "ecmaVersion": 8
   },
+  "overrides": [
+    {
+      "files": ["build.js"],
+      "parserOptions": {
+        "sourceType": "module"
+      },
+    }
+  ],
   "env": {
     "browser": true,    // Include browser environment
     "es6": true,        // Include ES6 features

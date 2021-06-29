@@ -18,7 +18,7 @@ To include it in your script, use
 
 ```html
 <script src="node_modules/lodash/lodash.min.js"></script>
-<script src="node_modules/uifactory/src/uifactory.js"></script>
+<script src="node_modules/uifactory/dist/uifactory.min.js"></script>
 ```
 
 ## Components are HTML templates
@@ -685,7 +685,7 @@ For example, `tag.html` could look like this:
 To import it in another file, use:
 
 ```html
-<script src="node_modules/uifactory/src/uifactory.js" import="tag.html"></script>
+<script src="node_modules/uifactory/dist/uifactory.min.js" import="tag.html"></script>
 ```
 
 Now you can use all `<template component="...">` components from `tag.html`. For example:
@@ -704,7 +704,7 @@ You can import multiple component files separated by comma and/or spaces.
 ```html
 <tag2-a></tag2-a>
 <tag2-b></tag2-b>
-<script src="node_modules/uifactory/src/uifactory.js" import="tag.html, tag2.html"></script>
+<script src="node_modules/uifactory/dist/uifactory.min.js" import="tag.html, tag2.html"></script>
 ```
 
 You can use relative and absolute paths, too. For example:
@@ -714,7 +714,7 @@ You can use relative and absolute paths, too. For example:
 <tag3-b></tag3-b>
 <tag4-a></tag4-a>
 <tag4-b></tag4-b>
-<script src="node_modules/uifactory/src/uifactory.js" import="
+<script src="node_modules/uifactory/dist/uifactory.min.js" import="
   ../test/tag3.html
   https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
 "></script>
@@ -740,13 +740,13 @@ You can import multiple component files separated by comma and/or spaces.
 For example, this imports the `<svg-chart>` and `<md-text>` components:
 
 ```html
-<script src="node_modules/uifactory/src/uifactory.js" import="@svg-chart @md-text"></script>
+<script src="node_modules/uifactory/dist/uifactory.min.js" import="@svg-chart @md-text"></script>
 ```
 
 This is the same as:
 
 ```html
-<script src="node_modules/uifactory/src/uifactory.js" import="
+<script src="node_modules/uifactory/dist/uifactory.min.js" import="
              node_modules/uifactory/src/svg-chart.html
              node_modules/uifactory/src/md-text.html
 "></script>

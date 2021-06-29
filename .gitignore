@@ -3,6 +3,7 @@ TODO
 
 # Generated files
 test/tape.js
+dist/
 
 # Temp WIP files
 wip/
