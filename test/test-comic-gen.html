@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="tape.js"></script>
+  <script src="../node_modules/lodash/lodash.min.js"></script>
+  <script src="../src/uifactory.js" import="@comic-gen"></script>
+</head>
+<body>
+
+  <script>
+    /* globals tape */
+    // server.js needs a renderComplete to know that the tests are done
+    tape.onFinish(function () {
+      window.renderComplete = true
+    })
+  </script>
+
+  <comic-gen id="c1" name="aryan" emotion="angry"></comic-gen>
+  <comic-gen id="c2" name="aryan" emotion="angry" pose="handsfolded"></comic-gen>
+  <script>
+    tape('Test comic-gen', function (t) {
+      // TODO: querySelector('comicgen img') is null until the image is loaded. (Not sure why.)
+      // So we wait till the images are loaded. This is not a good approach.
+      setTimeout(function() {
+        t.equals(document.querySelector('#c1 img').src, 'https://gramener.com/comicgen/v1/comic?name=aryan&emotion=angry')
+        t.equals(document.querySelector('#c2 img').src, 'https://gramener.com/comicgen/v1/comic?name=aryan&emotion=angry&pose=handsfolded')
+        t.end()
+      }, 500)
+    })
+  </script>
+</body>
+</html>

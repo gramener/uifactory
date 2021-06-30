@@ -1,0 +1,15 @@
+<template component="comic-gen" $base="https://gramener.com/comicgen/v1/comic" name="" gender="" angle="" character="" facestyle="" face="" hair=""
+  eye="" mouth="" head="" side="" bottom="" body="" nose="" emotion="" attire="" pose="" face=""
+  shirt="" pant="" suit="" tie="" hair="" shoe="" shirt-left="" shirt-right="" pant-right=""
+  pant-left="" belt="" dress="" mirror="" x="" y="" width="" height="" scale="" ext="">
+  <img src="<%= uifactory.comicGen($target.data) %>">
+  <script>
+    uifactory.comicGen = function(data) {
+      let q = []
+      for (let [key, val] of Object.entries(data))
+        if (!key.match(/^\$/) && val)
+          q.push(encodeURIComponent(key) + '=' + encodeURIComponent(val))
+      return `${data.$base}?${q.join('&')}`
+    }
+  </script>
+</template>
