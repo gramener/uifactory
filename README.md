@@ -250,7 +250,11 @@ component displays "Loading..." until a URL is loaded, and then displays its tex
 
 ```html
 <template component="fetch-text" src:urltext="">
-  <%= src === null ? 'Loading...' : src %>
+  <% if (src === null) { %>
+    Loading...
+  <% } else { %>
+    <%= src %>
+  <% } %>
 </template>
 <fetch-text src="page.txt"></fetch-text>
 ```
@@ -278,7 +282,11 @@ component displays "Loading..." until a URL is loaded, and then displays its JSO
 
 ```html
 <template component="fetch-json" src:urljson="">
-  <%= src === null ? 'Loading...' : JSON.stringify(src) %>
+  <% if (src === null) { %>
+    Loading...
+  <% } else { %>
+    <%= JSON.stringify(src) %>
+  <% } %>
 </template>
 <fetch-url src="page.json"></fetch-url>
 ```
@@ -307,7 +315,11 @@ component displays "Loading..." until a URL is loaded, and then displays it.
 
 ```html
 <template component="fetch-page" src:url="">
-  <%= src === null ? 'Loading...' : src.text %>
+  <% if (src === null) { %>
+    Loading...
+  <% } else { %>
+    <%= src.text %>
+  <% } %>
 </template>
 <fetch-page src="page.txt"></fetch-page>
 ```
@@ -595,10 +607,13 @@ Use regular JavaScript to add logic and interactivity.
 
 ```html
 <template component="text-diff" x="" y="">
-  "${x}" is ${distance(x, y)} steps from "${y}"
-  <script src="https://cdn.jsdelivr.net/npm/levenshtein/lib/levenshtein.js"></script>
+  "${x}" is ${uifactory.textDiff.distance(x, y)} steps from "${y}"
+  <script src="https://cdn.jsdelivr.net/npm/levenshtein@1.0.5/lib/levenshtein.js"></script>
   <script>
-    distance = (x, y) => (new Levenshtein(x, y)).distance
+    // By convention, we add any JS related to a component under uifactory.<componentName>
+    uifactory.textDiff = {
+      distance: (x, y) => (new Levenshtein(x, y)).distance
+    }
   </script>
 </template>
 ```
@@ -1010,10 +1025,13 @@ get read.
 
 ```html
 <template component="text-diff2" x="" y="">
-  ${x} is <strong>${distance(x, y)} steps</strong> from ${y}
+  ${x} is <strong>${uifactory.textDiff2.distance(x, y)} steps</strong> from ${y}
   <script src="https://cdn.jsdelivr.net/npm/levenshtein@1.0.5/lib/levenshtein.js"></script>
   <script>
-    distance = (x, y) => (new Levenshtein(x, y)).distance
+    // By convention, we add any JS related to a component under uifactory.<componentName>
+    uifactory.textDiff2 = {
+      distance: (x, y) => (new Levenshtein(x, y)).distance
+    }
   </script>
 </template>
 
