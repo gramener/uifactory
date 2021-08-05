@@ -51,6 +51,10 @@
     // No stringify for :urljson. Don't set attribute if property is set to an object
   }
 
+  let renderers = {}
+  renderers.replace = (self, html) => self.innerHTML = html
+  renderers.none = v => v
+
   // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
   let camelize = s => s.replace(/-./g, x => x.toUpperCase()[1])
 
@@ -147,7 +151,7 @@
 
         // this.data is the model, i.e. object passed to the template.
         // template can access the component at $target
-        this.data = { $target: this }
+        let data = this.data = { $target: this }
 
         // Update properties from template attributes
         for (let { name, value } of Object.values(this.ui.attrinfo))
@@ -159,7 +163,7 @@
           if (type)
             this.ui.attrinfo[name] = { name, type, value: attr.value}
           // If the name is a property, update it.
-          // Note: If the template has name:type= but component has just name=, we STILL update it
+          // Note: If the template has name:type=, but component has just name=, we STILL update it
           if (name in this.ui.attrinfo)
             this.update({ [name]: attr.value }, { attr: false, render: false })
         }
@@ -170,12 +174,14 @@
           // If the property is already in HTMLElement, don't override it
           if (!(property in self))
             Object.defineProperty(self, property, {
-              get: () => self.data[property],
+              get: () => data[property],
               set: function (val) {
                 self.update({ [property]: val }, { attr: true, render: false })
               }
             })
         }
+
+        this.ui.render = renderers[data['_render']] || data['_render'] || renderers.replace
 
         // templates can access to the original children of the node via "this"
         this.__originalNode = this.cloneNode(true)
@@ -233,7 +239,7 @@
           // TODO: if (slot.firstElementChild) slot.replaceWith(slot.firstElementChild)
         })
         // "this" is the HTMLElement. Apply the lodash template
-        this.innerHTML = serializer.serializeToString(doc)
+        this.ui.render(this, serializer.serializeToString(doc))
 
         // Resolve the "ui.ready" Promise
         this.ui._ready(this)
@@ -328,7 +334,9 @@
         registerComponent(config)
     },
     // Registry of all attribute types and their convertors
-    types: types
+    types: types,
+    // Registry of all renderers
+    renderers: renderers
   }
 
   // If called via <script src="components.js" import="path.html, ...">, import each file

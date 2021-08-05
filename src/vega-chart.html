@@ -1,0 +1,44 @@
+<!--
+
+-->
+
+<script src="../node_modules/lodash/lodash.min.js"></script>
+<script src="uifactory.js" import="@md-text"></script>
+<template component="vega-chart" _render:js="uifactory.vegaChart.draw" spec:urljson="">
+  <script type="application/javascript">
+    uifactory.vegaChart = {
+      /* globals vega, vegaLite, _ */
+      draw: node => {
+        if (!node.data.spec)
+          return
+        // Deep clone the spec to avoid changing original when we update it.
+        let spec = JSON.parse(JSON.stringify(node.data.spec))
+        // Treat component's innerHTML as JavaScript and update the spec.
+        let update_spec = new Function('data', `with (data) { ${node.innerHTML} }`)
+        update_spec(spec)
+
+        // If the spec is vega-lite, convert it to Vega.
+        // Vega-lite $schema is "https://vega.github.io/schema/vega-lite/v5.json".
+        if (spec.$schema.match(/vega-lite/))
+          spec = vegaLite.compile(spec).spec
+        // Update the attributes.
+        // TODO: ONLY UPDATE SIGNALS FROM ATTRIBUTES
+        for (let attr of node.attributes) {
+          if (attr.name.match(/^(description$|background[.[$]|width$|height$|padding[.[$]|autosize$|config[.[$]|signals[.[$]|data[.[$]|scales[.[$]|projections[.[$]|axes[.[$]|legends[.[$]|title[.[$]|marks[.[$]|encode[.[$]|usermeta[.[$])/)) {
+            _.set(spec, attr.name, uifactory.types.js.parse(attr.value))
+          }
+        }
+        let view = new vega.View(vega.parse(spec), {
+          renderer:  'svg',  // renderer (canvas or svg)
+          container: node,
+          // hover:     true       // enable hover processing
+        })
+        view.runAsync()
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+</template>
+
+<md-text src="vega-chart.md"></md-text>

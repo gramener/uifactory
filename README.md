@@ -633,6 +633,9 @@ When you add the component to your page:
 All `<script>`s are copied from the `<template>` and appended to the document's BODY in order.
 They run only once (even if you use the component multiple times.)
 
+Rather than using global variables, we suggest you add methods to `uifactory.<componentName>` --
+like `uifactory.textDiff = {...}` above.
+
 
 ## Always delegate events
 
