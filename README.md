@@ -209,8 +209,8 @@ Inside the template, the variable `value` has a value `8`.
 
 ## Define property types using `<template attr:type="...">`
 
-By default, properties are strings. You can specify `number`, `boolean`, `array`, `object` or `js`
-like this:
+By default, properties are of type `string`. You can specify `number`, `boolean`, `array`,
+`object` or `js` like this:
 
 - `<template component="..." num:number="30">` defines `.num` as a number `30`
 - `<template component="..." bool:boolean="true">` defines `.bool` as a boolean `true`
@@ -225,21 +225,21 @@ like this:
 For example, when you add this to your page:
 
 ```html
-<template component="property-types" str="" num:number="" bool:boolean=""
+<template component="property-types" x="" str:string="" num:number="" bool:boolean=""
   arr:array="" obj:object="" expr:js="" rules:js="">
-  <%= JSON.stringify({str, num, bool, arr, obj, expr, rules}) %>
+  <%= JSON.stringify({x, str, num, bool, arr, obj, expr, rules}) %>
 </template>
 <script>
   var rules = {r: 1}
 </script>
-<property-types str="x" num="30" bool="true" arr="[3,4]" obj="{x:1}"
+<property-types x="x" str="y" num="30" bool="true" arr="[3,4]" obj="{x:1}"
   expr="Math.ceil(2.2) + num + data.num" rules="rules"></property-types>
 ```
 
 ... it renders this output:
 
 ```json
-{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}
+{"x":"x","str":"y","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}
 ```
 
 
@@ -633,6 +633,9 @@ When you add the component to your page:
 All `<script>`s are copied from the `<template>` and appended to the document's BODY in order.
 They run only once (even if you use the component multiple times.)
 
+Rather than using global variables, we suggest you add methods to `uifactory.<componentName>` --
+like `uifactory.textDiff = {...}` above.
+
 
 ## Always delegate events
 
@@ -907,6 +910,25 @@ Instance properties: $target=[object HTMLElement] base=10 root= child=20
 
 The `child` JavaScript variable is now available (as a number).
 
+You can update instance properties like `.child=...`. For example:
+
+```html
+<script>
+  document.querySelector('base-component').child = 30   // Sets the child to 30
+  document.querySelector('base-component').update()     // Re-renders with child=30
+</script>
+```
+
+But updating the `child:number=` attribute will **not update the property**. (HTMLElement only
+supports a single list of observed attributes across instances.)
+
+```html
+<script>
+  document.querySelector('base-component').setAttribute('child:number', '40')   // Won't re-render
+  document.querySelector('base-component').update()     // Will not re-use the child attribute
+</script>
+```
+
 The instance types **override** the template. For example, here, `base` and `root` are defined as
 `:js`, which overrides the template's `base:number`:
 
@@ -920,11 +942,10 @@ This will render:
 Instance properties: $target=[object HTMLElement] base=3 src=5 child=20
 ```
 
-
 ## Add custom types
 
 We define property types on attributes like this: `attr:type="value"`. The default types are
-`number`, `boolean`, `array`, `object` or `js`.
+`string` (default), `number`, `boolean`, `array`, `object` or `js`.
 
 You can add a new custom type by extending `uifactory.types`. For example:
 
@@ -1119,6 +1140,58 @@ When you add the component to your page:
 ```
 
 
+## Use any renderer
+
+Gramex renders the generated HTML into a node by setting `node.innerHTML = html`.
+This removes all existing DOM elements and creates new ones.
+
+This is not good if you have event handlers, or want animations. For example, if you want to
+rescale a chart's axis smoothly without re-drawing.
+
+You can instead specify a custom `@render:js="myfunction"` where `myfunction(node, html)` updates
+the `node` in any way.
+
+For example, here's an SVG component that smoothly animates when an attribute changes:
+
+```html
+<template component="move-circle" x="0" @render:js="uifactory.moveCircle">
+  <svg width="400" height="100" fill="#eee">
+    <circle cx="<%= x %>" cy="50" r="30" fill="red"></circle>
+  </svg>
+  <style>
+    move-circle circle {
+      transition: all 0.5s ease;
+    }
+  </style>
+  <script>
+    // Define a moveCircle function that accepts node as the first parameter.
+    // It's called whenever the component is created or updated
+    uifactory.moveCircle = function (node, html) {
+      let circle = node.querySelector('circle')
+      // The first time, it has no child circle. So set the HTML
+      if (!circle)
+        node.innerHTML = html
+      // After that, don't redraw. Update the circle
+      else
+        node.querySelector('circle').setAttribute('cx', node.data.x)
+    }
+  </script>
+</template>
+<move-circle x="100"></move-circle>
+```
+
+Now, suppose you change the circle's color programmatically and then change the `x=""` attribute:
+
+```html
+<script>
+  document.querySelector('move-circle circle').setAttribute('fill', 'blue')
+  document.querySelector('move-circle circle').setAttribute('x', '200')
+</script>
+```
+
+... the circle is not redrawn. It stays blue. It smoothly moves to `x="200"`.
+
+
 ## Use any compiler
 
 Instead of [templates](https://lodash.com/docs/#template), you can use any function to compile templates.
@@ -1196,6 +1269,7 @@ You can raise issues and feature requests at <https://github.com/gramener/uifact
 
 ## Change log
 
+- 0.0.15 (11 Aug 2021): `@render:js` attribute supports [custom renderers](#use-any-renderer)
 - 0.0.14 (30 Jun 2021): `<comic-gen>` component added
 - 0.0.13 (29 Jun 2021): Minify code into `dist/uifactory.min.js`
 - 0.0.12 (25 Jun 2021): [`<slot>` support](#use-slots-in-templates)

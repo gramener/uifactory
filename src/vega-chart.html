@@ -1,0 +1,69 @@
+<!--
+
+-->
+
+<script src="../node_modules/lodash/lodash.min.js"></script>
+<script src="uifactory.js" import="@md-text"></script>
+<template component="vega-chart" @render:js="uifactory.vegaChart.draw" spec:urljson="">
+  <script type="application/javascript">
+    uifactory.vegaChart = {
+      /* globals vega, vegaLite */
+      draw: node => {
+        // If we've already created the chart, only update the signals. Never re-render
+        // unless the spec has changed
+        if (node.ui.view) {
+          let updated = false
+          // For every attribute in <vega-chart>
+          for (let [key, value] of Object.entries(node.data)) {
+            // Check all signals in the spec
+            (node.ui.spec.signals || []).forEach(signal => {
+              // ... to find a signal with the same name, but different value
+              if (signal.name == key && node.ui.view.signal(key) != value) {
+                // Update that signal value
+                node.ui.view.signal(key, value)
+                updated = true
+              }
+            })
+          }
+          // If any signal has been updated, re-render the chart and exit
+          if (updated)
+            node.ui.view.runAsync()
+          return
+        }
+
+        // If there's no spec, ignore it.
+        if (!node.data.spec)
+          return
+        // Deep clone the spec to avoid changing original when we update it.
+        let spec = node.ui.spec = JSON.parse(JSON.stringify(node.data.spec))
+        // Component's innerHTML has JavaScript that updates the spec.
+        let update_spec = new Function('spec', `with (spec) { ${node.innerHTML} }`)
+        update_spec(spec)
+
+        // If the spec is vega-lite, convert it to Vega.
+        // Vega-lite $schema is "https://vega.github.io/schema/vega-lite/v5.json".
+        if (spec.$schema.match(/vega-lite/))
+          spec = vegaLite.compile(spec).spec
+
+        // Render the chart. Store the view in the node's .ui object
+        node.ui.view = new vega.View(vega.parse(spec), {
+          renderer:  'svg',  // renderer (canvas or svg)
+          container: node,
+          // hover:     true       // enable hover processing
+        })
+        node.ui.view.runAsync()
+      }
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <style>
+    /* Render Vega Chart contents like <pre> to preserve JavaScript formatting */
+    vega-chart {
+      font-family: monospace;
+      white-space: pre;
+    }
+  </style>
+</template>
+
+<md-text src="vega-chart.md"></md-text>

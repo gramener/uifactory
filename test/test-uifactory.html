@@ -384,8 +384,8 @@ Inside the template, the variable `value` has a value `"8"`.
 <!--
 ## Define property types using `<template attr:type="...">`
 
-By default, properties are strings. You can specify `number`, `boolean`, `array`, `object` or `js`
-like this:
+By default, properties are of type `string`. You can specify `number`, `boolean`, `array`,
+`object` or `js` like this:
 
 - `<template component="..." num:number="30">` defines `.num` as a number `30`
 - `<template component="..." bool:boolean="true">` defines `.bool` as a boolean `true`
@@ -398,42 +398,42 @@ like this:
     - You can use use `data[property]` to access other properties, like `data["num"]` or `data.num`
 
 ```html
-<template component="property-types" str="" num:number="" bool:boolean=""
+<template component="property-types" x="" str:string="" num:number="" bool:boolean=""
   arr:array="" obj:object="" expr:js="" rules:js="">
-  <%= JSON.stringify({str, num, bool, arr, obj, expr, rules}) %>
+  <%= JSON.stringify({x, str, num, bool, arr, obj, expr, rules}) %>
 </template>
 <script>
   var rules = {r: 1}
 </script>
-<property-types str="x" num="30" bool="true" arr="[3,4]" obj="{x:1}"
+<property-types x="x" str="y" num="30" bool="true" arr="[3,4]" obj="{x:1}"
   expr="Math.ceil(2.2) + num + data.num" rules="rules"></property-types>
 ```
 
 ... it renders this output:
 
 ```json
-{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}
+{"x":"x","str":"y","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}
 ```
 -->
 
-<template component="property-types" str="" num:number="" bool:boolean=""
+<template component="property-types" x="" str:string="" num:number="" bool:boolean=""
   arr:array="" obj:object="" expr:js="" rules:js="">
-  <%= JSON.stringify({str, num, bool, arr, obj, expr, rules}) %>
+  <%= JSON.stringify({x, str, num, bool, arr, obj, expr, rules}) %>
 </template>
 <script>
   /* exported rules */
   var rules = {r: 1}
 </script>
-<property-types str="x" num="30" bool="true" arr="[3,4]" obj="{x:1}"
+<property-types x="x" str="y" num="30" bool="true" arr="[3,4]" obj="{x:1}"
   expr="Math.ceil(2.2) + num + data.num" rules="rules"></property-types>
 <property-types></property-types>
 <script>
   tape('Define property types using `<template attr:js="...">`', function (t) {
     let el = document.querySelectorAll('property-types')
-    t.equals(el[0].innerHTML.trim(), '{"str":"x","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}')
+    t.equals(el[0].innerHTML.trim(), '{"x":"x","str":"y","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}')
     // NOTE: Currently, the default value is an empty string. In the future, this may change.
     // e.g. we may want num: 0, bool: false, arr: [], obj: {}.
-    t.equals(el[1].innerHTML.trim(), '{"str":"","num":"","bool":"","arr":"","obj":"","expr":"","rules":""}')
+    t.equals(el[1].innerHTML.trim(), '{"x":"","str":"","num":"","bool":"","arr":"","obj":"","expr":"","rules":""}')
     t.end()
   })
 </script>
@@ -1546,6 +1546,25 @@ Instance properties: $target=[object HTMLElement] base=10 root= child=20
 
 The `child` JavaScript variable is now available (as a number).
 
+You can update instance properties like `.child=...`. For example:
+
+```html
+<script>
+  document.querySelector('base-component').child = 30   // Sets the child to 30
+  document.querySelector('base-component').update()     // Re-renders with child=30
+</script>
+```
+
+But updating the `child:number=` attribute will **not update the property**. (HTMLElement only
+supports a single list of observed attributes across instances.)
+
+```html
+<script>
+  document.querySelector('base-component').setAttribute('child:number', '40')   // Won't re-render
+  document.querySelector('base-component').update()     // Will not re-use the child attribute
+</script>
+```
+
 The instance types **override** the template. For example, here, `base` and `root` are defined as
 `:js`, which overrides the template's `base:number`:
 
@@ -1576,6 +1595,20 @@ Instance properties: $target=[object HTMLElement] base=3 root=5 child=20
     t.equals(els[1].innerHTML.trim().split(/\s+/).join(' '),
       `Instance properties: $target=[object HTMLElement] base=3 root=5 child=20`,
       `Instance property overrides`)
+    els[0].child = 30
+    els[0].update()
+    t.equals(els[0].innerHTML.trim().split(/\s+/).join(' '),
+      `Instance properties: $target=[object HTMLElement] base=10 root= child=30`,
+      `Instance property update re-renders`)
+    els[0].update({child: 35})
+    t.equals(els[0].innerHTML.trim().split(/\s+/).join(' '),
+      `Instance properties: $target=[object HTMLElement] base=10 root= child=35`,
+      `Instance property update re-renders`)
+    els[0].setAttribute('child:number', '40')
+    els[0].update()
+    t.equals(els[0].innerHTML.trim().split(/\s+/).join(' '),
+      `Instance properties: $target=[object HTMLElement] base=10 root= child=35`,
+      `Instance attribute update won't rerender`)
     t.end()
   })
 </script>
@@ -1585,7 +1618,7 @@ Instance properties: $target=[object HTMLElement] base=3 root=5 child=20
 ## Add custom types
 
 We define property types on attributes like this: `attr:type="value"`. The default types are
-`number`, `boolean`, `array`, `object` or `js`.
+`string` (default), `number`, `boolean`, `array`, `object` or `js`.
 
 You can add a new custom type by extending `uifactory.types`. For example:
 
@@ -1911,6 +1944,95 @@ When you add the component to your page:
         ]
       }
     ).replace(/\s+/g, ''))
+    t.end()
+  })
+</script>
+
+
+<!--
+## Use any renderer
+
+Gramex renders the generated HTML into a node by setting `node.innerHTML = html`.
+This removes all existing DOM elements and creates new ones.
+
+This is not good if you have event handlers, or want animations. For example, if you want to
+rescale a chart's axis smoothly without re-drawing.
+
+You can instead specify a custom `@render:js="myfunction"` where `myfunction(node, html)` updates
+the `node` in any way.
+
+For example, here's an SVG component that smoothly animates
+
+```html
+<template component="move-circle" x="0" @render:js="uifactory.moveCircle">
+  <svg width="400" height="100" fill="#eee">
+    <circle cx="<%= x %>" cy="50" r="30" fill="red"></circle>
+  </svg>
+  <style>
+    move-circle circle {
+      transition: all 0.5s ease;
+    }
+  </style>
+  <script>
+    // Define a moveCircle function that accepts node as the first parameter.
+    // It's called whenever the component is created or updated
+    uifactory.moveCircle = function (node, html) {
+      let circle = node.querySelector('circle')
+      // The first time, it has no child circle. So set the HTML
+      if (!circle)
+        node.innerHTML = html
+      // After that, don't redraw. Update the circle
+      else
+        node.querySelector('circle').setAttribute('cx', node.data.x)
+    }
+  </script>
+</template>
+<move-circle x="100"></move-circle>
+```
+
+Now, suppose you change the circle's color programmatically and then change the `x=""` attribute:
+
+```html
+<script>
+  document.querySelector('move-circle circle').setAttribute('fill', 'blue')
+  document.querySelector('move-circle circle').setAttribute('x', '200')
+</script>
+```
+
+... the circle is not redrawn. It stays blue. It smoothly moves to `x="200"`.
+-->
+<template component="move-circle" x="0" @render:js="uifactory.moveCircle">
+  <svg width="400" height="100" fill="#eee">
+    <circle cx="<%= x %>" cy="50" r="30" fill="red"></circle>
+  </svg>
+  <style>
+    move-circle circle {
+      transition: all 0.5s ease;
+    }
+  </style>
+  <script>
+    // Define a moveCircle function that accepts node as the first parameter.
+    // It's called whenever the component is created or updated
+    uifactory.moveCircle = function (node, html) {
+      let circle = node.querySelector('circle')
+      // The first time, it has no child circle. So set the HTML
+      if (!circle)
+        node.innerHTML = html
+      // After that, don't redraw. Update the circle
+      else
+        node.querySelector('circle').setAttribute('cx', node.data.x)
+    }
+  </script>
+</template>
+<move-circle x="100"></move-circle>
+<script>
+  tape('Use any renderer', function (t) {
+    let el = document.querySelector('move-circle circle')
+    t.equals(el.getAttribute('fill'), 'red')
+    el.setAttribute('fill', 'blue')
+    el.setAttribute('x', '200')
+    t.equals(el.getAttribute('fill'), 'blue')
+    t.equals(el.getAttribute('x'), '200')
     t.end()
   })
 </script>
