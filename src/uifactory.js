@@ -250,6 +250,7 @@
 
       // this.render() re-renders the object based on current and supplied properties.
       _render() {
+        // TODO: <slot data-template> should re-compile template before it is rendered
         // Render the contents of the <template> as lodash
         let src = template.call(this.__originalNode, this.data)
         // Render slots

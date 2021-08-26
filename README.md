@@ -1282,27 +1282,6 @@ uifactory.register({
 
 ![g-name component](docs/g-name-walt-disney.png)
 
-## Support
-
-Tested in Chrome 74+, Firefox 66+, Edge 18+, and Safari 11+. IE is not supported.
-
-You can raise issues and feature requests at <https://github.com/gramener/uifactory/issues>.
-
-## Change log
-
-- 0.0.15 (11 Aug 2021): `@render:js` attribute supports [custom renderers](#use-any-renderer)
-- 0.0.14 (30 Jun 2021): `<comic-gen>` component added
-- 0.0.13 (29 Jun 2021): Minify code into `dist/uifactory.min.js`
-- 0.0.12 (25 Jun 2021): [`<slot>` support](#use-slots-in-templates)
-- 0.0.11 (17 Jun 2021): [`:urljson`](#fetch-urls-as-json-using-the-urljson-type) and
-  [`:urltext`](#fetch-urls-as-text-using-the-urltext-type) types added.
-  [`"import=@component-name"` support](#import-standard-components-with-importcomponent-name)
-- 0.0.10 (9 Jun 2021): `<svg-chart>` component added. `:js` allows properties as variables
-- 0.0.9 (2 Jun 2021): The `:url` attribute type [fetches data from a URL](#fetch-urls-using-the-url-type)
-- 0.0.8 (27 May 2021): Custom types' `.parse()` receives `this.data` as input
-- 0.0.7 (26 May 2021): Allow [custom types](#custom-types-need-a-parse-and-stringify-function)
-- 0.0.6 (21 Apr 2021): Allow [property type definitions](#define-properties-using-template-attr)
-
 ## Release
 
 To release a new version:
@@ -1317,3 +1296,28 @@ git commit . -m"BLD: Release x.x.x"
 git push
 npm publish
 ```
+
+## Change log
+
+- 1.0.0 (TBD):
+  - `<style scoped>` applies style only to component
+  - `el.property = value` re-renders `el`
+  - `el.update({'attr:type': ...})` supported
+- 0.0.15 (11 Aug 2021): `@render:js` attribute supports [custom renderers](#use-any-renderer)
+- 0.0.14 (30 Jun 2021): `<comic-gen>` component added
+- 0.0.13 (29 Jun 2021): Minify code into `dist/uifactory.min.js`
+- 0.0.12 (25 Jun 2021): [`<slot>` support](#use-slots-in-templates)
+- 0.0.11 (17 Jun 2021): [`:urljson`](#fetch-urls-as-json-using-the-urljson-type) and
+  [`:urltext`](#fetch-urls-as-text-using-the-urltext-type) types added.
+  [`"import=@component-name"` support](#import-standard-components-with-importcomponent-name)
+- 0.0.10 (9 Jun 2021): `<svg-chart>` component added. `:js` allows properties as variables
+- 0.0.9 (2 Jun 2021): The `:url` attribute type [fetches data from a URL](#fetch-urls-using-the-url-type)
+- 0.0.8 (27 May 2021): Custom types' `.parse()` receives `this.data` as input
+- 0.0.7 (26 May 2021): Allow [custom types](#custom-types-need-a-parse-and-stringify-function)
+- 0.0.6 (21 Apr 2021): Allow [property type definitions](#define-properties-using-template-attr)
+
+## Support
+
+Tested in Chrome, Firefox, Edge, and Safari. IE is not supported.
+
+You can raise issues and feature requests at <https://github.com/gramener/uifactory/issues>.
