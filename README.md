@@ -87,7 +87,7 @@ Lodash templates use tags as follows:
 ## Use `<slot>`s in templates
 
 Use [`<slot>`s in `<template>`s](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
-to render different parts. For example:
+to replace content. For example:
 
 ```html
 <template component="repeat-slots" a="1" b="1">
@@ -271,8 +271,8 @@ You can set the property to another URL (which is fetched) or a JS object (which
 For example:
 
 ```js
-document.querySelector('.fetch-text').update({ src: 'page2.txt' })  // Loads page2.txt, re-renders
-document.querySelector('.fetch-text').update({ src: null })         // Sets src=null, re-renders
+document.querySelector('.fetch-text').src = 'page2.txt'   // Loads page2.txt, re-renders
+document.querySelector('.fetch-text').src = null          // Sets src=null, re-renders
 ```
 
 ## Fetch URLs as JSON using the `:urljson` type
@@ -303,8 +303,8 @@ You can set the property to another URL (which is fetched) or a JS object (which
 For example:
 
 ```js
-document.querySelector('.fetch-text').update({ src: 'page2.json' })  // Loads page2.json, re-renders
-document.querySelector('.fetch-text').update({ src: {x: 1} })        // Sets src={x:1}, re-renders
+document.querySelector('.fetch-text').src = 'page2.json'  // Loads page2.json, re-renders
+document.querySelector('.fetch-text').src = {x: 1}        // Sets src={x:1}, re-renders
 ```
 
 
@@ -403,27 +403,30 @@ When you add the component to your page:
 This lets you control not just the component, but parents, siblings, and any other elements on a page.
 
 
-## Update properties with `.update()`
+## Update multiple properties with `.update()`
 
-You can change multiple properties together using `.update({attr1: val, attr2: val})`. For example,
-this component has 2 properties, `char` and `value`:
+You can change multiple properties together using `.update({'attr-1': val, 'attr-2': val})`. For
+example, this component has 2 properties, `char` and `repeat-value`:
 
 ```html
-<template component="repeat-props" char="★" value:number="10">
-  ${char.repeat(value)}
+<template component="repeat-props" char="★" repeat-value:number="10">
+  ${char.repeat(repeatValue)}
 </template>
-<repeat-props char="★" value="10"></repeat-props>
+<repeat-props char="★" repeat-value="10"></repeat-props>
 ```
 
 When you add this script to your page:
 
 ```html
 <script>
-  document.querySelector('repeat-props').update({ char: '⚡', value: 8 })
+  document.querySelector('repeat-props').update({
+    char: '⚡',
+    'repeat-value': 8       // Note: use 'repeat-value', not repeatValue
+  })
 </script>
 ```
 
-... updates both `char` and `value` to generate this output:
+... updates both `char` and `repeat-value` to generate this output:
 
 ![update() changes multiple properties](docs/repeat-props.png)
 
@@ -436,7 +439,10 @@ For example, this updates the properties without changing the attributes and wit
 
 ```html
 <script>
-  document.querySelector('repeat-props').update({ char: '⚽', value: 5 }, { attr: false, render: false })
+  document.querySelector('repeat-props').update({
+    char: '⚽',
+    'repeat-value': 5
+  }, { attr: false, render: false })
 </script>
 ```
 
@@ -823,8 +829,7 @@ All properties are stored in `el.data` as an object. For example:
 <script>
 let el = document.querySelector('repeat-html')  // Find first <repeat-html>
 console.log(el.data)                            // Prints { "value": ".." }
-el.data.value = 12                              // Updates the value property
-el.update()                                     // You need to explicitly re-render
+el.data.value = 12                              // Re-renders with new value
 </script>
 ```
 
@@ -910,22 +915,12 @@ Instance properties: $target=[object HTMLElement] base=10 root= child=20
 
 The `child` JavaScript variable is now available (as a number).
 
-You can update instance properties like `.child=...`. For example:
+You can update instance property `.child=...` or the attribute `child:number=`
 
 ```html
 <script>
-  document.querySelector('base-component').child = 30   // Sets the child to 30
-  document.querySelector('base-component').update()     // Re-renders with child=30
-</script>
-```
-
-But updating the `child:number=` attribute will **not update the property**. (HTMLElement only
-supports a single list of observed attributes across instances.)
-
-```html
-<script>
-  document.querySelector('base-component').setAttribute('child:number', '40')   // Won't re-render
-  document.querySelector('base-component').update()     // Will not re-use the child attribute
+  document.querySelector('base-component').child = 30   // Redraw with child=30
+  document.querySelector('base-component').setAttribute('child:number', '40')
 </script>
 ```
 
@@ -1152,6 +1147,12 @@ You can instead specify a custom `@render:js="myfunction"` where `myfunction(nod
 the `node` in any way.
 
 For example, here's an SVG component that smoothly animates when an attribute changes:
+
+<!-- TODO:
+  - explain what the html in (node, html) is
+  - OPTIONAL: can we have the past node.data state?
+  - ROADMAP: use nanomorph / morphdom via @render="morphdom"
+-->
 
 ```html
 <template component="move-circle" x="0" @render:js="uifactory.moveCircle">

@@ -16,6 +16,7 @@
     "build": "node build.js",
     "pretest": "npm run lint && browserify -s tape -r tape -o test/tape.js",
     "test": "node test/server.js",
+    "start": "node test/server.js debug",
     "prepublishOnly": "npm run build"
   },
   "license": "MIT",

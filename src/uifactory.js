@@ -114,6 +114,19 @@
       }
     }
 
+    const observer = new MutationObserver(function (mutations) {
+      const updates = new Map()
+      for (const mutation of mutations) {
+        if (!updates.has(mutation.target))
+          updates.set(mutation.target, {})
+        updates.get(mutation.target)[mutation.attributeName] = mutation.target.getAttribute(mutation.attributeName)
+      }
+      for (const [target, update] of updates.entries())
+        // Re-render only when a property (i.e. typed attribute name:type) is changed
+        if (Object.keys(update).some(v => v.match(':')))
+          target.update(update, { attr: false, render: true })
+    })
+
     // Remove extracted styles and scripts from template.
     // This also removes script type="application/json" "text/html"
     for (let el of tmpl.content.querySelectorAll('link[rel="stylesheet"], style, script'))
@@ -157,11 +170,12 @@
         for (let { name, value } of Object.values(this.ui.attrinfo))
           this.update({ [name]: value }, { attr: false, render: false })
         // Override with properties from instance attributes
+        let hasTypedAttribute = false
         for (let attr of this.attributes) {
           let [name, type] = attr.name.split(':')
           // If the name has a : in it (e.g. x:number), add it as a typed property
           if (type)
-            this.ui.attrinfo[name] = { name, type, value: attr.value}
+            hasTypedAttribute = this.ui.attrinfo[name] = { name, type, value: attr.value}
           // If the name is a property, update it.
           // Note: If the template has name:type=, but component has just name=, we STILL update it
           if (name in this.ui.attrinfo)
@@ -176,7 +190,8 @@
             Object.defineProperty(self, property, {
               get: () => data[property],
               set: function (val) {
-                self.update({ [property]: val }, { attr: true, render: false })
+                // When property is updated, change the attribute, and re-render.
+                self.update({ [property]: val })
               }
             })
           }
@@ -187,26 +202,33 @@
         // templates can access to the original children of the node via "this"
         this.__originalNode = this.cloneNode(true)
 
+        // if any attribute is typed, observe all attributes and update on typed attribute changes
+        if (hasTypedAttribute)
+          observer.observe(this, { attributes: true })
+
         // Wait for external scripts to get loaded. Then render.
         scriptsResolve.then(() => this._render())
       }
 
-      // Set the template variables. Converts kebab-case to camelCase
-      // TODO: Change these to "false" defaults -- that's the real default value!
-      update(props = {}, options = { attr: true, render: true }) {
+      // Update .data with {"attribute-name:type": "value"}
+      // Set attributes (converting kebab-case to camelCase) unless options.attr = false
+      // Re-render unless options.render = false
+      update(props = {}, options = {}) {
+        // By default, .update() sets attributes and renders
+        options = Object.assign({ attr: true, render: true }, options)
         // If the component is not initialized, don't render it
         if (this.data) {
           for (let [name, value] of Object.entries(props)) {
-            // TODO: not sure why we need window.uifactory.types here, instead of just types
-            // But without it, the tests fail. Need to investigate and resolve.
-            let type = window.uifactory.types[this.ui.attrinfo[name] && this.ui.attrinfo[name].type] || types.string
+            // Allow typed properties
+            let [propname, typename] = name.split(':')
+            let type = uifactory.types[typename || this.ui.attrinfo[propname] && this.ui.attrinfo[propname].type] || types.string
             let isString = typeof value == 'string'
-            let result = (isString && !options.noparse) ? type.parse(value, name, this.data) : value
+            let result = (isString && !options.noparse) ? type.parse(value, propname, this.data) : value
             // If parse() returns a Promise, re-update the element after it resolves
             // TODO: Catch exception?
             if (result && typeof result.then == 'function') {
               result.then(r => {
-                this.update({ [name]: r }, {
+                this.update({ [propname]: r }, {
                   render: true,   // Re-render
                   noparse: true,  // Don't re-parse result
                   attr: false,    // Promises return complex objects. Don't serialize the result
@@ -214,11 +236,11 @@
               })
               result = null     // For now, set the result to a null value
             }
-            this.data[camelize(name)] = result
+            this.data[camelize(propname)] = result
             // Set the attribute if requested.
             // But if value is not a string, and no stringify is available, SKIP.
             if (options.attr && (isString || type.stringify))
-              this.setAttribute(name, isString ? value : type.stringify(value, name, this.data))
+              this.setAttribute(propname, isString ? value : type.stringify(value, propname, this.data))
           }
           if (options.render && scriptsLoaded)
             this._render()

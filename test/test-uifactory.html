@@ -468,8 +468,8 @@ You can set the property to another URL (which is fetched) or a JS object (which
 For example:
 
 ```js
-document.querySelector('.fetch-text').update({ src: 'page2.txt' })  // Loads page2.txt, re-renders
-document.querySelector('.fetch-text').update({ src: null })         // Sets src=null, re-renders
+document.querySelector('.fetch-text').src = 'page2.txt'   // Loads page2.txt, re-renders
+document.querySelector('.fetch-text').src = null          // Sets src=null, re-renders
 ```
 -->
 <template component="fetch-text" src:urltext="">
@@ -488,11 +488,11 @@ document.querySelector('.fetch-text').update({ src: null })         // Sets src=
       let events = renderEvents['fetch-text']
       if (events.length == 2 && refreshed == 0) {
         t.equals(el.innerHTML.trim(), 'Contents of page.txt')
-        el.update({ src: 'page2.txt' })
+        el.src = 'page2.txt'
         refreshed = 1
       } else if (events.length >= 4 && refreshed == 1) {
         t.equals(el.innerHTML.trim(), 'Contents of page2.txt')
-        el.update({ src: null })
+        el.src = null
         refreshed = 2
       } else if (events.length >= 6 && refreshed == 2) {
         t.equals(el.innerHTML.trim(), 'Loading...')
@@ -534,8 +534,8 @@ You can set the property to another URL (which is fetched) or a JS object (which
 For example:
 
 ```js
-document.querySelector('.fetch-text').update({ src: 'page2.json' })  // Loads page2.json, re-renders
-document.querySelector('.fetch-text').update({ src: {x: 1} })        // Sets src={x:1}, re-renders
+document.querySelector('.fetch-text').src = 'page2.json'  // Loads page2.json, re-renders
+document.querySelector('.fetch-text').src = {x: 1}        // Sets src={x:1}, re-renders
 ```
 -->
 <template component="fetch-json" src:urljson="">
@@ -554,15 +554,17 @@ document.querySelector('.fetch-text').update({ src: {x: 1} })        // Sets src
       let events = renderEvents['fetch-json']
       if (events.length == 2 && refreshed == 0) {
         t.equals(el.innerHTML.trim(), '{"text":"abc","number":10,"object":{"x":[1,2,3]}}')
-        el.update({ src: 'page2.json' })
+        el.src = 'page2.json'
         refreshed = 1
       } else if (events.length >= 4 && refreshed == 1) {
         t.equals(el.innerHTML.trim(), '{"text":"def","number":20,"object":{"x":[4,5,6]}}')
-        el.update({ src: { x: 1 } })
+        el.src = { x: 1 }
         refreshed = 2
       } else if (events.length >= 6 && refreshed == 2) {
         t.equals(el.innerHTML.trim(), '{"x":1}')
         return t.end()
+      } else {
+        return t.end('Invalid state')
       }
       setTimeout(check, 100)
     }
@@ -726,27 +728,30 @@ This lets you control not just the component, but parents, siblings, and any oth
 </script>
 
 <!--
-## Update properties with `.update()`
+## Update multiple properties with `.update()`
 
-You can change multiple properties together using `.update({prop1: val, prop2: val})`. For example,
-this component has 2 properties, `char` and `value`:
+You can change multiple properties together using `.update({'attr-1': val, 'attr-2': val})`. For
+example, this component has 2 properties, `char` and `repeat-value`:
 
 ```html
-<template component="repeat-props" char="★" value:number="10">
-  ${char.repeat(value)}
+<template component="repeat-props" char="★" repeat-value:number="10">
+  ${char.repeat(repeatValue)}
 </template>
-<repeat-props char="★" value="10"></repeat-props>
+<repeat-props char="★" repeat-value="10"></repeat-props>
 ```
 
 When you add this script to your page:
 
 ```html
 <script>
-  document.querySelector('repeat-props').update({ char: '⚡', value: 8 })
+  document.querySelector('repeat-props').update({
+    char: '⚡',
+    'repeat-value': 8       // Note: use 'repeat-value', not repeatValue
+  })
 </script>
 ```
 
-... updates both `char` and `value` to generate this output:
+... updates both `char` and `repeat-value` to generate this output:
 
 ![update() changes multiple properties](docs/repeat-props.png)
 
@@ -759,7 +764,10 @@ For example, this updates the properties without changing the attributes and wit
 
 ```html
 <script>
-  document.querySelector('repeat-props').update({ char: '⚽', value: 5 }, { attr: false, render: false })
+  document.querySelector('repeat-props').update({
+    char: '⚽',
+    'repeat-value': 5
+  }, { attr: false, render: false })
 </script>
 ```
 
@@ -772,22 +780,22 @@ To just re-render the component without changing properties, use `.update()`.
 ```
 -->
 
-<template component="repeat-props" char="★" value:number="10">
-  ${char.repeat(value)}
+<template component="repeat-props" char="★" repeat-value:number="10">
+  ${char.repeat(repeatValue)}
 </template>
-<repeat-props char="★" value="10"></repeat-props>
+<repeat-props char="★" repeat-value="10"></repeat-props>
 <script>
   tape('Access `<component>` as `$target`', function (t) {
     let el = document.querySelector('repeat-props')
-    el.update({ char: '⚡', value: 8 })
+    el.update({ char: '⚡', 'repeat-value': 8 })
     t.equals(el.innerHTML.trim(), '⚡⚡⚡⚡⚡⚡⚡⚡', '.update() updates both props')
     t.equals(el.getAttribute('char'), '⚡', '.update() updates char')
-    t.equals(el.getAttribute('value'), '8', '.update() updates value')
+    t.equals(el.getAttribute('repeat-value'), '8', '.update() updates repeat-value')
 
-    el.update({ char: '⚽', value: 5 }, { attr: false, render: false })
+    el.update({ char: '⚽', 'repeat-value': 5 }, { attr: false, render: false })
     t.equals(el.innerHTML.trim(), '⚡⚡⚡⚡⚡⚡⚡⚡', '.update({}, { render: false }) does not render')
     t.equals(el.getAttribute('char'), '⚡', '.update({}, { attr: false }) does not set char="" attr')
-    t.equals(el.getAttribute('value'), '8', '.update({}, { attr: false }) does not set value="" attr')
+    t.equals(el.getAttribute('repeat-value'), '8', '.update({}, { attr: false }) does not set repeat-value="" attr')
 
     el.update()
     t.equals(el.innerHTML.trim(), '⚽⚽⚽⚽⚽', '.update() re-renders')
@@ -1406,8 +1414,7 @@ All properties are stored in `el.data` as an object. For example:
 <script>
 let el = document.querySelector('repeat-html')  // Find first <repeat-html>
 console.log(el.data)                            // Prints { "value": ".." }
-el.data.value = 12                              // Updates the value property
-el.update()                                     // You need to explicitly re-render
+el.data.value = 12                              // Re-renders with new value
 </script>
 ```
 
@@ -1546,22 +1553,12 @@ Instance properties: $target=[object HTMLElement] base=10 root= child=20
 
 The `child` JavaScript variable is now available (as a number).
 
-You can update instance properties like `.child=...`. For example:
+You can update instance property `.child=...` or the attribute `child:number=`
 
 ```html
 <script>
-  document.querySelector('base-component').child = 30   // Sets the child to 30
-  document.querySelector('base-component').update()     // Re-renders with child=30
-</script>
-```
-
-But updating the `child:number=` attribute will **not update the property**. (HTMLElement only
-supports a single list of observed attributes across instances.)
-
-```html
-<script>
-  document.querySelector('base-component').setAttribute('child:number', '40')   // Won't re-render
-  document.querySelector('base-component').update()     // Will not re-use the child attribute
+  document.querySelector('base-component').child = 30   // Redraw with child=30
+  document.querySelector('base-component').setAttribute('child:number', '40')
 </script>
 ```
 
@@ -1595,21 +1592,27 @@ Instance properties: $target=[object HTMLElement] base=3 root=5 child=20
     t.equals(els[1].innerHTML.trim().split(/\s+/).join(' '),
       `Instance properties: $target=[object HTMLElement] base=3 root=5 child=20`,
       `Instance property overrides`)
-    els[0].child = 30
-    els[0].update()
-    t.equals(els[0].innerHTML.trim().split(/\s+/).join(' '),
-      `Instance properties: $target=[object HTMLElement] base=10 root= child=30`,
-      `Instance property update re-renders`)
-    els[0].update({child: 35})
-    t.equals(els[0].innerHTML.trim().split(/\s+/).join(' '),
-      `Instance properties: $target=[object HTMLElement] base=10 root= child=35`,
-      `Instance property update re-renders`)
-    els[0].setAttribute('child:number', '40')
-    els[0].update()
-    t.equals(els[0].innerHTML.trim().split(/\s+/).join(' '),
-      `Instance properties: $target=[object HTMLElement] base=10 root= child=35`,
-      `Instance attribute update won't rerender`)
-    t.end()
+
+    function check(t, val) {
+      if (els[0].data.child != val)
+        return setTimeout(check, 100, t, val)
+      t.equals(els[0].innerHTML.trim().split(/\s+/).join(' '),
+        `Instance properties: $target=[object HTMLElement] base=10 root= child=${val}`)
+      t.end()
+    }
+    t.test('Instance property= re-renders', t => {
+      els[0].child = 30
+      els[0].update()
+      check(t, 30)
+    })
+    t.test('Instance .update({property}) re-renders', t => {
+      els[0].update({ child: 35 })
+      check(t, 35)
+    })
+    t.test('Instance attribute= re-renders', t => {
+      els[0].setAttribute('child:number', '40')
+      check(t, 40)
+    })
   })
 </script>
 
