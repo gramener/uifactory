@@ -215,36 +215,45 @@
       // Set attributes (converting kebab-case to camelCase) unless options.attr = false
       // Re-render unless options.render = false
       update(props = {}, options = {}) {
-        // By default, .update() sets attributes and renders
-        options = Object.assign({ attr: true, render: true }, options)
-        // If the component is not initialized, don't render it
-        if (this.data) {
-          for (let [name, value] of Object.entries(props)) {
-            // Allow typed properties
-            let [propname, typename] = name.split(':')
-            let type = uifactory.types[typename || this.ui.attrinfo[propname] && this.ui.attrinfo[propname].type] || types.string
-            let isString = typeof value == 'string'
-            let result = (isString && !options.noparse) ? type.parse(value, propname, this.data) : value
-            // If parse() returns a Promise, re-update the element after it resolves
-            // TODO: Catch exception?
-            if (result && typeof result.then == 'function') {
-              result.then(r => {
-                this.update({ [propname]: r }, {
-                  render: true,   // Re-render
-                  noparse: true,  // Don't re-parse result
-                  attr: false,    // Promises return complex objects. Don't serialize the result
+        if (this.ui._updating)
+          return
+        this.ui._updating = true
+        try {
+          // By default, .update() sets attributes and renders
+          options = Object.assign({ attr: true, render: true }, options)
+          // If the component is not initialized, don't render it
+          if (this.data) {
+            for (let [name, value] of Object.entries(props)) {
+              // Allow typed properties
+              let [propname, typename] = name.split(':')
+              let type = uifactory.types[typename || this.ui.attrinfo[propname] && this.ui.attrinfo[propname].type] || types.string
+              let isString = typeof value == 'string'
+              let result = (isString && !options.noparse) ? type.parse(value, propname, this.data) : value
+              // If parse() returns a Promise, re-update the element after it resolves
+              // TODO: Catch exception?
+              if (result && typeof result.then == 'function') {
+                result.then(r => {
+                  this.update({ [propname]: r }, {
+                    render: true,   // Re-render
+                    noparse: true,  // Don't re-parse result
+                    attr: false,    // Promises return complex objects. Don't serialize the result
+                  })
                 })
-              })
-              result = null     // For now, set the result to a null value
+                result = null     // For now, set the result to a null value
+              }
+              this.data[camelize(propname)] = result
+              // Set the attribute if requested.
+              // But if value is not a string, and no stringify is available, SKIP.
+              if (options.attr && (isString || type.stringify)) {
+                this.setAttribute(propname, isString ? value : type.stringify(value, propname, this.data))
+              }
             }
-            this.data[camelize(propname)] = result
-            // Set the attribute if requested.
-            // But if value is not a string, and no stringify is available, SKIP.
-            if (options.attr && (isString || type.stringify))
-              this.setAttribute(propname, isString ? value : type.stringify(value, propname, this.data))
+            if (options.render && scriptsLoaded) {
+              this._render()
+            }
           }
-          if (options.render && scriptsLoaded)
-            this._render()
+        } finally {
+          this.ui._updating = false
         }
       }
 

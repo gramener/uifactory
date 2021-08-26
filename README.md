@@ -265,15 +265,25 @@ component displays "Loading..." until a URL is loaded, and then displays its tex
 Contents of page.txt
 ```
 
-The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
+The `:urltext` property is null until it is loaded. Once loaded, it has the text from the URL.
 
-You can set the property to another URL (which is fetched) or a JS object (which is used as-is).
+To reload the URL and re-render, you can set `.src = 'page.pxt'` or `.update({src: 'page.txt'})`:
+
+```js
+document.querySelector('.fetch-text').src = 'page.txt'
+// OR
+document.querySelector('.fetch-text').update({ src: 'page.txt' })
+```
+
+You can set the property to another URL (which is fetched) or a non-string JS object (which is used as-is).
 For example:
 
 ```js
 document.querySelector('.fetch-text').src = 'page2.txt'   // Loads page2.txt, re-renders
 document.querySelector('.fetch-text').src = null          // Sets src=null, re-renders
 ```
+
+<!-- TODO: to set .src to a string, use .update({ src: 'result', { noparse: true } }) -->
 
 ## Fetch URLs as JSON using the `:urljson` type
 
@@ -297,14 +307,22 @@ component displays "Loading..." until a URL is loaded, and then displays its JSO
 {"text":"abc","number":10,"object":{"x":[1,2,3]}}
 ```
 
-The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
+The `:urljson` property is null until it is loaded. Once loaded, it has the contents of the URL as a JavaScript object.
 
-You can set the property to another URL (which is fetched) or a JS object (which is used as-is).
+To reload the URL and re-render, you can set `.src = 'page.json'` or `.update({src: 'page.json'})`:
+
+```js
+document.querySelector('.fetch-json').src = 'page.json'
+// OR
+document.querySelector('.fetch-json').update({ src: 'page.json' })
+```
+
+You can set the property to another URL (which is fetched) or a non-string JS object (which is used as-is).
 For example:
 
 ```js
-document.querySelector('.fetch-text').src = 'page2.json'  // Loads page2.json, re-renders
-document.querySelector('.fetch-text').src = {x: 1}        // Sets src={x:1}, re-renders
+document.querySelector('.fetch-json').src = 'page2.json'  // Loads page2.json, re-renders
+document.querySelector('.fetch-json').src = {x: 1}        // Sets src={x:1}, re-renders
 ```
 
 

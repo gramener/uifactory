@@ -462,9 +462,17 @@ component displays "Loading..." until a URL is loaded, and then displays its tex
 Contents of page.txt
 ```
 
-The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
+The `:urltext` property is null until it is loaded. Once loaded, it has the text from the URL.
 
-You can set the property to another URL (which is fetched) or a JS object (which is used as-is).
+To reload the URL and re-render, you can set `.src = 'page.pxt'` or `.update({src: 'page.txt'})`:
+
+```js
+document.querySelector('.fetch-text').src = 'page.txt'
+// OR
+document.querySelector('.fetch-text').update({ src: 'page.txt' })
+```
+
+You can set the property to another URL (which is fetched) or a non-string JS object (which is used as-is).
 For example:
 
 ```js
@@ -488,13 +496,21 @@ document.querySelector('.fetch-text').src = null          // Sets src=null, re-r
       let events = renderEvents['fetch-text']
       if (events.length == 2 && refreshed == 0) {
         t.equals(el.innerHTML.trim(), 'Contents of page.txt')
-        el.src = 'page2.txt'
+        el.src = 'page.txt'
         refreshed = 1
-      } else if (events.length >= 4 && refreshed == 1) {
+      } else if (events.length == 4 && refreshed == 1) {
+        t.equals(el.innerHTML.trim(), 'Contents of page.txt')
+        el.update({ src: 'page.txt' })
+        refreshed = 2
+      } else if (events.length == 6 && refreshed == 2) {
+        t.equals(el.innerHTML.trim(), 'Contents of page.txt')
+        el.src = 'page2.txt'
+        refreshed = 3
+      } else if (events.length == 8 && refreshed == 3) {
         t.equals(el.innerHTML.trim(), 'Contents of page2.txt')
         el.src = null
-        refreshed = 2
-      } else if (events.length >= 6 && refreshed == 2) {
+        refreshed = 4
+      } else if (events.length == 9 && refreshed == 4) {
         t.equals(el.innerHTML.trim(), 'Loading...')
         return t.end()
       }
@@ -528,14 +544,22 @@ component displays "Loading..." until a URL is loaded, and then displays its JSO
 {"text":"abc","number":10,"object":{"x":[1,2,3]}}
 ```
 
-The `:urltext` property is null until it is loaded. Once loaded, it has the text in the URL.
+The `:urljson` property is null until it is loaded. Once loaded, it has the contents of the URL as a JavaScript object.
 
-You can set the property to another URL (which is fetched) or a JS object (which is used as-is).
+To reload the URL and re-render, you can set `.src = 'page.json'` or `.update({src: 'page.json'})`:
+
+```js
+document.querySelector('.fetch-json').src = 'page.json'
+// OR
+document.querySelector('.fetch-json').update({ src: 'page.json' })
+```
+
+You can set the property to another URL (which is fetched) or a non-string JS object (which is used as-is).
 For example:
 
 ```js
-document.querySelector('.fetch-text').src = 'page2.json'  // Loads page2.json, re-renders
-document.querySelector('.fetch-text').src = {x: 1}        // Sets src={x:1}, re-renders
+document.querySelector('.fetch-json').src = 'page2.json'  // Loads page2.json, re-renders
+document.querySelector('.fetch-json').src = {x: 1}        // Sets src={x:1}, re-renders
 ```
 -->
 <template component="fetch-json" src:urljson="">
@@ -554,13 +578,21 @@ document.querySelector('.fetch-text').src = {x: 1}        // Sets src={x:1}, re-
       let events = renderEvents['fetch-json']
       if (events.length == 2 && refreshed == 0) {
         t.equals(el.innerHTML.trim(), '{"text":"abc","number":10,"object":{"x":[1,2,3]}}')
-        el.src = 'page2.json'
+        el.src = 'page.json'
         refreshed = 1
-      } else if (events.length >= 4 && refreshed == 1) {
+      } else if (events.length == 4 && refreshed == 1) {
+        t.equals(el.innerHTML.trim(), '{"text":"abc","number":10,"object":{"x":[1,2,3]}}')
+        el.update({ src: 'page.json' })
+        refreshed = 2
+      } else if (events.length == 6 && refreshed == 2) {
+        t.equals(el.innerHTML.trim(), '{"text":"abc","number":10,"object":{"x":[1,2,3]}}')
+        el.src = 'page2.json'
+        refreshed = 3
+      } else if (events.length >= 8 && refreshed == 3) {
         t.equals(el.innerHTML.trim(), '{"text":"def","number":20,"object":{"x":[4,5,6]}}')
         el.src = { x: 1 }
-        refreshed = 2
-      } else if (events.length >= 6 && refreshed == 2) {
+        refreshed = 4
+      } else if (events.length >= 9 && refreshed == 4) {
         t.equals(el.innerHTML.trim(), '{"x":1}')
         return t.end()
       } else {
