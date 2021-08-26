@@ -559,6 +559,26 @@ When you add the component to your page:
 ![Yellow background applied to g-repeat](docs/g-repeat-8-star-yellow.png)
 
 
+You can use `<style scoped>` to apply the style only within your component.
+
+When you add this component to your page:
+
+```html
+<template component="repeat-scoped" value="30">
+  <style scoped>                          /* Within this component... */
+    span { background-color: yellow; }    /* ... make all spans yellow */
+  </style>
+  <% for (var j=0; j < +value; j++) { %>
+    <span><slot></slot></span>            <!-- Add the slot inside a span -->
+  <% } %>
+</template>
+<repeat-scoped value="8">★</repeat-scoped>
+```
+
+... it all `<span>`s yellow -- but only within the component:
+
+![Only spans are yellow](docs/repeat-scoped.png)
+
 ## Link to external stylesheets
 
 You can link to external stylesheets. For example, this imports Bootstrap 4.6.

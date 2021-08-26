@@ -999,10 +999,27 @@ When you add the component to your page:
   <% } %>
 </template>
 <repeat-style value="8">★</repeat-style>
+
+<template component="repeat-scoped" value="30">
+  <style scoped>
+    span { background-color: yellow; }
+  </style>
+  <% for (var j=0; j < +value; j++) { %>
+    <span><slot></slot></span>
+  <% } %>
+</template>
+<repeat-scoped value="8">★</repeat-scoped>
+
 <script>
   tape('Style components with CSS', function (t) {
     let el = document.querySelector('repeat-style')
     t.equals(getComputedStyle(el).backgroundColor, 'rgb(255, 255, 0)', 'style is applied on component')
+    t.end()
+  })
+  tape('Style scoped components with CSS', function (t) {
+    t.ok(document.querySelector('repeat-scoped style') != null, 'scoped style is in each component')
+    let el = document.querySelector('repeat-scoped span')
+    t.equals(getComputedStyle(el).backgroundColor, 'rgb(255, 255, 0)', 'scoped style is applied on component')
     t.end()
   })
 </script>

@@ -1,0 +1,23 @@
+<script src="../node_modules/lodash/lodash.min.js"></script>
+<script src="../src/uifactory.js"></script>
+
+<template component="move-circle" x="0" @render:js="uifactory.moveCircle">
+  <style>
+    move-circle circle {
+      transition: all 0.5s ease;
+    }
+  </style>
+  <svg width="400" height="100" fill="#eee">
+    <circle cx="<%= x %>" cy="50" r="30" fill="red"></circle>
+  </svg>
+  <script>
+    uifactory.moveCircle = function($target, lodash_output) {
+      let circle = $target.querySelector('circle')
+      if (!circle)
+        $target.innerHTML = lodash_output
+      else
+        circle.setAttribute('cx', $target.data.x)
+    }
+  </script>
+</template>
+<move-circle x="300"></move-circle>

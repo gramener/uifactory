@@ -58,6 +58,20 @@
   // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
   let camelize = s => s.replace(/-./g, x => x.toUpperCase()[1])
 
+  // observer is for attribute changes. Typed attribute changes (name:type) re-renders component via .update()
+  const observer = new MutationObserver(function (mutations) {
+    const updates = new Map()
+    for (const mutation of mutations) {
+      if (!updates.has(mutation.target))
+        updates.set(mutation.target, {})
+      updates.get(mutation.target)[mutation.attributeName] = mutation.target.getAttribute(mutation.attributeName)
+    }
+    for (const [target, update] of updates.entries())
+      // Re-render only when a property (i.e. typed attribute name:type) is changed
+      if (Object.keys(update).some(v => v.match(':')))
+        target.update(update, { attr: false, render: true })
+  })
+
   // Register a single component
   function registerComponent(config) {
     // The custom element is defined on this window. This need not be the global window.
@@ -78,7 +92,7 @@
     let _scriptsResolve     // fn: resolves the scriptsLoad promise
     let scriptsResolve = new Promise(resolve => _scriptsResolve = resolve)
     // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
-    loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style'))
+    loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style:not([scoped])'))
     loadExtract('body', tmpl.content.querySelectorAll('script'))
     // target is "head" or "body". els the list of DOM elements to add into target
     function loadExtract(target, els, _start = 0) {
@@ -113,25 +127,12 @@
         _scriptsResolve(true)
       }
     }
-
-    const observer = new MutationObserver(function (mutations) {
-      const updates = new Map()
-      for (const mutation of mutations) {
-        if (!updates.has(mutation.target))
-          updates.set(mutation.target, {})
-        updates.get(mutation.target)[mutation.attributeName] = mutation.target.getAttribute(mutation.attributeName)
-      }
-      for (const [target, update] of updates.entries())
-        // Re-render only when a property (i.e. typed attribute name:type) is changed
-        if (Object.keys(update).some(v => v.match(':')))
-          target.update(update, { attr: false, render: true })
-    })
-
     // Remove extracted styles and scripts from template.
     // This also removes script type="application/json" "text/html"
-    for (let el of tmpl.content.querySelectorAll('link[rel="stylesheet"], style, script'))
+    for (let el of tmpl.content.querySelectorAll('link[rel="stylesheet"], style:not([scoped]), script'))
       el.remove()
-    // If there's a <script type="text/html">, use that for template. Else rest of the template
+
+    // If there's a <script type="text/html">, use that for template. Else use rest of the template
     let html = _.unescape((htmlScript || tmpl).innerHTML)
 
     // Compile the rest of the template -- by default, using a Lodash template
