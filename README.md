@@ -2,7 +2,7 @@
 
 UIFactory is a small easy-to-learn HTML component library.
 
-- **It's small**. 2 KB minified, gzipped.
+- **It's small**. <3 KB minified, gzipped.
 - **There's nothing new to learn**. No shadow DOM. No virtual DOM. Just regular HTML, CSS and JS.
 - **It's open-source**. [See GitHub](https://github.com/gramener/uifactory).
 
