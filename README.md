@@ -1317,10 +1317,11 @@ npm publish
 
 ## Change log
 
-- 1.0.0 (TBD):
+- 0.0.16:
   - `<style scoped>` applies style only to component
   - `el.property = value` re-renders `el`
   - `el.update({'attr:type': ...})` supported
+  - `<vega-chart>` component added with signals support
 - 0.0.15 (11 Aug 2021): `@render:js` attribute supports [custom renderers](#use-any-renderer)
 - 0.0.14 (30 Jun 2021): `<comic-gen>` component added
 - 0.0.13 (29 Jun 2021): Minify code into `dist/uifactory.min.js`
