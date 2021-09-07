@@ -31,17 +31,18 @@
         // If there's no spec, treat it as empty spec and process it from
         // Deep clone the spec to avoid changing original when we update it.
         let spec = node.ui.spec = node.data.spec ? JSON.parse(JSON.stringify(node.data.spec)) : {}
-        // Evaluate all scripts inside <template><script>... in the context of spec
+        // Evaluate all scripts inside <template><script>... in the context of spec.
+        // "this" becomes the node. "spec" is also available as a variable.
         for (let tmpl of node.querySelectorAll('template')) {
           for (let script of tmpl.content.querySelectorAll('script')) {
             let update_spec = new Function('spec', script.innerHTML)
-            update_spec(spec)
+            update_spec.call(node, spec)
           }
         }
 
         // If the spec is vega-lite, convert it to Vega.
         // Vega-lite $schema is "https://vega.github.io/schema/vega-lite/v5.json".
-        if (spec.$schema.match(/vega-lite/))
+        if (spec.$schema && spec.$schema.match(/vega-lite/))
           spec = vegaLite.compile(spec).spec
 
         // Render the chart. Store the view in the node's .ui object

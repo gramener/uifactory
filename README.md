@@ -21,6 +21,15 @@ To include it in your script, use
 <script src="node_modules/uifactory/dist/uifactory.min.js"></script>
 ```
 
+## Use pre-built components
+
+UIFactory ships with these ready-to-use components:
+
+- [`<comic-gen>`](docs/comic-gen.md) renders comic characters from data
+- [`<md-text>`](docs/md-text.md) converts Markdown to HTML
+- [`<svg-chart>`](docs/svg-chart.md) creates data-driven infographics from SVGs
+- [`<vega-chart>`](docs/vega-chart.md) renders charts using Vega
+
 ## Components are HTML templates
 
 For example, you can create a component like this:
@@ -366,7 +375,7 @@ Inside the [template](#lodash-templates-are-supported),
 `this` is the template element (e.g. `<template component="g-repeat">`).
 For example
 
-- `this.innerHTML` has the contents of your template. `<%= this.innerHTML %>` is the same as `<slot></slot>`
+- `this.innerHTML` has the contents of your template. `<%= this.innerHTML %>` is almost the same as `<slot></slot>`. (`<slot>` has only child nodes. It ignores text nodes.)
 - `this.querySelectorAll('slot[name="a"]')` fetches all `<slot name="a">`s in your template
 
 This `<repeat-icons>` component repeats everything under `class="x"` x times, and everything under
