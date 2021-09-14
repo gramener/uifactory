@@ -1,2 +1,137 @@
-<template component="bs5-upload" title="">
+<template component="bs5-upload" title="" disabled:boolean="false">
+    <style>
+        ::-webkit-file-upload-button {
+            display: none;
+        }
+
+        .files #uploadFile_input {
+            position: relative
+        }
+
+        .files #uploadFile_input:after {
+            pointer-events: none;
+            position: absolute;
+            top: 50px;
+            left: 20px;
+            width: 30px;
+            right: 0;
+            height: 56px;
+            content: " ";
+            background-image: url(assets/images/Icon_Input_fileupload_Black.svg);
+            display: grid;
+            place-items: flex-start;
+            margin: -0.1rem ​0rem;
+            background-size: 100%;
+            background-repeat: no-repeat;
+        }
+
+        .files #uploadFile_input:before {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            pointer-events: none;
+            width: 100%;
+            right: 0;
+            height: 50px;
+            content: " upload or drag and drop files here. ";
+            display: block;
+            /* place-items: flex-start; */
+            margin: 0rem auto;
+            color: #1A76BD;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        #uploadFile_input {
+            display: inline-block;
+            border-radius: 4px;
+            outline: 1px dashed var(--upload-file-border);
+            outline-offset: -3px;
+            -webkit-transition: outline-offset .15s ease-in-out, background-color .15s linear;
+            transition: outline-offset .15s ease-in-out, background-color .15s linear;
+            width: 50%;
+            padding: 120px 0 0 0 !important;
+            height: 100px;
+            overflow: hidden;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+            background-size: 60px 60px;
+            display: grid;
+            place-items: center;
+            align-items: center;
+            /* margin: 0px auto; */
+            background-color: var(--upload_file-bg)
+        }
+
+        #selected_filename {
+            position: absolute;
+            display: grid;
+            gap: 0.5rem;
+            word-break: break-all;
+            width: 50%;
+            grid-template-columns: 25% 25%;
+        }
+
+        #selected_filename button {
+            border-radius: 4px;
+        }
+
+        .files>input:disabled {
+            background-color: #dedede !important;
+            opacity: 0.5;
+        }
+    </style>
+    <div class="mb-3 files">
+        <label for="formFile" class="form-label"><%- title %></label>
+        <% if(disabled) { %>
+        <input class="form-control" type="file" id="uploadFile_input" multiple disabled>
+        <% }else{ %>
+        <input class="form-control" type="file" id="uploadFile_input" multiple>
+        <% } %>
+        <span class="supportedFiles">Supported files formats: PNG, JPG, DOC, PDF</span>
+        <span id="selected_filename"></span>
+    </div>
+    <script>
+        document.body.addEventListener('render', function (e) {
+            if (!e.target.matches('file-upload')) return
+            let filesArray = [];
+            let appendBagde = "";
+
+            function rmv_file(obj, filename) {
+                alert(filename)
+            }
+
+            $('#uploadFile_input').change(function () {
+                let getFiles = $('#uploadFile_input')[0].files
+
+                if (getFiles.length > 1) {
+                    for (var i = 0; i < getFiles.length; i++) {
+                        appendBagde += '<button type="button" class="btn bg-light text-dark">' +
+                            getFiles[i].name +
+                            '<span class="badge"><img src="assets/images/icon-delete.svg" class="rmIcon" onclick="uifactory.fileUpload.handleInput(event,this)"></span></button>';
+                        filesArray.push(getFiles[i].name)
+                    }
+                    $('#selected_filename').html(appendBagde);
+                } else {
+                    appendBagde += '<button type="button" class="btn bg-light text-dark">' + getFiles[0]
+                        .name +
+                        '<span class="badge"><img src="assets/images/icon-delete.svg" class="rmIcon" onclick="uifactory.fileUpload.handleInput(event,this)"></span></button>';
+                    $('#selected_filename').html(appendBagde);
+                }
+            });
+
+        });
+
+        document.body.addEventListener('render', function (e) {
+            if (!e.target.matches('file-upload')) return
+            uifactory.fileUpload = {
+                handleInput: function (e, filename) {
+                    e.target.parentElement.parentElement.remove()
+                }
+            }
+        })
+    </script>
 </template>
+
+<bs5-upload title="" disabled="false"></bs5-upload>
