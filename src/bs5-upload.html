@@ -81,10 +81,20 @@
             background-color: #dedede !important;
             opacity: 0.5;
         }
+        bs5-upload[disabled]>* {
+            pointer-events: unset !important;
+            cursor: no-drop;
+            opacity: 0.5;
+        }
+
+        bs5-upload[disabled]>* :hover {
+            box-shadow: none;
+        }
     </style>
+            <% let disabledAttr =   document.querySelector("bs5-upload").hasAttribute("disabled"); %>
     <div class="mb-3 files">
         <label for="formFile" class="form-label"><%- title %></label>
-        <% if(disabled) { %>
+        <% if(disabledAttr) { %>
         <input class="form-control" type="file" id="uploadFile_input" multiple disabled>
         <% }else{ %>
         <input class="form-control" type="file" id="uploadFile_input" multiple>
@@ -134,4 +144,4 @@
     </script>
 </template>
 
-<bs5-upload title="" disabled="false"></bs5-upload>
+<bs5-upload title="" disabled></bs5-upload>

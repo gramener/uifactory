@@ -22,8 +22,11 @@ Add this code anywhere in your HTML page:
 <script src="https://cdn.jsdelivr.net/npm/lodash/lodash.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/uifactory@0.0.16/dist/uifactory.min.js" import="@bs5-upload"></script>
 
+<bs5-upload title=""></bs5-upload>
 
-<bs5-upload title="" disabled="false"></bs5-upload>
+-- field disabled
+<bs5-upload title="" disabled></bs5-upload>
+
 ```
 
 This renders the following output:
@@ -35,4 +38,4 @@ This renders the following output:
 `<bs5-upload>` has title and disabled propertie:
 
 -- title - which defines the label or heading of file input field.
--- Setting disabled true makes input element disable 
+-- Adding disabled attribite to an element makes input field disable 
