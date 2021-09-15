@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <title>UX components</title>
     <style>
         body {
@@ -75,7 +76,7 @@
             cursor: no-drop;
         }
 
-        bs5-input[type="textarea"]:not(.badge) :hover {
+        textarea:hover {
             box-shadow: var(--box-shadow)
         }
 
@@ -95,7 +96,7 @@
         }
 
         bs5-input[type="textarea"] .badge {
-            background-color: #fff;
+            background-color: var(--white-bg);
             border: 1px solid var(--border-color);
             left: 90% !important;
             color: var(--bs-secondary) !important;
@@ -113,7 +114,7 @@
         }
 
         select option {
-            background: rgb(255, 255, 255);
+            background: var(--white-bg);
             color: rgb(0, 0, 0);
             top: 10em;
             border: 1px solid var(--border-color);
@@ -127,6 +128,16 @@
             pointer-events: unset !important;
             cursor: no-drop;
         }
+
+        bs5-input[disabled]>* {
+            pointer-events: unset !important;
+            cursor: no-drop;
+            opacity: 0.5;
+        }
+
+        bs5-input[disabled]>* :hover {
+            box-shadow: none;
+        }
     </style>
     <script src="//unpkg.com/lodash"></script>
     <script src="//unpkg.com/uifactory"></script>
@@ -137,34 +148,59 @@
 
 <body>
 
-    <template component="bs5-input" type="" title="" description="" bs5-class="" maxLength:number="" default=""
-        disabled:boolean="false"  media="" items:array="" set-textarea-height:number="">
+    <template component="bs5-input" type="" title="" placeholder="" bs5-class="" maxLength:number="" default="" media=""
+        items:array="" height:number="" width:number="" help="" html-content="" prefix-item="" sufix-item="" title-placement="">
+        <% let disabledAttr =   document.querySelector("bs5-input").hasAttribute("disabled");%>
+        <% if (type == "text" || type == "email" || type == "password" || type =="number" || type == "search") { %>
 
-        <% if (type == "text" || type == "email" || type == "password" ) { %>
-
+        <% if(prefixItem.trim().length != 0 && sufixItem.trim().length != 0){ %> 
+            <label for="basic-url" class="mb-3"> <%- title %> </label>
+            <div class="input-group mb-3">
+                <div class="input-group-prepend">
+                  <span class="input-group-text"> <%= prefixItem %> </span>
+                </div>
+                <input type="text" class="form-control">
+                <div class="input-group-append">
+                  <span class="input-group-text"><%= sufixItem %></span>
+                </div>
+              </div>
+        <% } else { %>
+            <% if(titlePlacement.trim() == 'inline' || titlePlacement.trim() == 'block'){ %>
+                <% let placeTitle = titlePlacement.trim() == 'inline' ? 'col-sm-2' : '' %>
+                <div class="form-group row">
+                    <label for="inputPassword" class="<%- placeTitle %> col-form-label"><%- title %></label>
+                    <div class="col-sm-10">
+                        <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>"
+                        class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>" aria-describedby="helpText"
+                        style="background: url(<%- media %>) no-repeat right 5px top 3px" ; />
+                    <small id="helpText" class="form-text text-muted"><%- help %></small>
+                    </div>
+                  </div>
+            <% } else { %>
         <div class="form-floating mb-3">
-            <% if(disabled) {  %>
-            <input type="<%- type %>" name="<%- title %>" placeholder="<%- description %>"
+            <% if(disabledAttr) {  %>
+            <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>"
                 class="form-control <%- bs5Class %>" disabled />
             <% }else{ %>
-            <input type="<%- type %>" name="<%- title %>" placeholder="<%- description %>"
-                class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>"
-                style="background: url(<%- media %>) no-repeat right 5px top 15px" ; />
+            <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>"
+                class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>" aria-describedby="helpText" value=""
+                style="background: url(<%- media %>) no-repeat right 5px top 15px"  />
+            <small id="helpText" class="form-text text-muted"><%- help %></small>
             <% }%>
             <label><%= title %></label>
         </div>
-
+        <% } %>
+        <% } %>
         <% } else if (type =="textarea") { %>
 
         <div class="form-floating">
             <span class="position-absolute top-0 translate-middle badge">
-
                 <span class="word-count"></span> / <%- maxlength %>
-
             </span>
             <textarea class="form-control <%- bs5Class %>" placeholder="Leave a comment here" id="floatingTextarea2"
-                style="height: <%- setTextareaHeight %>px" oninput="handleInput(event)"></textarea>
+                style="height: <%- height %>px" oninput="handleInput(event)" aria-describedby="helpText"></textarea>
             <label for="floatingTextarea2"><%= title %></label>
+            <small id="helpText" class="form-text text-muted"><%- help %></small>
         </div>
         <script>
             document.body.addEventListener('render', function (e) {
@@ -180,21 +216,23 @@
 
         <% } else if (type == "select") { %>
 
-        <% if(disabled) { %>
+        <% if(disabledAttr) { %>
         <select class="form-select" disabled>
             <% for(var i = 0; i < items.length; i++) { %>
             <option value="<%- i %>"><%- items[i] %></option>
             <% } %></select>
         <% }else{ %>
-        <select class="form-select">
+        <select class="form-select" aria-describedby="helpText">
             <% for(var i = 0; i < items.length; i++) { %>
             <option value="<%- i %>"><%- items[i] %></option>
             <% } %></select>
+        <small id="helpText" class="form-text text-muted"><%- help %></small>
         <%}   %>
 
         <% } else if (type == "checkbox" || type == "radio") { %>
+
         <% for(var i = 0; i < items.length; i++) { %>
-        <% if(disabled) { %>
+        <% if(disabledAttr) { %>
         <div class="form-check"><input class="form-check-input" type="<%- type %>" default=""
                 id="flexCheckDefault <%= i %>" name="flexRadioDefault" disabled>
             <% }else{ %>
@@ -211,7 +249,7 @@
 
             <% for(var i = 0; i < items.length; i++) { %>
             <div class="form-switch">
-                <% if(disabled) { %>
+                <% if(disabledAttr) { %>
                 <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>" name="flexRadioDefault"
                     disabled>
                 <% }else{ %>
@@ -227,15 +265,26 @@
             <% } else if (type == "dropdown") { %>
 
             <div class="dropdown">
+                <% if(disabledAttr) { %>
                 <button class="btn btn-primary  dropdown-toggle" type="button" id="dropdownMenuButton1"
-                    data-bs-toggle="dropdown" aria-expanded="false">
-                    <%= title%>
-                </button>
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                    <% for(var i=0; i < items.length; i++){ %>
-                    <li><a class="dropdown-item" href="<%- items[i]%>"><%- items[i] %></a></li>
-                    <% }%>
-                </ul>
+                    data-bs-toggle="dropdown" aria-expanded="false" aria-describedby="helpText" disabled>
+                    <% } else { %>
+                    <button class="btn btn-primary  dropdown-toggle" type="button" id="dropdownMenuButton1"
+                        data-bs-toggle="dropdown" aria-expanded="false" aria-describedby="helpText">
+                        <%} %>
+                        <%= title%>
+                    </button>
+                    <small id="helpText" class="form-text text-muted"><%- help %></small>
+                    <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                        <% if(htmlContent.length > 0) { %>
+                        <%= htmlContent %>
+                        <% } else {%>
+                        <% for(var i=0; i < items.length; i++){ %>
+                        <a class="dropdown-item" href="<%- items[i]%>"><%- items[i] %></a>
+                        <% }%>
+                        <% } %>
+
+                    </div>
             </div>
 
             <% } else { %>
@@ -246,21 +295,14 @@
 
     </template>
 
-    <!-- below usage can be defined for input elements such as text, email, password, select, checkbox, radiobuttons, dropdown, textarea and switch -->
+    <!-- below usage can be defined for input elements such as text, email, password, number,search, select, checkbox, radiobuttons, dropdown, textarea and switch -->
 
-    <bs5-input type="dropdown" title="Name" default="" description="Enter your name" bs5-class="" maxLength=100
-        disabled="false"  media="https://picsum.photos/id/1012/30/30"
-        items="['one','two','three','four','five']" set-textarea-height=100></bs5-input>
+    <!-- <bs5-input type="text" title="Name" default="s" placeholder="Enter your name" bs5-class="" maxLength=100
+        media="https://picsum.photos/id/1012/30/30" items="['one','two','three','four','five']" height=100 width=100
+        help="Your text here" html-content="<a href='#'><img src='https://picsum.photos/id/1012/30/30'>hi</a>"
+        prefix-item="" sufix-item="" title-placement =""></bs5-input> -->
+
+        <bs5-input type="textarea" title="Textarea" default="" placeholder="type your content.." bs5-class="" media="" maxLength=100 height=100 help="Max character allowed - 100" title-placement =""></bs5-input>
 </body>
 
 </html>
-
-todo
-// label alignment  - try to add to an existing component / create new
-// media ='http//'
-// add height and width
-// disabled - dont set a value
-// select and dropdown - allow html content 
-//link inside dropdown
-// create a doc for every single type 
-
