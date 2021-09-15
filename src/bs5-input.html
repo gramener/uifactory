@@ -138,6 +138,11 @@
         bs5-input[disabled]>* :hover {
             box-shadow: none;
         }
+
+        .dropdown-menu.show > * {
+            display: block;
+            padding: 5px 10px;
+        }
     </style>
     <script src="//unpkg.com/lodash"></script>
     <script src="//unpkg.com/uifactory"></script>
@@ -149,42 +154,43 @@
 <body>
 
     <template component="bs5-input" type="" title="" placeholder="" bs5-class="" maxLength:number="" default="" media=""
-        items:array="" height:number="" width:number="" help="" html-content="" prefix-item="" sufix-item="" title-placement="">
+        items:array="" height:number="" width:number="" help="" html-content="" prefix-item="" sufix-item=""
+        title-placement="">
         <% let disabledAttr =   document.querySelector("bs5-input").hasAttribute("disabled");%>
         <% if (type == "text" || type == "email" || type == "password" || type =="number" || type == "search") { %>
 
-        <% if(prefixItem.trim().length != 0 && sufixItem.trim().length != 0){ %> 
-            <label for="basic-url" class="mb-3"> <%- title %> </label>
-            <div class="input-group mb-3">
-                <div class="input-group-prepend">
-                  <span class="input-group-text"> <%= prefixItem %> </span>
-                </div>
-                <input type="text" class="form-control">
-                <div class="input-group-append">
-                  <span class="input-group-text"><%= sufixItem %></span>
-                </div>
-              </div>
+        <% if(prefixItem.trim().length != 0 && sufixItem.trim().length != 0){ %>
+        <label for="basic-url" class="mb-3"> <%- title %> </label>
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+                <span class="input-group-text"> <%= prefixItem %> </span>
+            </div>
+            <input type="text" class="form-control">
+            <div class="input-group-append">
+                <span class="input-group-text"><%= sufixItem %></span>
+            </div>
+        </div>
         <% } else { %>
-            <% if(titlePlacement.trim() == 'inline' || titlePlacement.trim() == 'block'){ %>
-                <% let placeTitle = titlePlacement.trim() == 'inline' ? 'col-sm-2' : '' %>
-                <div class="form-group row">
-                    <label for="inputPassword" class="<%- placeTitle %> col-form-label"><%- title %></label>
-                    <div class="col-sm-10">
-                        <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>"
-                        class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>" aria-describedby="helpText"
-                        style="background: url(<%- media %>) no-repeat right 5px top 3px" ; />
-                    <small id="helpText" class="form-text text-muted"><%- help %></small>
-                    </div>
-                  </div>
-            <% } else { %>
+        <% if(titlePlacement.trim() == 'inline' || titlePlacement.trim() == 'block'){ %>
+        <% let placeTitle = titlePlacement.trim() == 'inline' ? 'col-sm-2' : '' %>
+        <div class="form-group row">
+            <label for="inputPassword" class="<%- placeTitle %> col-form-label"><%- title %></label>
+            <div class="col-sm-10">
+                <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>" value="<%- obj.default %>"
+                    class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>" aria-describedby="helpText"
+                    style="background: url(<%- media %>) no-repeat right 5px top 3px" ; />
+                <small id="helpText" class="form-text text-muted"><%- help %></small>
+            </div>
+        </div>
+        <% } else { %>
         <div class="form-floating mb-3">
             <% if(disabledAttr) {  %>
             <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>"
                 class="form-control <%- bs5Class %>" disabled />
             <% }else{ %>
             <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>"
-                class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>" aria-describedby="helpText" value=""
-                style="background: url(<%- media %>) no-repeat right 5px top 15px"  />
+                class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>" aria-describedby="helpText"
+                value="<%- obj.default %>" style="background: url(<%- media %>) no-repeat right 5px top 15px" />
             <small id="helpText" class="form-text text-muted"><%- help %></small>
             <% }%>
             <label><%= title %></label>
@@ -225,25 +231,33 @@
         <select class="form-select" aria-describedby="helpText">
             <% for(var i = 0; i < items.length; i++) { %>
             <option value="<%- i %>"><%- items[i] %></option>
-            <% } %></select>
+            <% } %>
+        </select>
         <small id="helpText" class="form-text text-muted"><%- help %></small>
         <%}   %>
 
         <% } else if (type == "checkbox" || type == "radio") { %>
-
+        
         <% for(var i = 0; i < items.length; i++) { %>
+         
         <% if(disabledAttr) { %>
         <div class="form-check"><input class="form-check-input" type="<%- type %>" default=""
                 id="flexCheckDefault <%= i %>" name="flexRadioDefault" disabled>
             <% }else{ %>
-            <div class="form-check"> <input class="form-check-input" type="<%- type %>" default=""
-                    id="flexCheckDefault <%= i %>" name="flexRadioDefault">
+                   <% if($.inArray(items[i], obj.default) > -1) { %>
+                    <div class="form-check"> <input class="form-check-input" type="<%- type %>" default=""
+                    id="flexCheckDefault <%= i %>" name="flexRadioDefault" checked>
+                    <% } else {%>
+                        <div class="form-check"> <input class="form-check-input" type="<%- type %>" default=""
+                            id="flexCheckDefault <%= i %>" name="flexRadioDefault">
+                        <% } %>
                 <%}   %>
                 <label class="form-check-label" for="flexCheckDefault <%= i %>">
                     <%- items[i] %>
                 </label>
             </div>
             </br>
+           
             <% } %>
             <% } else if (type == "switch") { %>
 
@@ -253,8 +267,14 @@
                 <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>" name="flexRadioDefault"
                     disabled>
                 <% }else{ %>
+                    <% if($.inArray(items[i], obj.default) > -1) { %>
                 <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>"
-                    name="flexRadioDefault">
+                    name="flexRadioDefault" checked>
+                    <% } else { %>
+                        <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>"
+                        name="flexRadioDefault">
+                        <% } %>
+
                 <%}   %>
                 <label class="form-check-label" for="switchBtn <%= i %>">
                     <%- items[i] %>
@@ -276,13 +296,14 @@
                     </button>
                     <small id="helpText" class="form-text text-muted"><%- help %></small>
                     <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                        <% if(htmlContent.length > 0) { %>
+                        <!-- <% if(htmlContent.length > 0) { %>
                         <%= htmlContent %>
                         <% } else {%>
                         <% for(var i=0; i < items.length; i++){ %>
                         <a class="dropdown-item" href="<%- items[i]%>"><%- items[i] %></a>
                         <% }%>
-                        <% } %>
+                        <% } %> -->
+                        <slot></slot>
 
                     </div>
             </div>
@@ -297,12 +318,11 @@
 
     <!-- below usage can be defined for input elements such as text, email, password, number,search, select, checkbox, radiobuttons, dropdown, textarea and switch -->
 
-    <!-- <bs5-input type="text" title="Name" default="s" placeholder="Enter your name" bs5-class="" maxLength=100
+    <bs5-input type="text" title="Name" default:array="[]" placeholder="Enter your name" bs5-class="" maxLength=100
         media="https://picsum.photos/id/1012/30/30" items="['one','two','three','four','five']" height=100 width=100
-        help="Your text here" html-content="<a href='#'><img src='https://picsum.photos/id/1012/30/30'>hi</a>"
-        prefix-item="" sufix-item="" title-placement =""></bs5-input> -->
+        help="Your text here" prefix-item="" sufix-item="" title-placement="">
+    </bs5-input>
 
-        <bs5-input type="textarea" title="Textarea" default="" placeholder="type your content.." bs5-class="" media="" maxLength=100 height=100 help="Max character allowed - 100" title-placement =""></bs5-input>
 </body>
 
 </html>

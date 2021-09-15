@@ -26,7 +26,7 @@ This renders the following output:
 
 `<bs5-input>` has 11 properties:
 -  `type` : defines the type of input element
-- `title` : is the label of an input element and treats as an string
+- `title` : Label of an input element and treats as an string
 - `default`: Its a schema name for value and value for an input can be set using this attribute
 - `placeholder` : placeholder attribute defines the sort hint of expected value
 - `bs5-class` : Generaly acts as an supportive class attribute, passing any class name with this attribute will be treated as second class name for an element
