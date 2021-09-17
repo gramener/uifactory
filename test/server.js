@@ -30,12 +30,18 @@ async function run_tests(files) {
 const port = 3333
 const root = path.resolve(__dirname, '..')
 const app = express()
-app.get(/^\/docs\/.*\.md/, function (req, res) {
+
+// Serve Markdown (.md) files as HTML
+app.get(/\.md$/, function (req, res) {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
   res.write(marked(fs.readFileSync(req.url.slice(1), { encoding: 'utf-8' })))
   res.end()
 })
+// Serve other files as static
 app.use(express.static(root))
 app.use(serveIndex(root))
+
+// Run the server
 const server = app.listen(port, async () => {
   process.chdir(root)
   // npm test debug will just start the server. Browse any file under test/

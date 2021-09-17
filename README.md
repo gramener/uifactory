@@ -40,7 +40,7 @@ For example, you can create a component like this:
 
 ... that repeats the star (★) 8 times, like this:
 
-![8 stars](docs/repeat-8-star.png)
+![8 stars](docs/img/repeat-8-star.png)
 
 To create this `<repeat-html>` component, add a `<template component="repeat-html">` like this:
 
@@ -59,7 +59,7 @@ inside the `<template>` to generate the HTML. Now,
 
 ... renders this output:
 
-![8 stars](docs/repeat-8-star.png)
+![8 stars](docs/img/repeat-8-star.png)
 
 **NOTE**: You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
 [It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
@@ -85,7 +85,7 @@ When you add the component to your page:
 
 ... it renders this output:
 
-![8 stars](docs/repeat-8-star.png).
+![8 stars](docs/img/repeat-8-star.png).
 
 Lodash templates use tags as follows:
 
@@ -188,7 +188,7 @@ el.value = 10                                   // Re-render with value=10
 </script>
 ```
 
-![Access and change properties](docs/g-repeat-properties.gif)
+![Access and change properties](docs/img/g-repeat-properties.gif)
 
 Changing `.value = ...` *re-renders* the component. So does `.setAttribute('value', ...)`.
 
@@ -425,7 +425,7 @@ When you add the component to your page:
 
 ... it renders this output:
 
-![Access $target element](docs/parent-background.png)
+![Access $target element](docs/img/parent-background.png)
 
 This lets you control not just the component, but parents, siblings, and any other elements on a page.
 
@@ -455,7 +455,7 @@ When you add this script to your page:
 
 ... updates both `char` and `repeat-value` to generate this output:
 
-![update() changes multiple properties](docs/repeat-props.png)
+![update() changes multiple properties](docs/img/repeat-props.png)
 
 `.update()` also updates the attributes and re-renders the component. `.update()` takes a second dict with options:
 
@@ -583,7 +583,7 @@ When you add the component to your page:
 
 ... it renders this output:
 
-![Yellow background applied to g-repeat](docs/g-repeat-8-star-yellow.png)
+![Yellow background applied to g-repeat](docs/img/g-repeat-8-star-yellow.png)
 
 
 You can use `<style scoped>` to apply the style only within your component.
@@ -604,7 +604,7 @@ When you add this component to your page:
 
 ... it all `<span>`s yellow -- but only within the component:
 
-![Only spans are yellow](docs/repeat-scoped.png)
+![Only spans are yellow](docs/img/repeat-scoped.png)
 
 ## Link to external stylesheets
 
@@ -625,7 +625,7 @@ When you add the component to your page:
 
 ... it renders this output:
 
-![Bootstrap button with external style](docs/bootstrap-button.png)
+![Bootstrap button with external style](docs/img/bootstrap-button.png)
 
 All `<style>`s and `<link rel="stylesheet">`s are copied from the `<template>` and appended to the document's HEAD.
 They run only once (even if you use the component multiple times.)
@@ -651,7 +651,7 @@ For example, this `<style>` affects buttons inside the component:
 
 ... it renders this output:
 
-![repeat-style colors button on hover](docs/repeat-style-hover.gif)
+![repeat-style colors button on hover](docs/img/repeat-style-hover.gif)
 
 
 ## Add behavior with JavaScript
@@ -736,7 +736,7 @@ When you add the component to your page:
 
 ... it renders this output:
 
-![Add events via event delegation](docs/toggle-red.gif)
+![Add events via event delegation](docs/img/toggle-red.gif)
 
 
 ## Import components with `import="file.html"`
@@ -917,7 +917,7 @@ You can dynamically add components at any time. For example:
 
 ... adds `<repeat-html icon="★" value="8"><repeat-html>` to the body.
 
-![8 stars](docs/repeat-8-star.png)
+![8 stars](docs/img/repeat-8-star.png)
 
 This code does the same thing:
 
@@ -1111,7 +1111,7 @@ When check if it has been ready, use:
 
 It turns the `<strong>` element red when it's ready:
 
-![When ready, element is rendered](docs/text-diff2.png)
+![When ready, element is rendered](docs/img/text-diff2.png)
 
 
 ## Every render triggers a `render` event
@@ -1258,7 +1258,7 @@ uifactory.register({
 </script>
 ```
 
-![g-name component](docs/g-name-walt-disney.png)
+![g-name component](docs/img/g-name-walt-disney.png)
 
 You can change [lodash template settings](https://lodash.com/docs/4.17.15#templateSettings) into
 [Tornado-like templates](https://www.tornadoweb.org/en/stable/template.html) like this:
@@ -1279,7 +1279,7 @@ uifactory.register({
 </script>
 ```
 
-![8 stars](docs/repeat-8-star.png)
+![8 stars](docs/img/repeat-8-star.png)
 
 `compile:` must be a function that accepts a string that returns a template function.
 When rendering, the template function is called with the properties object
@@ -1307,7 +1307,7 @@ uifactory.register({
 </script>
 ```
 
-![g-name component](docs/g-name-walt-disney.png)
+![g-name component](docs/img/g-name-walt-disney.png)
 
 ## Release
 

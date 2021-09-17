@@ -34,7 +34,7 @@ Add this code anywhere in your HTML page:
 
 This renders the following output:
 
-![svg-chart phone example output](svg-chart-phone.svg){.img-fluid}
+![svg-chart phone example output](img/svg-chart-phone.svg){.img-fluid}
 
 ## Properties
 
