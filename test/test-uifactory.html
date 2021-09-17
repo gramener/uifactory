@@ -1462,8 +1462,8 @@ All properties are stored in `el.data` as an object. For example:
 ```html
 <script>
 let el = document.querySelector('repeat-html')  // Find first <repeat-html>
-console.log(el.data)                            // Prints { "value": ".." }
-el.data.value = 12                              // Re-renders with new value
+console.log(el.data)                         // Prints { "value": ".." }
+el.data.value = 12                           // Re-renders with new value
 </script>
 ```
 
@@ -1488,12 +1488,7 @@ For example, when you add this to your page:
 
 ... it renders this output:
 
-```text
-Properties are:
-x = 10
-y = 20
-z is undefined
-```
+`Properties: $target=[object HTMLElement] x=10 y=20 z=undefined`
 -->
 <template component="obj-values" x:number="0" y:number="0">
   Properties:
@@ -1505,6 +1500,7 @@ z is undefined
 <obj-values x="10" y="20"></obj-values>
 <script>
   tape('All properties are stored in `el.data` as an object.', function (t) {
+    let at = document.querySelector('attr-test')
     t.deepEqual(Object.keys(at.data), ['$target', 'mixedcase', 'fontSize', 'querySelector'], 'all attrs are in .data')
     t.equals(at.data.$target.tagName, at.tagName, '$target matches')
     t.equals(at.data.mixedcase, 'MC', 'mixedcase matches')

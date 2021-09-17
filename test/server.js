@@ -1,10 +1,12 @@
 /* eslint-env node */
 
+const fs = require('fs')
 const express = require('express')
 const glob = require('glob')
 const path = require('path')
 const process = require('process')
 const serveIndex = require('serve-index')
+const marked = require('marked')
 
 async function run_tests(files) {
   const puppeteer = require('puppeteer')
@@ -28,8 +30,12 @@ async function run_tests(files) {
 const port = 3333
 const root = path.resolve(__dirname, '..')
 const app = express()
-  .use(express.static(root))
-  .use(serveIndex(root))
+app.get(/^\/docs\/.*\.md/, function (req, res) {
+  res.write(marked(fs.readFileSync(req.url.slice(1), { encoding: 'utf-8' })))
+  res.end()
+})
+app.use(express.static(root))
+app.use(serveIndex(root))
 const server = app.listen(port, async () => {
   process.chdir(root)
   // npm test debug will just start the server. Browse any file under test/

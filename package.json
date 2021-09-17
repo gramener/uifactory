@@ -33,6 +33,7 @@
     "eslint": "7",
     "eslint-plugin-html": "6",
     "express": "4",
+    "marked": "3",
     "puppeteer": "8",
     "remark-cli": "9",
     "remark-validate-links": "10",
