@@ -46,10 +46,10 @@ For example, you can create a component like this:
 
 ![8 stars](docs/img/repeat-8-star.png)
 
-To create this `<repeat-html>` component, add a `<template component="repeat-html">` like this:
+To create this `<repeat-html>` component, add a `<template $name="repeat-html">` like this:
 
 ```html
-<template component="repeat-html" icon="X" value="30">
+<template $name="repeat-html" icon="X" value="30">
   ${icon.repeat(+value)}
 </template>
 ```
@@ -74,7 +74,7 @@ inside the `<template>` to generate the HTML. Now,
 For better control, you can use [Lodash templates](https://lodash.com/docs/#template) like this:
 
 ```html
-<template component="repeat-template" value="30">
+<template $name="repeat-template" value="30">
   <% for (var j=0; j < +value; j++) { %>
     <slot></slot>
   <% } %>
@@ -104,7 +104,7 @@ Use [`<slot>`s in `<template>`s](https://developer.mozilla.org/en-US/docs/Web/We
 to replace content. For example:
 
 ```html
-<template component="repeat-slots" a="1" b="1">
+<template $name="repeat-slots" a="1" b="1">
   <% for (var j=0; j < +a; j++) { %>
     <slot name="a">A</slot>
   <% } %>
@@ -145,7 +145,7 @@ Some templates may lead to invalid HTML.
 For example, HTML doesn't allow `<% for ... %>` inside a `<tbody>`. (Only `<tr>` is allowed.) So this is invalid:
 
 ```html
-<template component="table-invalid" rows="3">
+<template $name="table-invalid" rows="3">
   <table>
     <tbody>
       <% for (let i=0; i < +rows; i++) { %>
@@ -161,7 +161,7 @@ Anything you write inside it will be rendered as a template.
 (Any HTML outside it is ignored.)
 
 ```html
-<template component="table-valid" rows="3">
+<template $name="table-valid" rows="3">
   <script type="text/html">
     <table>
       <tbody>
@@ -181,7 +181,7 @@ Anything you write inside it will be rendered as a template.
 ## Define properties using `<template attr="...">`
 
 Any attributes you add to `<template>` can be accessed via `element.attr`.
-For example, `<template component="repeat-html" icon="★" value="30">` defines properties
+For example, `<template $name="repeat-html" icon="★" value="30">` defines properties
 `.icon` and `.value`:
 
 ```html
@@ -210,7 +210,7 @@ Inside templates, properties are available as JavaScript variables.
 For example, `<template value:number="30">` defines the variable `value` as a number with a default of 30:
 
 ```html
-<template component="repeat-value" value:number="30">
+<template $name="repeat-value" value:number="30">
   <% for (var j=0; j < value; j++) { %>
     <slot></slot>
   <% } %>
@@ -226,11 +226,11 @@ Inside the template, the variable `value` has a value `8`.
 By default, properties are of type `string`. You can specify `number`, `boolean`, `array`,
 `object` or `js` like this:
 
-- `<template component="..." num:number="30">` defines `.num` as a number `30`
-- `<template component="..." bool:boolean="true">` defines `.bool` as a boolean `true`
-- `<template component="..." arr:array="[3,4]">` defines `.arr` as an array `[3, 4]`
-- `<template component="..." obj:object="{x:1}">` defines `.obj` as an object `{x: 1}`
-- `<template component="..." expr:js="Math.ceil(2.2) + num">` defines `.expr` as a JS expression
+- `<template $name="..." num:number="30">` defines `.num` as a number `30`
+- `<template $name="..." bool:boolean="true">` defines `.bool` as a boolean `true`
+- `<template $name="..." arr:array="[3,4]">` defines `.arr` as an array `[3, 4]`
+- `<template $name="..." obj:object="{x:1}">` defines `.obj` as an object `{x: 1}`
+- `<template $name="..." expr:js="Math.ceil(2.2) + num">` defines `.expr` as a JS expression
   evaluating to `3 + num`.
     - You can use global variables like `Math.ceil`
     - You can use other properties like `num`
@@ -239,7 +239,7 @@ By default, properties are of type `string`. You can specify `number`, `boolean`
 For example, when you add this to your page:
 
 ```html
-<template component="property-types" x="" str:string="" num:number="" bool:boolean=""
+<template $name="property-types" x="" str:string="" num:number="" bool:boolean=""
   arr:array="" obj:object="" expr:js="" rules:js="">
   <%= JSON.stringify({x, str, num, bool, arr, obj, expr, rules}) %>
 </template>
@@ -263,7 +263,7 @@ To fetch a URL as text, specify `:urltext` as the property type. For example, th
 component displays "Loading..." until a URL is loaded, and then displays its text.
 
 ```html
-<template component="fetch-text" src:urltext="">
+<template $name="fetch-text" src:urltext="">
   <% if (src === null) { %>
     Loading...
   <% } else { %>
@@ -305,7 +305,7 @@ To fetch a URL as JSON, specify `:urljson` as the property type. For example, th
 component displays "Loading..." until a URL is loaded, and then displays its JSON.
 
 ```html
-<template component="fetch-json" src:urljson="">
+<template $name="fetch-json" src:urljson="">
   <% if (src === null) { %>
     Loading...
   <% } else { %>
@@ -346,7 +346,7 @@ To fetch a URL as text, specify `:url` as the property type. For example, this `
 component displays "Loading..." until a URL is loaded, and then displays it.
 
 ```html
-<template component="fetch-page" src:url="">
+<template $name="fetch-page" src:url="">
   <% if (src === null) { %>
     Loading...
   <% } else { %>
@@ -373,49 +373,15 @@ with one change: `.text` has the text of response. The following keys maybe usef
 - `.url`: The URL of the response -- after any redirections
 - `.text`: Text from the loaded page. This is **not a Promise**, but the actual text
 
+## Access component as `this` inside templates
 
-## Access `<template>` as `this` inside templates
-
-Inside the [template](#lodash-templates-are-supported),
-`this` is the template element (e.g. `<template component="g-repeat">`).
-For example
-
-- `this.innerHTML` has the contents of your template. `<%= this.innerHTML %>` is almost the same as `<slot></slot>`. (`<slot>` has only child nodes. It ignores text nodes.)
-- `this.querySelectorAll('slot[name="a"]')` fetches all `<slot name="a">`s in your template
-
-This `<repeat-icons>` component repeats everything under `class="x"` x times, and everything under
-`class="y"` y times.
-
-```html
-<template component="repeat-icons" x:number="3" y:number="2">
-  <%= this.querySelector('.x').innerHTML.repeat(x) %>
-  <%= this.querySelector('.y').innerHTML.repeat(y) %>
-</template>
-```
-
-When you add the component to your page:
-
-```html
-<repeat-icons style="padding:3px">
-  <span class="x">🙂</span>
-  <span class="y">😡</span>
-</repeat-icons>
-```
-
-... it renders this output:
-
-🙂🙂🙂😡😡
-
-
-## Access `<component>` as `$target` inside templates
-
-The [template](#lodash-templates-are-supported) variable `$target` is the component element itself.
+Inside the [template](#lodash-templates-are-supported), `this` refers to the component itself.
 
 For example, this component makes its parent's background yellow.
 
 ```html
-<template component="parent-background" color="yellow">
-  <% $target.parentElement.style.background = color %>
+<template $name="parent-background" color="yellow">
+  <% this.parentElement.style.background = color %>
 </template>
 ```
 
@@ -430,10 +396,35 @@ When you add the component to your page:
 
 ... it renders this output:
 
-![Access $target element](docs/img/parent-background.png)
+![Access `this` element](docs/img/parent-background.png)
 
 This lets you control not just the component, but parents, siblings, and any other elements on a page.
 
+## Access component contents as `this.$contents`
+
+`this.$contents` is a cloned version of the custom element's original DOM. You can access what the
+user specified inside your component and use it.
+
+For example, `<repeat-icons>` repeats everything under `class="x"` x times, and everything under
+`class="y"` y times.
+
+```html
+<template $name="repeat-icons" x:number="3" y:number="2">
+  <%= this.$contents.querySelector('.x').innerHTML.repeat(x) %>
+  <%= this.$contents.querySelector('.y').innerHTML.repeat(y) %>
+</template>
+```
+
+```html
+<repeat-icons x="5" y="4">
+  <span class="x">🙂</span>
+  <span class="y">😡</span>
+</repeat-icons>
+```
+
+... it renders this output:
+
+🙂🙂🙂🙂🙂😡😡😡😡
 
 ## Update multiple properties with `.update()`
 
@@ -441,7 +432,7 @@ You can change multiple properties together using `.update({'attr-1': val, 'attr
 example, this component has 2 properties, `char` and `repeat-value`:
 
 ```html
-<template component="repeat-props" char="★" repeat-value:number="10">
+<template $name="repeat-props" char="★" repeat-value:number="10">
   ${char.repeat(repeatValue)}
 </template>
 <repeat-props char="★" repeat-value="10"></repeat-props>
@@ -487,82 +478,6 @@ To just re-render the component without changing properties, use `.update()`.
 ```
 
 
-## Define property types as JSON
-
-[Properties](#define-properties-using-template-attr) are strings by default.
-To use numbers, booleans, arrays, objects, etc., you can define properties as JSON.
-
-For example, this creates a simple list component:
-
-```html
-<template component="simple-list">
-  <script type="application/json">
-    // Add a single object {} under <script type="application/json">.
-    // Create a list of properties. The property "type" defines how it's treated
-    { "properties": [ { "name": "list", "type": "array", "value": [] } ] }
-  </script>
-  <ul>
-    <% list.forEach(function (val) { %>
-      <li><%= val %></li>
-    <% }) %>
-  </ul>
-</template>
-```
-
-When you add the component to your page, the list attribute is parsed as an array:
-
-```html
-<simple-list list="[4, 'ok', true]"></simple-list>
-```
-
-... it renders this output:
-
-- 4
-- ok
-- true
-
-Here's an example that shows all types possible:
-
-```html
-<template component="typed-props">
-  <script type="application/json">
-    // Add a single object {} under <script type="application/json">.
-    {
-      // It should have a "properties": [list of objects]
-      "properties": [
-        // Each property has a name, optional type, and value
-        { "name": "name", "type": "string", "value": "" },
-        { "name": "value", "type": "number", "value": 0 },
-        { "name": "is-set", "type": "boolean", "value": false },
-        { "name": "data-list", "type": "array", "value": [] },
-        { "name": "config", "type": "object", "value": {} },
-      ]
-    }
-  </script>
-
-  Use .name     as string:  <%= name.repeat(3) %>.
-  Use .value    as number:  <%= "x".repeat(value) %>.
-  Use .isSet    as boolean: <%= typeof isSet %>.
-  Use .dataList as array:   <%= dataList.length %>.
-  Use .config   as object:  <%= JSON.stringify(config) %>.
-</template>
-<typed-props name="key" value="10" is-set="true"
-  data-list="[1,2,3,4,5,6,7,8]" config="{x:1}"></typed-props>
-```
-
-`"properties":` is an array of objects with these keys:
-
-- `name`: property name. e.g. `"name": "data-list"` defines a property `.dataList` and variable `dataList`
-- `type`: OPTIONAL: property type. Valid values are `string` (default), `number`, `boolean`, `object` or `array`.
-- `value`: default value of the correct type. e.g. `"value": true` for `boolean`, `"value": [30, 40]` for array, etc.
-
-Note:
-
-- The `"properties":` override the `<template>` attributes
-- The `"properties":` needn't be JSON either. JavaScript is fine. For example, `config="{x:1}"`
-  will work even though `{x:1}` is not valid JSON (`{"x":1}` is JSON). Comments are allowed.
-
-
 ## Style components with CSS
 
 Use regular CSS in the `<style>` tag to style components.
@@ -570,7 +485,7 @@ Use regular CSS in the `<style>` tag to style components.
 For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`:
 
 ```html
-<template component="repeat-style" value:number="30">
+<template $name="repeat-style" value:number="30">
   <style>
     repeat-style[value="8"] { background-color: yellow; }
   </style>
@@ -591,32 +506,12 @@ When you add the component to your page:
 ![Yellow background applied to g-repeat](docs/img/g-repeat-8-star-yellow.png)
 
 
-You can use `<style scoped>` to apply the style only within your component.
-
-When you add this component to your page:
-
-```html
-<template component="repeat-scoped" value="30">
-  <style scoped>                          /* Within this component... */
-    span { background-color: yellow; }    /* ... make all spans yellow */
-  </style>
-  <% for (var j=0; j < +value; j++) { %>
-    <span><slot></slot></span>            <!-- Add the slot inside a span -->
-  <% } %>
-</template>
-<repeat-scoped value="8">★</repeat-scoped>
-```
-
-... it all `<span>`s yellow -- but only within the component:
-
-![Only spans are yellow](docs/img/repeat-scoped.png)
-
 ## Link to external stylesheets
 
 You can link to external stylesheets. For example, this imports Bootstrap 4.6.
 
 ```html
-<template component="bootstrap-button" type="primary">
+<template $name="bootstrap-button" type="primary">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
   <button class="btn btn-<%= type %> m-3"><slot></slot></button>
 </template>
@@ -664,7 +559,7 @@ For example, this `<style>` affects buttons inside the component:
 Use regular JavaScript to add logic and interactivity.
 
 ```html
-<template component="text-diff" x="" y="">
+<template $name="text-diff" x="" y="">
   "${x}" is ${uifactory.textDiff.distance(x, y)} steps from "${y}"
   <script src="https://cdn.jsdelivr.net/npm/levenshtein@1.0.5/lib/levenshtein.js"></script>
   <script>
@@ -718,7 +613,7 @@ document.body.addEventListener('<your-event>', function (e) {
 For example, this is a component that toggles color when a button is clicked:
 
 ```html
-<template component="toggle-red">
+<template $name="toggle-red">
   <style>
     .red { color: red; }
   </style>
@@ -750,10 +645,10 @@ To re-use components across projects, save one or more component `<template>`s i
 For example, `tag.html` could look like this:
 
 ```html
-<template component="tag-a">
+<template $name="tag-a">
   This is tag-a
 </template>
-<template component="tag-b">
+<template $name="tag-b">
   This is tag-b
 </template>
 ```
@@ -764,7 +659,7 @@ To import it in another file, use:
 <script src="node_modules/uifactory/dist/uifactory.min.js" import="tag.html"></script>
 ```
 
-Now you can use all `<template component="...">` components from `tag.html`. For example:
+Now you can use all `<template $name="...">` components from `tag.html`. For example:
 
 ```html
 <tag-a></tag-a>
@@ -822,10 +717,11 @@ For example, this imports the `<svg-chart>` and `<md-text>` components:
 This is the same as:
 
 ```html
-<script src="node_modules/uifactory/dist/uifactory.min.js" import="
-             node_modules/uifactory/src/svg-chart.html
-             node_modules/uifactory/src/md-text.html
-"></script>
+<script src="node_modules/uifactory/dist/uifactory.min.js"
+  import="
+    node_modules/uifactory/src/svg-chart.html
+    node_modules/uifactory/src/md-text.html
+  "></script>
 ```
 
 When you add the component to your page:
@@ -852,14 +748,14 @@ To register a component with full control over the options, use:
 ```html
 <repeat-options value="8"></repeat-options>
 <script>
-// Add this AFTER the component is defined, not before. Else this.innerHTML won't be defined.
+// NOTE: Add this AFTER the component is defined, not before. Else <slot> contents won't be defined
 // See https://github.com/WICG/webcomponents/issues/551
 uifactory.register({
   name: 'repeat-options',
   template: '<% for (var j=0; j<+value; j++) { %><slot></slot><% } %>',
-  properties: [
-    { name: "value", value: "30", type: "number" }
-  ]
+  properties: {
+    value: { value: "30", type: "number" }
+  }
 })
 </script>
 ```
@@ -868,45 +764,45 @@ The object has these keys:
 
 - `name`: component name, e.g. `"g-repeat"`
 - `template`: component contents as a [template](#lodash-templates-are-supported)
-- `properties`: OPTIONAL: list of [properties](#define-property-types-as-json) as `{name, value, type}` property definitions
+- `properties`: OPTIONAL: mapping of [properties](#define-property-types-as-json) as `name: {value, type}` property definitions
 - `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
 - `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
 
 
-## `el.data[property]` stores all properties
+## `el.$data[property]` stores all properties
 
-All properties are stored in `el.data` as an object. For example:
+All properties are stored in `el.$data` as an object. For example:
 
 ```html
 <script>
 let el = document.querySelector('repeat-html')  // Find first <repeat-html>
-console.log(el.data)                            // Prints { "value": ".." }
-el.data.value = 12                              // Re-renders with new value
+console.log(el.$data)                            // Prints { "value": ".." }
+el.$data.value = 12                              // Re-renders with new value
 </script>
 ```
 
 For example, if you define a `<template query-selector="xx">`, will `el.querySelector` be "xx" or the
 [el.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector) function?
 
-ANS: `el.querySelector` is the function. `el.data.querySelector` holds "xx".
+ANS: `el.querySelector` is the function. `el.$data.querySelector` holds "xx".
 
 This is be useful if you don't know whether a property is defined or not.
 For example, when you add this to your page:
 
 ```html
-<template component="obj-values" x:number="0" y:number="0">
+<template $name="obj-values" x:number="0" y:number="0">
   Properties:
-    <% for (let key in $target.data) { %>
-      <%= key %>=<%= $target.data[key] %>
+    <% for (let key in this.$data) { %>
+      <%= key %>=<%= this.$data[key] %>
     <% } %>
-  z=<%= 'z' in $target.data ? 'defined' : 'undefined' %>
+  z=<%= 'z' in this.$data ? 'defined' : 'undefined' %>
 </template>
 <obj-values x="10" y="20"></obj-values>
 ```
 
 ... it renders this output:
 
-`Properties: $target=[object HTMLElement] x=10 y=20 z=undefined`
+`Properties: x=10 y=20 z=undefined`
 
 
 ## Create components dynamically
@@ -945,10 +841,10 @@ add properties on an instance too.
 For example, if you have a `<base-component>` with a `base` or `root` attributes like this:
 
 ```html
-<template component="base-component" base:number="10" root="">
+<template $name="base-component" base:number="10" root="">
   Instance properties:
-  <% for (let key in $target.data) { %>
-    <%= key %>=<%= $target.data[key] %>
+  <% for (let key in this.$data) { %>
+    <%= key %>=<%= this.$data[key] %>
   <% } %>
 </template>
 ```
@@ -962,7 +858,7 @@ For example, if you have a `<base-component>` with a `base` or `root` attributes
 This will render:
 
 ```text
-Instance properties: $target=[object HTMLElement] base=10 root= child=20
+Instance properties: base=10 root= child=20
 ```
 
 The `child` JavaScript variable is now available (as a number).
@@ -986,7 +882,7 @@ The instance types **override** the template. For example, here, `base` and `roo
 This will render:
 
 ```text
-Instance properties: $target=[object HTMLElement] base=3 src=5 child=20
+Instance properties: base=3 src=5 child=20
 ```
 
 ## Add custom types
@@ -1030,7 +926,7 @@ uifactory.types.range = {
 When you add a component using this custom type to your page:
 
 ```html
-<template component="custom-range" series:range="">
+<template $name="custom-range" series:range="">
   Values are <%= JSON.stringify(series) %>
 </template>
 <custom-range series="0,10,2"></custom-range>
@@ -1046,11 +942,11 @@ When you add a component using this custom type to your page:
 Each [custom type](#add-custom-types) you add to `uifactory.types` needs a `parse` and `stringify`
 functions with the following signature:
 
-- `parse(string, name, data)`: Converts the attribute `name:type="string"` into the property `$el.data.name`
+- `parse(string, name, data)`: Converts the attribute `name:type="string"` into the property `el.$data.name`
   - `string`: string value of the attribute
   - `name`: name of the attribute. (Property names are in camelCase. This is in kebab-case)
   - `data`: all properties of the component, computed so far
-- `stringify(value, name, data)`: Converts the property `$el.data.name == value` into a attribute value string
+- `stringify(value, name, data)`: Converts the property `el.$data.name == value` into a attribute value string
   - `value`: JavaScript object holding the property value
   - `name`: name of the attribute. (Property names are in camelCase. This is in kebab-case)
   - `data`: all properties of the component, computed so far
@@ -1075,7 +971,7 @@ uifactory.types.formula = {
 When you add a component using this custom type to your page:
 
 ```html
-<template component="custom-formula" x:number="0">
+<template $name="custom-formula" x:number="0">
   x=<%= x %>, y=<%= y %>, z=<%= z %>
 </template>
 <custom-formula x="10" y:formula="x * x" z:formula="2 * y + x"></custom-formula>
@@ -1088,14 +984,14 @@ When you add a component using this custom type to your page:
 The `:formula` type evaluates values in the context of previous values.
 
 
-## Check if ready with `.ui.ready`
+## Check if ready with `.$ready`
 
 You can check if a component is ready (i.e. rendered for the first time), using the
-`.ui.rendered` Promise. For example, this component uses an external script. It may time to
+`.$ready` Promise. For example, this component uses an external script. It may time to
 get read.
 
 ```html
-<template component="text-diff2" x="" y="">
+<template $name="text-diff2" x="" y="">
   ${x} is <strong>${uifactory.textDiff2.distance(x, y)} steps</strong> from ${y}
   <script src="https://cdn.jsdelivr.net/npm/levenshtein@1.0.5/lib/levenshtein.js"></script>
   <script>
@@ -1112,7 +1008,7 @@ get read.
 When check if it has been ready, use:
 
 ```js
-  let el = await document.querySelector('text-diff2').ui.ready
+  let el = await document.querySelector('text-diff2').$ready
   // The <strong> child will be present only after the component is ready.
   el.querySelector('strong').style.color = 'red'
 ```
@@ -1127,7 +1023,7 @@ It turns the `<strong>` element red when it's ready:
 Every time a component is rendered, it fires a `render` event.
 
 ```html
-<template component="repeat-event" value:number="10">
+<template $name="repeat-event" value:number="10">
   ${this.innerHTML.repeat(value)}
 </template>
 
@@ -1152,7 +1048,7 @@ component.
 For example, this component renders its own configuration.
 
 ```html
-<template component="ui-config" str="x" arr:array="[3,4]" expr:js="3 + 2">
+<template $name="ui-config" str="x" arr:array="[3,4]" expr:js="3 + 2">
   <%= JSON.stringify(uifactory.components['ui-config']) %>
 </template>
 ```
@@ -1168,24 +1064,21 @@ When you add the component to your page:
 ```json
 {
   "name": "ui-config",
-  "template": "\n <%= JSON.stringify(uifactory.components['ui-config']) %>\n",
-  "properties": [
-    {
-      "name": "str",
-      "type": "text",
+  "properties": {
+    "str": {
+      "type": "string",
       "value": "x"
     },
-    {
-      "name": "arr",
+    "arr": {
       "type": "array",
       "value": "[3,4]"
     },
-    {
-      "name": "expr",
+    "expr": {
       "type": "js",
       "value": "3 + 2"
     }
-  ]
+  },
+  "template": "\n <%= JSON.stringify(uifactory.components['ui-config']) %>\n"
 }
 ```
 
@@ -1198,19 +1091,19 @@ This removes all existing DOM elements and creates new ones.
 This is not good if you have event handlers, or want animations. For example, if you want to
 rescale a chart's axis smoothly without re-drawing.
 
-You can instead specify a custom `@render:js="myfunction"` where `myfunction(node, html)` updates
+You can instead specify a custom `$render:js="myfunction"` where `myfunction(node, html)` updates
 the `node` in any way.
 
 For example, here's an SVG component that smoothly animates when an attribute changes:
 
 <!-- TODO:
   - explain what the html in (node, html) is
-  - OPTIONAL: can we have the past node.data state?
-  - ROADMAP: use nanomorph / morphdom via @render="morphdom"
+  - OPTIONAL: can we have the past node.$data state?
+  - ROADMAP: use nanomorph / morphdom via $render="morphdom"
 -->
 
 ```html
-<template component="move-circle" x="0" @render:js="uifactory.moveCircle">
+<template $name="move-circle" x="0" $render:js="uifactory.moveCircle">
   <svg width="400" height="100" fill="#eee">
     <circle cx="<%= x %>" cy="50" r="30" fill="red"></circle>
   </svg>
@@ -1229,7 +1122,7 @@ For example, here's an SVG component that smoothly animates when an attribute ch
         node.innerHTML = html
       // After that, don't redraw. Update the circle
       else
-        node.querySelector('circle').setAttribute('cx', node.data.x)
+        node.querySelector('circle').setAttribute('cx', node.$data.x)
     }
   </script>
 </template>

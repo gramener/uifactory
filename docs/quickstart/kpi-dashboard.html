@@ -1,5 +1,5 @@
 <!-- Create the component with HTML and CSS -->
-<template component="kpi-card" title="Default title" value:number="50" limit:number="100">
+<template $name="kpi-card" title="Default title" value:number="50" limit:number="100">
   <style>
     kpi-card main {
       width: 300px;
@@ -57,7 +57,7 @@
 </template>
 
 <!-- Create the dashboard component -->
-<template component="kpi-dashboard" status:js="">
+<template $name="kpi-dashboard" status:js="">
   <% for (let key in status) { %>
     <kpi-card title="${key}" value="${status[key][0]}" limit="${status[key][1]}"></kpi-card>
   <% } %>

@@ -1,6 +1,15 @@
 /* eslint-env browser */
 
 (function (window) {
+  let uifactory = window.uifactory = window.uifactory || {
+    // List of all UI components and their configuration
+    components: {},
+    // Registry of all attribute types and their convertors
+    types: {},
+    // Registry of all renderers
+    renderers: {},
+  }
+
   // Used to create document fragments
   let doc = window.document
   let tmpl = doc.createElement('template')
@@ -12,18 +21,17 @@
   let serializer = new XMLSerializer()
 
   // Used to serialize and parse values of different types
-  let types = {
-    string: {
-      parse: v => v,
-      stringify: s => s
-    }
+  let types = uifactory.types
+  types.string = {
+    parse: v => v,
+    stringify: s => s
   }
   types.number = types.boolean = types.array = types.object = types.json = types.js = {
     // Parse value as a JavaScript expression
     parse: (value, name, data) => {
       let fn = new Function('data', `with (data) { return (${value || '""'}) }`)
       // If we use <my-comp rules:js="rules">, we want "rules" to be window.rules,
-      // not the default value of <template component="my-comp" rules="">.
+      // not the default value of <template $name="my-comp" rules="">.
       // So replace "rules" (the name of the attribute) with window["rules"].
       return fn(Object.assign({}, data, {[name]: window[name]}))
     },
@@ -54,8 +62,8 @@
     // No stringify for :urljson. Don't set attribute if property is set to an object
   }
 
-  let renderers = {}
-  renderers.replace = (self, html) => self.innerHTML = html
+  let renderers = uifactory.renderers
+  renderers.replace = (node, html) => node.innerHTML = html
   renderers.none = v => v
 
   // convert attributes (e.g. font-size) to camelCase (e.g. fontSize)
@@ -71,8 +79,9 @@
     }
     for (const [target, update] of updates.entries())
       // Re-render only when a property (i.e. typed attribute name:type) is changed
-      if (Object.keys(update).some(v => v.match(':')))
+      if (Object.keys(update).some(v => v.match(':'))) {
         target.update(update, { attr: false, render: true })
+      }
   })
 
   // Register a single component
@@ -95,7 +104,7 @@
     let _scriptsResolve     // fn: resolves the scriptsLoad promise
     let scriptsResolve = new Promise(resolve => _scriptsResolve = resolve)
     // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
-    loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style:not([scoped])'))
+    loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style'))
     loadExtract('body', tmpl.content.querySelectorAll('script'))
     // target is "head" or "body". els the list of DOM elements to add into target
     function loadExtract(target, els, _start = 0) {
@@ -131,107 +140,113 @@
       }
     }
     // Remove extracted styles and scripts from template.
-    // This also removes script type="application/json" "text/html"
-    for (let el of tmpl.content.querySelectorAll('link[rel="stylesheet"], style:not([scoped]), script'))
+    // This also removes script type="application/json" and "text/html"
+    for (let el of tmpl.content.querySelectorAll('link[rel="stylesheet"], style, script'))
       el.remove()
 
     // If there's a <script type="text/html">, use that for template. Else use rest of the template
     let html = unescape((htmlScript || tmpl).innerHTML)
 
-    // Compile the rest of the template -- by default, using a microtemplate
-    let compile = config.compile || microtemplate
-    let template = compile(html)
-
-    // The {name: ...} from the properties list become the observable attrs
-    let properties = config.properties || []
-    let attrs = properties.map(prop => prop.name)
-    // attrparse[attr-name](val) parses attribute based on its type
-    let attrinfo = {}
-    properties.forEach(prop => {
-      attrinfo[prop.name] = Object.assign({}, prop)
-    })
+    // The properties keys become the observable attributes
+    let attrList = Object.keys(config.properties || {})
 
     // Create the custom HTML element
     class UIFactory extends _window.HTMLElement {
       constructor() {
         super()
 
-        this.ui = {}
-        this.ui.ready = new Promise(resolve => this.ui._ready = resolve)
-        // Each instance has its own attrinfo that can be updated by adding typed attributes
-        this.ui.attrinfo = Object.assign({}, attrinfo)
+        // CONFIG variables -- stuff that's in <template $render=""> etc are exposed
+        // this.$compile is the HTML templating engine used. Defaults to microtemplate()
+        this.$compile = (config.compile || microtemplate)(html)
+        // this.$properties is a dict of all component properties and their info
+        this.$properties = Object.assign({}, config.properties || {})
+        // this.$render is the rendering function
+        this.$render = config.render
+          ? (typeof config.render == 'function' ? config.render : renderers[config.render])
+          : renderers.replace
+        // this.$template is the contents of the HTML
+        this.$template = html
+
+        // RESERVED variables -- may be exposed in the future
+        // this.$name is the component name
+        // this.$name = config.name
+        // this.$window is the window object where this custom element is defined
+        // this.window = _window
+
+        // PUBLIC variables -- created by the component
+        // this.$ready is a promise that's resolved when the element is rendered
+        this.$ready = new Promise(resolve => this.$resolve = resolve)
+        // this.$data has all variables available to a template
+        this.$data = {}
+        // this.$contents has the original instance DOM element, cloned for future reference
+
+        // INTERNAL variables -- not guaranteed to remain
+        // this.$resolve is a resolve promise. Called when component is ready
+        // this.$updating: Is the component currently being updated?
       }
 
+      // Called when element is connected to the parent. "this" is the HTMLElement.
       connectedCallback() {
-        // Called when element is connected to the parent. "this" is the HTMLElement.
-        let self = this
-
-        // this.data is the model, i.e. object passed to the template.
-        // template can access the component at $target
-        let data = this.data = { $target: this }
+        this.$contents = this.cloneNode(true)
 
         // Update properties from template attributes
-        for (let { name, value } of Object.values(this.ui.attrinfo))
-          this.update({ [name]: value }, { attr: false, render: false })
+        for (let [propName, propInfo] of Object.entries(this.$properties)) {
+          this.update({ [propName]: propInfo.value }, { attr: false, render: false })
+        }
         // Override with properties from instance attributes
         let hasTypedAttribute = false
         for (let attr of this.attributes) {
           let [name, type] = attr.name.split(':')
           // If the name has a : in it (e.g. x:number), add it as a typed property
           if (type)
-            hasTypedAttribute = this.ui.attrinfo[name] = { name, type, value: attr.value}
+            hasTypedAttribute = this.$properties[name] = { type, value: attr.value}
           // If the name is a property, update it.
           // Note: If the template has name:type=, but component has just name=, we STILL update it
-          if (name in this.ui.attrinfo)
+          if (name in this.$properties)
             this.update({ [name]: attr.value }, { attr: false, render: false })
         }
 
-        // Getting / setting properties updates the .data model.
-        for (let name in this.ui.attrinfo) {
+        // Getting / setting properties updates the .$data model.
+        for (let name in this.$properties) {
           let property = camelize(name)
           // If the property is already in HTMLElement, don't override it
-          if (!(property in self)) {
-            Object.defineProperty(self, property, {
-              get: () => data[property],
-              set: function (val) {
-                // When property is updated, change the attribute, and re-render.
-                self.update({ [property]: val })
-              }
+          if (!(property in this)) {
+            Object.defineProperty(this, property, {
+              get: () => this.$data[property],
+              // When property is updated, change the attribute, and re-render.
+              // eslint-disable-next-line no-setter-return
+              set: val => this.update({ [property]: val })
             })
           }
         }
 
-        this.ui.render = renderers[data['@render']] || data['@render'] || renderers.replace
-
-        // templates can access to the original children of the node via "this"
-        this.__originalNode = this.cloneNode(true)
-
-        // if any attribute is typed, observe all attributes and update on typed attribute changes
+        // If any instance attribute is typed, observe all attributes. Update on any typed attribute change
         if (hasTypedAttribute)
           observer.observe(this, { attributes: true })
 
         // Wait for external scripts to get loaded. Then render.
-        scriptsResolve.then(() => this._render())
+        scriptsResolve.then(() => renderComponent.call(this))
       }
 
-      // Update .data with {"attribute-name:type": "value"}
+      // Update .$data with {"attribute-name:type": "value"}
       // Set attributes (converting kebab-case to camelCase) unless options.attr = false
       // Re-render unless options.render = false
       update(props = {}, options = {}) {
-        if (this.ui._updating)
+        if (this.$updating)
           return
-        this.ui._updating = true
+        this.$updating = true
         try {
           // By default, .update() sets attributes and renders
           options = Object.assign({ attr: true, render: true }, options)
-          // If the component is not initialized, don't render it
-          if (this.data) {
+          // If the component is not connected, don't render it.
+          // this.$contents is defined only when the component is connected
+          if (this.$contents) {
             for (let [name, value] of Object.entries(props)) {
               // Allow typed properties
               let [propname, typename] = name.split(':')
-              let type = uifactory.types[typename || this.ui.attrinfo[propname] && this.ui.attrinfo[propname].type] || types.string
+              let type = uifactory.types[typename || this.$properties[propname] && this.$properties[propname].type] || types.string
               let isString = typeof value == 'string'
-              let result = (isString && !options.noparse) ? type.parse(value, propname, this.data) : value
+              let result = (isString && !options.noparse) ? type.parse(value, propname, this.$data) : value
               // If parse() returns a Promise, re-update the element after it resolves
               // TODO: Catch exception?
               if (result && typeof result.then == 'function') {
@@ -244,50 +259,26 @@
                 })
                 result = null     // For now, set the result to a null value
               }
-              this.data[camelize(propname)] = result
+              this.$data[camelize(propname)] = result
               // Set the attribute if requested.
               // But if value is not a string, and no stringify is available, SKIP.
               if (options.attr && (isString || type.stringify)) {
-                this.setAttribute(propname, isString ? value : type.stringify(value, propname, this.data))
+                this.setAttribute(propname, isString ? value : type.stringify(value, propname, this.$data))
               }
             }
             if (options.render && scriptsLoaded) {
-              this._render()
+              renderComponent.call(this)
             }
           }
         } finally {
-          this.ui._updating = false
+          this.$updating = false
         }
-      }
-
-      // this.render() re-renders the object based on current and supplied properties.
-      _render() {
-        // TODO: <slot data-template> should re-compile template before it is rendered
-        // Render the contents of the <template> as a microtemplate
-        let src = template.call(this.__originalNode, this.data)
-        // Render slots
-        let doc = parser.parseFromString(src, 'text/html')
-        doc.querySelectorAll('slot').forEach(slot => {
-          let name = slot.getAttribute('name')
-          // TODO: For default slot, remove any slot="" elements
-          let replacements = name ? this.__originalNode.querySelectorAll(`[slot="${name}"]`) : this.__originalNode.childNodes
-          if (replacements.length)
-            slot.replaceWith(...Array.from(replacements).map(v => v.cloneNode(true)))
-          // TODO: if (slot.firstElementChild) slot.replaceWith(slot.firstElementChild)
-        })
-        // "this" is the HTMLElement. Apply the template
-        this.ui.render(this, serializer.serializeToString(doc))
-
-        // Resolve the "ui.ready" Promise
-        this.ui._ready(this)
-        // Generate a render event on this component when rendered
-        this.dispatchEvent(new CustomEvent('render', { bubbles: true }))
       }
 
       // The list of attributes to watch for changes on is based on the keys of
       // config.properties, When any of these change, attributeChangedCallback is called.
       static get observedAttributes() {
-        return attrs
+        return attrList
       }
 
       // When any attribute changes, update property and re-render
@@ -296,46 +287,62 @@
       }
     }
 
+    // Re-renders the object based on current and supplied properties.
+    function renderComponent() {
+      // TODO: <slot data-template> should re-compile template before it is rendered
+      // Render the contents of the <template> as a microtemplate
+      let src = this.$compile.call(this, this.$data)
+      // Render slots
+      let doc = parser.parseFromString(src, 'text/html')
+      doc.querySelectorAll('slot').forEach(slot => {
+        let name = slot.getAttribute('name')
+        // TODO: For default slot, remove any slot="" elements
+        let replacements = name ? this.$contents.querySelectorAll(`[slot="${name}"]`) : this.$contents.childNodes
+        if (replacements.length)
+          slot.replaceWith(...Array.from(replacements).map(v => v.cloneNode(true)))
+        // TODO: if (slot.firstElementChild) slot.replaceWith(slot.firstElementChild)
+      })
+      // Render, i.e. set component contents to the target HTML
+      this.$render(this, serializer.serializeToString(doc))
+
+      // Resolve the "$ready" Promise
+      this.$resolve(this)
+      // Generate a render event on this component when rendered
+      this.dispatchEvent(new CustomEvent('render', { bubbles: true }))
+    }
+
     // Use customElements from current window.
     // To use a different window, use createComponent.call(your_window, component)
     _window.customElements.define(config.name, UIFactory)
     // Add component config to the window uifactactory is defined in
-    window.uifactory.components[config.name] = config
+    uifactory.components[config.name] = config
   }
 
   function registerElement(el, options) {
-    // Register a template/script element like <template component="comp" attr="val">
+    // Register a template/script element like <template $name="comp" attr="val">
     // as a component {name: "comp", properties: {attr: {value: "val", type: "text"}}}
-    let config = Object.assign({}, options, {
-      name: el.getAttribute('component'),
-      // Since <template> tag is used unescape the HTML. It'll come through as &lt;tag-name&gt;
-      template: unescape(el.innerHTML),
-      // Define properties as an object to make merge easier. But later, convert to list
-      properties: {}
-    })
+    let config = { name: '', properties: {} }
     // Define properties from attributes
     for (let attr of el.attributes) {
-      if (attr.name != 'component') {
-        let [name, type] = attr.name.split(':')
-        config.properties[name] = { name: name, type: type || 'text', value: attr.value }
-      }
+      let [name, type] = attr.name.split(':')
+      type = type || 'string'
+      // $name=, $render=, $compile=, etc become config.name, config.render, config.compile, etc
+      if (name.startsWith('$'))
+        config[name.slice(1)] = types[type].parse(attr.value)
+      // Everything else becomes part of properties
+      else
+        config.properties[name] = { type: type, value: attr.value }
     }
-    // Merge config with <script type="application/json"> configurations
-    el.content.querySelectorAll('[type="application/json"]').forEach(text => {
-      // Copy properties
-      let conf = types.js.parse(text.innerHTML, '', {})
-      for (let attr of conf.properties || [])
-        config.properties[attr.name] = Object.assign(config.properties[attr.name] || {}, attr)
-    })
-    // Convert properties back to a list, which is how registerComponent() needs it
-    config.properties = Object.values(config.properties)
-    // Create the custom component on the current window
-    registerComponent(config)
+    // Since <template> tag is used unescape the HTML. It'll come through as &lt;tag-name&gt;
+    config.template = unescape(el.innerHTML)
+    // Create the custom component on the current window, allowing options to override
+    registerComponent(Object.assign(config, options))
   }
 
-  // Register each <template component="..."> in a document as a component.
+  // Register each <template $name="..."> in a document as a component.
   function registerDocument(doc, options) {
-    doc.querySelectorAll('template[component]').forEach(el => registerElement(el, options))
+    // template[$name] won't work. We escape it using \24 = $
+    doc.querySelectorAll('template[\\24name]').forEach(el => registerElement(el, options))
   }
 
   // Fetch a HTML template and register it.
@@ -343,7 +350,6 @@
   // as uifactory. (This may be the src/ or dist/ folder.)
   function registerURL(url, options) {
     if (url[0] == '@') {
-      // @ts-ignore
       url = doc.currentScript.src.replace(/[^/]+$/, url.slice(1).replace(/\.html$/i, '') + '.html')
     }
     fetch(url)
@@ -355,25 +361,12 @@
       .catch(console.error)
   }
 
-  window.uifactory = {
-    // List of all UI components and their configuration
-    components: {},
-    // Register a HTML element, URL or config
-    register: (config, options) => {
-      let _window = options && options.window || window
-      if (config instanceof _window.HTMLElement)
-        registerElement(config, options)
-      else if (config instanceof _window.HTMLDocument)
-        registerDocument(config, options)
-      else if (typeof config == 'string')
-        registerURL(config, options)
-      else if (typeof config == 'object')
-        registerComponent(config)
-    },
-    // Registry of all attribute types and their convertors
-    types: types,
-    // Registry of all renderers
-    renderers: renderers
+  // Register a URL or config
+  uifactory.register = (config, options) => {
+    if (typeof config == 'string')
+      registerURL(config, options)
+    else
+      registerComponent(config)
   }
 
   // If called via <script src="components.js" import="path.html, ...">, import each file
@@ -566,7 +559,7 @@
       'return __p\n}'
 
     let result = Function(importsKeys, sourceURL + 'return ' + source)
-      .apply(options.this, importsValues)
+      .apply(undefined, importsValues)
     result.source = source
     return result
   }

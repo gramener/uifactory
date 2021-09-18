@@ -26,13 +26,13 @@ Add these 2 lines to the HTML. This links directly to UIFactory from CDNJS, and 
 
 ## 3. Create a component with HTML and CSS
 
-Anything inside `<template component="kpi-card">...</template>` automatically becomes your `<kpi-card>` component. For example,
+Anything inside `<template $name="kpi-card">...</template>` automatically becomes your `<kpi-card>` component. For example,
 
 Create the outline of the KPI card by adding this HTML and CSS.
 
 ```html
 <!-- Create the component with HTML and CSS -->
-<template component="kpi-card">
+<template $name="kpi-card">
   <style>
     kpi-card main {
       width: 300px;
@@ -67,13 +67,13 @@ This creates a `<kpi-card>` component. Every time you add it to the page, it add
 To customize `<kpi-card>` with different titles, let's add the `title=` attribute to it. Replace this line:
 
 ```html
-<template component="kpi-card">
+<template $name="kpi-card">
 ```
 
 ... with this:
 
 ```html
-<template component="kpi-card" title="Default title">
+<template $name="kpi-card" title="Default title">
 ```
 
 This `title` attribute is available as a JavaScript variable. Replace this line:
@@ -122,7 +122,7 @@ Create a `<kpi-dashboard>` component by adding this:
 
 ```html
 <!-- Create the dashboard component -->
-<template component="kpi-dashboard">
+<template $name="kpi-dashboard">
   <kpi-card title="Speed"></kpi-card>
   <kpi-card title="Fuel"></kpi-card>
   <kpi-card title="Temperature"></kpi-card>
@@ -148,11 +148,11 @@ To pass JavaScript objects via attributes, we use the `:js` type suffix for attr
 For example, `status:js="{Speed: 30, Fuel: 20, Temperature: 80}"` makes `status` available as
 a JavaScript object.
 
-Replace the `<template component="kpi-dashboard">...</template>` code with:
+Replace the `<template $name="kpi-dashboard">...</template>` code with:
 
 ```html
 <!-- Create the dashboard component -->
-<template component="kpi-dashboard" status:js="{Speed: 30, Fuel: 20, Temperature: 80}">
+<template $name="kpi-dashboard" status:js="{Speed: 30, Fuel: 20, Temperature: 80}">
   <kpi-card title="Speed: ${status.Speed}"></kpi-card>
   <kpi-card title="Fuel: ${status.Fuel}"></kpi-card>
   <kpi-card title="Temperature: ${status.Temperature}"></kpi-card>
@@ -176,11 +176,11 @@ to `<kpi-dashboard>`, like this:
 Apart from using `${}` to insert JavaScript variables, you can use
 [templates](https://lodash.com/docs/4.17.15#template) to write any JavaScript code.
 
-Replace the `<template component="kpi-dashboard">...</template>` code with:
+Replace the `<template $name="kpi-dashboard">...</template>` code with:
 
 ```html
 <!-- Create the dashboard component -->
-<template component="kpi-dashboard" status:js="">
+<template $name="kpi-dashboard" status:js="">
   <% for (let key in status) { %>
     <kpi-card title="${key}: ${status[key]}"></kpi-card>
   <% } %>
@@ -206,7 +206,7 @@ Here's the code for this.
 
 ```html
 <!-- Create the component with HTML and CSS -->
-<template component="kpi-card" title="Default title" value:number="50" limit:number="100">
+<template $name="kpi-card" title="Default title" value:number="50" limit:number="100">
   <style>
     /* We'll skip the styling here. Please see CodePen for the full style */
   </style>
@@ -229,7 +229,7 @@ Here's the code for this.
 
 Let's break this down, step-by-step:
 
-1. `<template component="kpi-card" title="Default title" value:number="50" limit:number="100">`
+1. `<template $name="kpi-card" title="Default title" value:number="50" limit:number="100">`
    lets us pass 3 attributes: title, value and limit. These 3 variables are available
 2. `<% let percent = value / limit * 100 %>` calculates the value as a percentage of limit. If
    value = 300 and limit = 1000, percent = 30.
@@ -292,7 +292,7 @@ and value attributes:
 
 ```html
 <!-- Create the dashboard component -->
-<template component="kpi-dashboard" status:js="">
+<template $name="kpi-dashboard" status:js="">
   <% for (let key in status) { %>
     <kpi-card title="${key}" value="${status[key][0]}" limit="${status[key][1]}"></kpi-card>
   <% } %>
