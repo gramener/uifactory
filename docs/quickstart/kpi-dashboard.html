@@ -1,7 +1,7 @@
 <!-- Create the component with HTML and CSS -->
 <template component="kpi-card" title="Default title" value:number="50" limit:number="100">
-  <style scoped>
-    main {
+  <style>
+    kpi-card main {
       width: 300px;
       height: 200px;
       border: 1px solid rgba(0,0,0,0.2);
@@ -10,21 +10,21 @@
       margin: 0.5rem;
       display: inline-block;
     }
-    h1 {
+    kpi-card h1 {
       margin: 0;
       padding: 10px;
       font-size: 125%;
       text-transform: uppercase;
       background-color: #eee;
     }
-    h1.danger { background-color: red; }
-    h1.warning { background-color: orange; }
-    h1.ok { background-color: lime; }
-    h2 {
+    kpi-card h1.danger { background-color: red; }
+    kpi-card h1.warning { background-color: orange; }
+    kpi-card h1.ok { background-color: lime; }
+    kpi-card h2 {
       margin: 0;
       font-size: 400%;
     }
-    section {
+    kpi-card section {
       padding: 10px;
       display: flex;
       align-items: center;

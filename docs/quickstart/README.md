@@ -12,7 +12,7 @@ We'll build a simple dashboard showing KPI cards that looks like this:
 
 ## 1. Create a CodePen
 
-[Create a CodePen](https://codepen.io/pen/?editors=0010) by visiting `https://codepen.io/pen/`. Name it `kpi-card`.
+[Create a CodePen](https://codepen.io/pen/?editors=1000) by visiting `https://codepen.io/pen/`. Name it `kpi-card`.
 
 ## 2. Include UIFactory
 
@@ -23,7 +23,7 @@ Add these 2 lines to the HTML. This links directly to UIFactory from CDNJS, and 
 <script src="https://cdn.jsdelivr.net/npm/uifactory@0.0.16/dist/uifactory.min.js"></script>
 ```
 
-[See on CodePen](https://codepen.io/sanand0/pen/QWgaXmg?editors=0010)
+[See on CodePen](https://codepen.io/sanand0/pen/QWgaXmg?editors=1000)
 
 ## 3. Create a component with HTML and CSS
 
@@ -34,8 +34,8 @@ Create the outline of the KPI card by adding this HTML and CSS.
 ```html
 <!-- Create the component with HTML and CSS -->
 <template component="kpi-card">
-  <style scoped>
-    main {
+  <style>
+    kpi-card main {
       width: 300px;
       height: 200px;
       border: 1px solid rgba(0,0,0,0.2);
@@ -61,7 +61,7 @@ This creates a `<kpi-card>` component. Every time you add it to the page, it add
 
 ![Card outline](img/card-outline.png)
 
-[See on CodePen](https://codepen.io/sanand0/pen/ExXoBpG?editors=0010)
+[See on CodePen](https://codepen.io/sanand0/pen/ExXoBpG?editors=1000)
 
 ## 4. Customize components with attributes
 
@@ -101,12 +101,12 @@ Now, when you add a `title=` to each component, it adds a new title.
 
 ![Cards with titles](img/dashboard-titles.png)
 
-[See on CodePen](https://codepen.io/sanand0/pen/powavGm?editors=0010)
+[See on CodePen](https://codepen.io/sanand0/pen/powavGm?editors=1000)
 
 Note: We added a little style to the heading using:
 
 ```css
-    h1 {
+    kpi-card h1 {
       margin: 0;
       padding: 0.5rem 0.5rem;
       font-size: 125%;
@@ -140,7 +140,7 @@ The result is identical:
 
 ![Dashboard with titles](img/dashboard-titles.png)
 
-[See on CodePen](https://codepen.io/sanand0/pen/yLXvNYL?editors=0010)
+[See on CodePen](https://codepen.io/sanand0/pen/yLXvNYL?editors=1000)
 
 
 ## 6. Pass data to components
@@ -169,7 +169,7 @@ to `<kpi-dashboard>`, like this:
 
 ![Dashboard with titles from data](img/dashboard-title-data.png)
 
-[See on CodePen](https://codepen.io/sanand0/pen/wveyaKR?editors=0010)
+[See on CodePen](https://codepen.io/sanand0/pen/wveyaKR?editors=1000)
 
 
 ## 7. Write templates
@@ -191,7 +191,7 @@ Replace the `<template component="kpi-dashboard">...</template>` code with:
 The result is identical. But instead of hard-coding speed, fuel & temperature, `<kpi-dashboard>`
 can be used for any metrics.
 
-[See on CodePen](https://codepen.io/sanand0/pen/NWgyGZa?editors=0010)
+[See on CodePen](https://codepen.io/sanand0/pen/NWgyGZa?editors=1000)
 
 Note: You can add any JavaScript code inside `<% ... %>`.
 
@@ -250,7 +250,7 @@ Now, we can create a full card with a title, value, chart and limit.
 
 ![Cards with chart](img/kpi-card-chart.png)
 
-[See on CodePen](https://codepen.io/sanand0/pen/bGRLdXd?editors=0010)
+[See on CodePen](https://codepen.io/sanand0/pen/bGRLdXd?editors=1000)
 
 
 ## 9. Add narratives
@@ -277,7 +277,7 @@ To create this, change the `<p>We will add some text here about performance.</p>
 
 ![Card with narrative](img/kpi-card-narrative.png)
 
-[See on CodePen](https://codepen.io/sanand0/pen/xxrYwJM?editors=0010)
+[See on CodePen](https://codepen.io/sanand0/pen/xxrYwJM?editors=1000)
 
 
 ## 10. Put it together in the dashboard
@@ -302,7 +302,7 @@ and value attributes:
 
 ![Dashboard with titles](img/kpi-dashboard-narrative.png)
 
-[See on CodePen](https://codepen.io/sanand0/pen/GREQoKj?editors=0010)
+[See on CodePen](https://codepen.io/sanand0/pen/GREQoKj?editors=1000)
 
 
 ## 11. Distribute components as files
@@ -320,8 +320,28 @@ To use it in your application, add:
 Note the `import="kpi-dashboard.html"` in the 2nd line. That makes `<kpi-dashboard>` available to
 use in your page.
 
-## 12. Using it with Angular or React or Vue
+## 12. Use it with Angular or React or Vue
 
-This can be embedded into any application using any framework.
+Frameworks like Angular, React or Vue focus on building applications.
 
-<!-- TODO -->
+UIFactory focuses on building components that can be used in applications.
+
+UIFactory creates web components (also called custom elements) that work will with all web frameworks.
+
+- [Angular works well with web components with CUSTOM_ELEMENTS_SCHEMA enabled](https://angular.io/api/core/CUSTOM_ELEMENTS_SCHEMA)
+- [React works well with web components](https://reactjs.org/docs/web-components.html)
+- [Vue works well with web components](https://v3.vuejs.org/guide/web-components.html)
+
+Here's an example of using `<kpi-dashboard>` with React.
+
+```jsx
+ReactDOM.render(
+  <section>
+    <h1>KPI Dashboard</h1>
+    <kpi-dashboard status="{Speed: [80, 120], 'Fuel used': [15, 40], Temperature: [90, 100]}"></kpi-dashboard>
+  </section>,
+  document.getElementById('root')
+);
+```
+
+[See on CodePen](https://codepen.io/sanand0/pen/ExXQrXg?editors=1010)
