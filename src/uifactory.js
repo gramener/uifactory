@@ -1,11 +1,14 @@
 /* eslint-env browser */
-/* globals _ */
 
 (function (window) {
   // Used to create document fragments
   let doc = window.document
   let tmpl = doc.createElement('template')
+
+  // Keep string -> DOM and DOM -> string converters ready
+  // parser.parseFromString(string) converts string to DOM
   let parser = new DOMParser()
+  // serializer.serializeToString(dom) converts DOM to a string
   let serializer = new XMLSerializer()
 
   // Used to serialize and parse values of different types
@@ -133,10 +136,10 @@
       el.remove()
 
     // If there's a <script type="text/html">, use that for template. Else use rest of the template
-    let html = _.unescape((htmlScript || tmpl).innerHTML)
+    let html = unescape((htmlScript || tmpl).innerHTML)
 
-    // Compile the rest of the template -- by default, using a Lodash template
-    let compile = config.compile || _.template
+    // Compile the rest of the template -- by default, using a microtemplate
+    let compile = config.compile || microtemplate
     let template = compile(html)
 
     // The {name: ...} from the properties list become the observable attrs
@@ -260,7 +263,7 @@
       // this.render() re-renders the object based on current and supplied properties.
       _render() {
         // TODO: <slot data-template> should re-compile template before it is rendered
-        // Render the contents of the <template> as lodash
+        // Render the contents of the <template> as a microtemplate
         let src = template.call(this.__originalNode, this.data)
         // Render slots
         let doc = parser.parseFromString(src, 'text/html')
@@ -272,7 +275,7 @@
             slot.replaceWith(...Array.from(replacements).map(v => v.cloneNode(true)))
           // TODO: if (slot.firstElementChild) slot.replaceWith(slot.firstElementChild)
         })
-        // "this" is the HTMLElement. Apply the lodash template
+        // "this" is the HTMLElement. Apply the template
         this.ui.render(this, serializer.serializeToString(doc))
 
         // Resolve the "ui.ready" Promise
@@ -306,7 +309,7 @@
     let config = Object.assign({}, options, {
       name: el.getAttribute('component'),
       // Since <template> tag is used unescape the HTML. It'll come through as &lt;tag-name&gt;
-      template: _.unescape(el.innerHTML),
+      template: unescape(el.innerHTML),
       // Define properties as an object to make merge easier. But later, convert to list
       properties: {}
     })
@@ -379,4 +382,193 @@
 
   // When DOM all elements are loaded, register the current document
   window.addEventListener('DOMContentLoaded', () => registerDocument(doc))
+
+
+
+  // UTILITY FUNCTIONS
+  // ------------------------------------------------------------------------
+  // _.unescape() from https://github.com/lodash/lodash/blob/master/unescape.js
+  const htmlUnescapes = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'"
+  }
+  const reEscapedHtml = /&(?:amp|lt|gt|quot|#(0+)?39);/g
+  const reHasEscapedHtml = RegExp(reEscapedHtml.source)
+  function unescape(string) {
+    return (string && reHasEscapedHtml.test(string))
+      ? string.replace(reEscapedHtml, (entity) => (htmlUnescapes[entity] || "'"))
+      : (string || '')
+  }
+  uifactory.unescape = unescape
+
+  // _.escape() from https://github.com/lodash/lodash/blob/master/escape.js
+  const htmlEscapes = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }
+  const reUnescapedHtml = /[&<>"']/g
+  const reHasUnescapedHtml = RegExp(reUnescapedHtml.source)
+  function escape(string) {
+    return (string && reHasUnescapedHtml.test(string))
+      ? string.replace(reUnescapedHtml, (chr) => htmlEscapes[chr])
+      : (string || '')
+  }
+  uifactory.escape = escape
+
+
+  // microtemplate() is based on _.template() from https://cdn.jsdelivr.net/npm/lodash/lodash.js
+  // This is a complex function to refactor and maintain. But we'd rather not import it because
+  //  - we want to pass "this" to the template, which lodash does not support
+  //  - we don't need a lot of lodash's overhead -- which ends up as 13KB gzipped
+
+  // Used to make template sourceURLs easier to identify.
+  var templateCounter = -1
+  // Used to ensure capturing order of template delimiters.
+  let reNoMatch = /($^)/
+  // Used to match
+  // [ES template delimiters](http://ecma-international.org/ecma-262/7.0/#sec-template-literal-lexical-components).
+  let reEsTemplate = /\$\{([^\\}]*(?:\\.[^\\}]*)*)\}/g
+  // Used to match template delimiters.
+  let reEscape = /<%-([\s\S]+?)%>/g
+  let reEvaluate = /<%([\s\S]+?)%>/g
+  let reInterpolate = /<%=([\s\S]+?)%>/g
+  // Used to match unescaped characters in compiled string literals.
+  let reUnescapedString = /['\n\r\u2028\u2029\\]/g
+  // Used to escape characters for inclusion in compiled string literals.
+  let stringEscapes = {
+    '\\': '\\',
+    "'": "'",
+    '\n': 'n',
+    '\r': 'r',
+    '\u2028': 'u2028',
+    '\u2029': 'u2029'
+  }
+  // Used by `template` to escape characters for inclusion in compiled string literals.
+  function escapeStringChar(chr) {
+    return '\\' + stringEscapes[chr]
+  }
+  // Used to match empty string literals in compiled template source
+  let reEmptyStringLeading = /\b__p \+= '';/g
+  let reEmptyStringMiddle = /\b(__p \+=) '' \+/g
+  let reEmptyStringTrailing = /(__e\(.*?\)|\b__t\)) \+\n'';/g
+  // Used to validate the `validate` option in `_.template` variable.
+  let reForbiddenIdentifierChars = /[()=,{}[\]/\s]/
+  const INVALID_TEMPL_VAR_ERROR_TEXT = 'Invalid `variable` option passed into `_.template`'
+
+  // Default template settings
+  let templateSettings = {
+    escape: reEscape,
+    evaluate: reEvaluate,
+    interpolate: reInterpolate,
+    variable: '',
+    imports: {},
+    this: undefined
+  }
+
+  function microtemplate(string, options) {
+    options = Object.assign({}, templateSettings, options)
+
+    let imports = Object.assign({ uifactory }, options.imports)
+    let importsKeys = Object.keys(imports)
+    let importsValues = Object.values(imports)
+
+    let isEscaping
+    let isEvaluating
+    let index = 0
+    let interpolate = options.interpolate || reNoMatch
+    let source = "__p += '"
+
+    // Compile the regexp to match each delimiter.
+    let reDelimiters = RegExp(
+      (options.escape || reNoMatch).source + '|' +
+      interpolate.source + '|' +
+      (interpolate === reInterpolate ? reEsTemplate : reNoMatch).source + '|' +
+      (options.evaluate || reNoMatch).source + '|$'
+      , 'g')
+
+    // Use a sourceURL for easier debugging.
+    // The sourceURL gets injected into the source that's eval-ed, so be careful
+    // to normalize all kinds of whitespace, so e.g. newlines (and unicode versions of it) can't sneak in
+    // and escape the comment, thus injecting code that gets evaled.
+    var sourceURL = '//# sourceURL=' +
+      (hasOwnProperty.call(options, 'sourceURL')
+        ? (options.sourceURL + '').replace(/\s/g, ' ')
+        : ('templateSources[' + (++templateCounter) + ']')
+      ) + '\n'
+
+    string.replace(reDelimiters, function (match, escapeValue, interpolateValue, esTemplateValue, evaluateValue, offset) {
+      interpolateValue || (interpolateValue = esTemplateValue)
+
+      // Escape characters that can't be included in string literals.
+      source += string.slice(index, offset).replace(reUnescapedString, escapeStringChar)
+
+      // Replace delimiters with snippets.
+      if (escapeValue) {
+        isEscaping = true
+        source += "' +\n__e(" + escapeValue + ") +\n'"
+      }
+      if (evaluateValue) {
+        isEvaluating = true
+        source += "';\n" + evaluateValue + ";\n__p += '"
+      }
+      if (interpolateValue) {
+        source += "' +\n((__t = (" + interpolateValue + ")) == null ? '' : __t) +\n'"
+      }
+      index = offset + match.length
+
+      // The JS engine embedded in Adobe products needs `match` returned in
+      // order to produce the correct `offset` value.
+      return match
+    })
+
+    source += "';\n"
+
+    // If `variable` is not specified wrap a with-statement around the generated
+    // code to add the data object to the top of the scope chain.
+    var variable = hasOwnProperty.call(options, 'variable') && options.variable
+    if (!variable) {
+      source = 'with (obj) {\n' + source + '\n}\n'
+    }
+    // Throw an error if a forbidden character was found in `variable`, to prevent
+    // potential command injection attacks.
+    else if (reForbiddenIdentifierChars.test(variable)) {
+      throw new Error(INVALID_TEMPL_VAR_ERROR_TEXT)
+    }
+
+    // Cleanup code by stripping empty strings.
+    source = (isEvaluating ? source.replace(reEmptyStringLeading, '') : source)
+      .replace(reEmptyStringMiddle, '$1')
+      .replace(reEmptyStringTrailing, '$1;')
+
+    // Frame code as the function body.
+    source = 'function(' + (variable || 'obj') + ') {\n' +
+      (variable
+        ? ''
+        : 'obj || (obj = {});\n'
+      ) +
+      "var __t, __p = ''" +
+      (isEscaping
+        ? ', __e = uifactory.escape'
+        : ''
+      ) +
+      (isEvaluating
+        ? ', __j = Array.prototype.join;\n' +
+        "function print() { __p += __j.call(arguments, '') }\n"
+        : ';\n'
+      ) +
+      source +
+      'return __p\n}'
+
+    let result = Function(importsKeys, sourceURL + 'return ' + source)
+      .apply(options.this, importsValues)
+    result.source = source
+    return result
+  }
+  uifactory.template = microtemplate
 })(this)

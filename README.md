@@ -2,7 +2,7 @@
 
 UIFactory is a small easy-to-learn HTML web component library.
 
-- **It's small**. <3 KB minified, gzipped.
+- **It's small**. <4 KB minified, gzipped.
 - **There's nothing new to learn**. No shadow DOM. No virtual DOM. Just regular HTML, CSS and JS.
 - **It's open-source**. [See GitHub](https://github.com/gramener/uifactory).
 
@@ -16,13 +16,12 @@ a web component with UIFactory.
 Using [npm](https://www.npmjs.com/get-npm):
 
 ```bash
-npm install uifactory lodash
+npm install uifactory
 ```
 
 To include it in your script, use
 
 ```html
-<script src="node_modules/lodash/lodash.min.js"></script>
 <script src="node_modules/uifactory/dist/uifactory.min.js"></script>
 ```
 
@@ -72,7 +71,7 @@ inside the `<template>` to generate the HTML. Now,
 
 ## Lodash templates are supported
 
-For better control, you can use [lodash templates](https://lodash.com/docs/#template):
+For better control, you can use [Lodash templates](https://lodash.com/docs/#template) like this:
 
 ```html
 <template component="repeat-template" value="30">
@@ -92,10 +91,11 @@ When you add the component to your page:
 
 ![8 stars](docs/img/repeat-8-star.png).
 
-Lodash templates use tags as follows:
+There are 3 kinds of template tags.
 
-- Anything inside `<% ... %>` runs as JavaScript
-- Anything inside `<%= ... %>` runs as JavaScript, and the result is "print"ed
+1. **`<% ... %>` evaluates JavaScript**. `<% console.log('ok') %>` logs `ok`
+2. **`<%= ... %>` renders JavaScript**. ``<%= `<b>${2 + 3}</b>` %>`` renders **5** in bold
+3. **`<%- ... %>` renders JavaScript, HTML-escaped**. ``<%- `<b>${2 + 3}</b>` %>`` renders `<b>5</b>` in bold
 
 
 ## Use `<slot>`s in templates
@@ -140,7 +140,7 @@ for more.
 
 ## Wrap tables in HTML scripts
 
-Some Lodash templates may lead to invalid HTML.
+Some templates may lead to invalid HTML.
 
 For example, HTML doesn't allow `<% for ... %>` inside a `<tbody>`. (Only `<tr>` is allowed.) So this is invalid:
 
@@ -157,7 +157,7 @@ For example, HTML doesn't allow `<% for ... %>` inside a `<tbody>`. (Only `<tr>`
 ```
 
 Instead, you should wrap your HTML inside a `<script type="text/html">...</script>`.
-Anything you write inside it will be rendered as a Lodash template.
+Anything you write inside it will be rendered as a template.
 (Any HTML outside it is ignored.)
 
 ```html
@@ -1012,7 +1012,10 @@ uifactory.types.range = {
     // Pick start, step, end as the first 3 numbers in the string
     let [start, end, step] = string.split(/\D+/)
     // Convert it into an array
-    return _.range(+start || 0, +end || 1, +step || 1)
+    let result = []
+    for (let val = (+start || 0); val < (+end || 1); val += (+step || 1))
+      result.push(val)
+    return result
   },
   // Stringify an array like [0, 2, 4, 6, 8] into "0,10,2"
   stringify: value => {
@@ -1247,7 +1250,7 @@ Now, suppose you change the circle's color programmatically and then change the 
 
 ## Use any compiler
 
-Instead of [templates](https://lodash.com/docs/#template), you can use any function to compile templates.
+Instead of [templates](#lodash-templates-are-supported), you can use any function to compile templates.
 
 For example, the `g-name` component below uses [Handlebars](https://handlebarsjs.com/) templates to render the last name in bold:
 
@@ -1264,27 +1267,6 @@ uifactory.register({
 ```
 
 ![g-name component](docs/img/g-name-walt-disney.png)
-
-You can change [lodash template settings](https://lodash.com/docs/4.17.15#templateSettings) into
-[Tornado-like templates](https://www.tornadoweb.org/en/stable/template.html) like this:
-
-
-```html
-<g-repeat2 value="8">★</g-repeat2>
-<script>
-uifactory.register({
-  name: 'g-repeat2',
-  template: '{% for (var j=0; j<+value; j++) { %}{{ this.innerHTML }}{% } %}',
-  compile: html => _.template(html, {
-    escape: /{{-([\s\S]+?)}}/g,
-    evaluate: /{%([\s\S]+?)%}/g,
-    interpolate: /{{([\s\S]+?)}}/g
-  })
-})
-</script>
-```
-
-![8 stars](docs/img/repeat-8-star.png)
 
 `compile:` must be a function that accepts a string that returns a template function.
 When rendering, the template function is called with the properties object
@@ -1319,7 +1301,7 @@ uifactory.register({
 To release a new version:
 
 - In `README.md`, update the [Change log](#change-log)
-- In [package.json](package.json), update `version`
+- Update `version` in all files and examples, and mainly in [package.json](package.json)
 
 Then run:
 
@@ -1331,6 +1313,7 @@ npm publish
 
 ## Change log
 
+- 0.0.17: Remove lodash dependency
 - 0.0.16:
   - `<style scoped>` applies style only to component
   - `el.property = value` re-renders `el`

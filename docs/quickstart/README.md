@@ -19,8 +19,7 @@ We'll build a simple dashboard showing KPI cards that looks like this:
 Add these 2 lines to the HTML. This links directly to UIFactory from CDNJS, and you don't need to install anything.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/uifactory@0.0.16/dist/uifactory.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@0.0.17/dist/uifactory.min.js"></script>
 ```
 
 [See on CodePen](https://codepen.io/sanand0/pen/QWgaXmg?editors=1000)
@@ -175,7 +174,7 @@ to `<kpi-dashboard>`, like this:
 ## 7. Write templates
 
 Apart from using `${}` to insert JavaScript variables, you can use
-[Lodash templates](https://lodash.com/docs/4.17.15#template) to write any JavaScript code.
+[templates](https://lodash.com/docs/4.17.15#template) to write any JavaScript code.
 
 Replace the `<template component="kpi-dashboard">...</template>` code with:
 
@@ -313,8 +312,7 @@ convention. This component is saved at [`kpi-dashboard.html`](kpi-dashboard.html
 To use it in your application, add:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/uifactory@0.0.16/dist/uifactory.min.js" import="kpi-dashboard.html"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@0.0.17/dist/uifactory.min.js" import="kpi-dashboard.html"></script>
 ```
 
 Note the `import="kpi-dashboard.html"` in the 2nd line. That makes `<kpi-dashboard>` available to
