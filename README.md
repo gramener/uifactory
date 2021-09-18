@@ -1,10 +1,15 @@
 # UIFactory
 
-UIFactory is a small easy-to-learn HTML component library.
+UIFactory is a small easy-to-learn HTML web component library.
 
 - **It's small**. <3 KB minified, gzipped.
 - **There's nothing new to learn**. No shadow DOM. No virtual DOM. Just regular HTML, CSS and JS.
 - **It's open-source**. [See GitHub](https://github.com/gramener/uifactory).
+
+## Tutorial
+
+[UIFactory QuickStart](docs/quickstart/README.md) is a 15-minute tutorial that teaches how to build
+a web component with UIFactory.
 
 ## Install from npm
 

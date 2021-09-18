@@ -112,7 +112,7 @@
         // NOTE: Why not just...
         //    Use clone.async = false? Doesn't work
         //    Add all scripts to a documentFragment and add it at one shot? Doesn't work
-        let externalScript = clone.hasAttribute('src') && clone.matches('script')
+        let externalScript = el.hasAttribute('src') && el.matches('script')
         if (externalScript)
           clone.onload = clone.onerror = () => loadExtract(target, els, index + 1)
         _window.document[target].appendChild(clone)
