@@ -1,10 +1,16 @@
 # UIFactory
 
-UIFactory is a small easy-to-learn HTML web component library.
+UIFactory is a small, easy library that creates web components.
 
-- **It's small**. <4 KB minified, gzipped.
-- **There's nothing new to learn**. No shadow DOM. No virtual DOM. Just regular HTML, CSS and JS.
-- **It's open-source**. [See GitHub](https://github.com/gramener/uifactory).
+[Angular](https://angularjs.org/), [React](https://reactjs.org/), [Vue](https://vuejs.org/) and similar frameworks focus on building web applications.
+
+**UIFactory builds re-usable web components**. These can be used in Angular, React, Vue, or even plain HTML.
+
+- **It's small**. <4 KB compressed
+- **It's compliant** with the [Web Components](https://developer.mozilla.org/en-US/docs/Web/Web_Components) standard. Works on all modern browsers
+- **It's easy to learn**. Write any HTML, CSS and JS and wrap it in a `<template>` componentize it.
+
+It's [MIT licensed](LICENSE).
 
 ## Tutorial
 
@@ -516,6 +522,10 @@ Notes:
 - You can add a listener to multiple events, like `<script onprerender onrender>`
 - You can add multiple listeners to an event, e.g. by repeating `<script onrender>...</script>`
 - You can add listeners using `this.addEventListener('render', ...)` too
+- You can use these variables in `<script onrender>`, etc:
+  - [`this` is the component itself](#access-component-as-this-inside-templates)
+  - [All properties are available as variables](#access-properties-as-variables-inside-templates)
+  - `e` is the [custom event](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent) fired by the component
 
 
 ## Add listeners using lifecycle events
@@ -1220,8 +1230,11 @@ npm publish
 
 ## Change log
 
-- 0.0.17: Remove lodash dependency
-- 0.0.16:
+- 1.18.0 (19 Sep 2021):
+  - Major API rewrite. See [migration to v1](docs/migration-v1.md)
+  - [Lifecycle events](#use-lifecycle-events-to-render-components-using-javascript)
+- 0.0.17 (18 Sep 2021): Remove lodash dependency
+- 0.0.16 (1 Sep 2021):
   - `<style scoped>` applies style only to component
   - `el.property = value` re-renders `el`
   - `el.update({'attr:type': ...})` supported
