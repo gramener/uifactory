@@ -103,6 +103,7 @@
     let scriptsLoaded       // boolean: have all external scripts been loaded?
     let _scriptsResolve     // fn: resolves the scriptsLoad promise
     let scriptsResolve = new Promise(resolve => _scriptsResolve = resolve)
+    let eventScripts = {}   // Lifecycle event scripts
     // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
     loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style'))
     loadExtract('body', tmpl.content.querySelectorAll('script'))
@@ -110,13 +111,24 @@
     function loadExtract(target, els, _start = 0) {
       let index = _start
       // Loop through elements starting from the start index
-      for (; index < els.length; index++) {
+      scriptLoop: for (; index < els.length; index++) {
         let el = els[index]
         // Copy the element into the target document with attributes.
         // NOTE: Just inserting el into the document doesn't let <script> elements execute.
         let clone = _window.document.createElement(el.tagName)
-        for (let attr of el.attributes)
+        let listeners
+        for (let attr of el.attributes) {
+          // If it's a <script onrender> or <script onpreconnect> etc, it's a lifecycle event script.
+          // Compile it and don't add it to <head>
+          if (attr.name.startsWith('on')) {
+            listeners = eventScripts[attr.name.slice(2)] = eventScripts[attr.name.slice(2)] || []
+            listeners.push(new Function(attr.value || 'e', `with (this.$data) { ${el.innerHTML} }`))
+          }
+          // Otherwise, copy attributes to the clone that we'll add into the <head>
           clone.setAttribute(attr.name, attr.value)
+        }
+        if (listeners)
+          continue scriptLoop
         clone.innerHTML = el.innerHTML
         // If this is a <script src="...">, then load the remaining extracts AFTER it's loaded
         // WHY? If I use <script src="jquery"> and then <script>$(...)</script>
@@ -183,10 +195,19 @@
         // INTERNAL variables -- not guaranteed to remain
         // this.$resolve is a resolve promise. Called when component is ready
         // this.$updating: Is the component currently being updated?
+
+        // Add lifecycle events
+        for (let [eventName, listeners] of Object.entries(eventScripts)) {
+          listeners.forEach(listener => this.addEventListener(eventName, listener))
+        }
       }
 
       // Called when element is connected to the parent. "this" is the HTMLElement.
       connectedCallback() {
+        // Fire a preconnect event. At this point, $data has no attributes
+        this.dispatchEvent(new CustomEvent('preconnect', { bubbles: true }))
+
+        // Clone instance contents for future reference
         this.$contents = this.cloneNode(true)
 
         // Update properties from template attributes
@@ -226,6 +247,15 @@
 
         // Wait for external scripts to get loaded. Then render.
         scriptsResolve.then(() => renderComponent.call(this))
+
+        // Fire a connect event. At this point, $data has attributes, but external scripts
+        // may not be loaded, and contents have not been rendered.
+        this.dispatchEvent(new CustomEvent('connect', { bubbles: true }))
+      }
+
+      disconnectedCallback() {
+        // Fire a disconnect event. Element is disconnected from the DOM
+        this.dispatchEvent(new CustomEvent('disconnect', { bubbles: true }))
       }
 
       // Update .$data with {"attribute-name:type": "value"}
@@ -289,6 +319,9 @@
 
     // Re-renders the object based on current and supplied properties.
     function renderComponent() {
+      // Fire a prerender event. At this point, $data has attributes, external scripts are loaded,
+      // but contents are not rendered.
+      this.dispatchEvent(new CustomEvent('prerender', { bubbles: true }))
       // TODO: <slot data-template> should re-compile template before it is rendered
       // Render the contents of the <template> as a microtemplate
       let src = this.$compile.call(this, this.$data)
@@ -307,7 +340,8 @@
 
       // Resolve the "$ready" Promise
       this.$resolve(this)
-      // Generate a render event on this component when rendered
+      // Fire a render event. At this point, $data has attributes, external scripts are loaded,
+      // and contents are rendered.
       this.dispatchEvent(new CustomEvent('render', { bubbles: true }))
     }
 

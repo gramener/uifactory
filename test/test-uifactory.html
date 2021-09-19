@@ -122,9 +122,9 @@ inside the `<template>` to generate the HTML. Now,
 For better control, you can use [Lodash templates](https://lodash.com/docs/#template) like this:
 
 ```html
-<template $name="repeat-template" value="30">
+<template $name="repeat-template" value="30" icon="★">
   <% for (var j=0; j < +value; j++) { %>
-    <slot></slot>
+    <%= icon %>
   <% } %>
 </template>
 ```
@@ -132,25 +132,25 @@ For better control, you can use [Lodash templates](https://lodash.com/docs/#temp
 When you add the component to your page:
 
 ```html
-<repeat-template value="8">★</repeat-template>
+<repeat-template value="8" icon="★"></repeat-template>
 ```
 
 ... it renders this output:
 
 ![8 stars](docs/img/repeat-8-star.png).
 
-There are 3 kinds of template tags.
+There are 3 kinds of template tags you can use:
 
-1. **`<% ... %>` evaluates JavaScript**. `<% console.log('ok') %>` logs `ok`
-2. **`<%= ... %>` renders JavaScript**. ``<%= `<b>${2 + 3}</b>` %>`` renders **5** in bold
-3. **`<%- ... %>` renders JavaScript, HTML-escaped**. ``<%- `<b>${2 + 3}</b>` %>`` renders `<b>5</b>` in bold
+1. **`<% ... %>` evaluates JavaScript**. e.g., `<% console.log('ok') %>` logs `ok`
+2. **`<%= ... %>` renders JavaScript**. e.g., ``<%= `<b>${2 + 3}</b>` %>`` renders **5** in bold
+3. **`<%- ... %>` renders JavaScript, HTML-escaped**. e.g., ``<%- `<b>${2 + 3}</b>` %>`` renders `<b>5</b>` in bold
 -->
-<template $name="repeat-template" value="30">
+<template $name="repeat-template" value="30" icon="★">
   <% for (var j=0; j < +value; j++) { %>
-    <slot></slot>
+    <%= icon %>
   <% } %>
 </template>
-<repeat-template value="8">★</repeat-template>
+<repeat-template value="8" icon="★"></repeat-template>
 <script>
   tape('Components use templates', function (t) {
     let el = document.querySelector('repeat-template')
@@ -159,6 +159,7 @@ There are 3 kinds of template tags.
   })
   tape('Templates work as expected', function (t) {
     let tmpl = uifactory.template
+    t.equals(tmpl('<% print(x + y) %>')({x: 2, y: 3}), '5', 'template evaluation works')
     t.equals(tmpl('<%= `<b>${x + y}</b>` %>')({x: 2, y: 3}), '<b>5</b>', 'template interpolation works')
     t.equals(tmpl('<%- `<b>${x + y}</b>` %>')({x: 2, y: 3}), '&lt;b&gt;5&lt;/b&gt;', 'template escaping works')
     t.end()
@@ -201,7 +202,7 @@ When you add the component to your page:
 
 - `<slot name="a">` is replaced with all `slot="a"` elements (🔴 and **x**).
 - `<slot name="b">` is replaced with all `slot="b"` elements (🟩 and *y*).
-- `<slot>` is replaced with the component's child nodes (🔴 🟩 **x** *y*).
+- `<slot>` is replaced with all elements in the component (🔴 🟩 **x** *y*). This is similar to the `.innerHTML`
 
 See ["Using templates and slots" on MDN](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
 for more.
@@ -314,13 +315,15 @@ el.value = 10                                   // Re-render with value=10
 
 ![Access and change properties](docs/img/g-repeat-properties.gif)
 
-Changing `.value = ...` *re-renders* the component. So does `.setAttribute('value', ...)`.
+Setting a property, e.g. `.value = ...` *re-renders* the component.
+So does `.setAttribute('value', ...)`.
 
 Notes:
 
 - Attributes with uppercase letters (e.g. `fontSize`) are converted to lowercase properties (e.g. `fontsize`)
 - Attributes with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* properties (e.g. `fontSize`).
 - Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<my-component extra="x">` does not define a `.extra`).
+- But [attributes with types (e.g. `extra:string="x"`) are available as properties](#add-properties-to-an-instance-using-types).
 -->
 <template $name="attr-test" mixedCase="mc" font-size="fs" query-selector="qs"></template>
 <attr-test mixedCase="MC" font-size="FS" extra="E" query-selector="QS"></attr-test>
@@ -466,7 +469,10 @@ component displays "Loading..." until a URL is loaded, and then displays its tex
 Contents of page.txt
 ```
 
-The `:urltext` property is null until it is loaded. Once loaded, it has the text from the URL.
+This component will be **rendered twice** (and fire two `prerender`/`render` events.)
+
+1. The first happens immediately, before loading the URL. `src` is `null`. This is useful to display a "Loading..." sign
+2. The second happens after loading the URL. `src` now has the contents as text
 
 To reload the URL and re-render, you can set `.src = 'page.pxt'` or `.update({src: 'page.txt'})`:
 
@@ -548,7 +554,10 @@ component displays "Loading..." until a URL is loaded, and then displays its JSO
 {"text":"abc","number":10,"object":{"x":[1,2,3]}}
 ```
 
-The `:urljson` property is null until it is loaded. Once loaded, it has the contents of the URL as a JavaScript object.
+This component will be **rendered twice** (and fire two `prerender`/`render` events.)
+
+1. The first happens immediately, before loading the URL. `src` is `null`. This is useful to display a "Loading..." sign
+2. The second happens after loading the URL. `src` now has the contents as JSON
 
 To reload the URL and re-render, you can set `.src = 'page.json'` or `.update({src: 'page.json'})`:
 
@@ -632,16 +641,17 @@ component displays "Loading..." until a URL is loaded, and then displays it.
 Contents of page.txt
 ```
 
-The `:url` property is null until it is loaded. Once loaded, it is a
-[Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object
-with one change: `.text` has the text of response. The following keys maybe useful:
+This component will be **rendered twice** (and fire two `prerender`/`render` events.)
 
-- `.headers`: response [headers](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)
-- `.status`: HTTP status code
-- `.statusText`: HTTP status message corresponding to the status code (e.g., OK for 200)
-- `.ok`: `true` if the HTTP status is the range 200-299
-- `.url`: The URL of the response -- after any redirections
-- `.text`: Text from the loaded page. This is **not a Promise**, but the actual text
+1. The first happens immediately, before loading the URL. `src` is `null`. This is useful to display a "Loading..." sign
+2. The second happens after loading the URL. `src` now has the contents as
+   a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object with these keys:
+   - `.headers`: response [headers](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)
+   - `.status`: HTTP status code
+   - `.statusText`: HTTP status message corresponding to the status code (e.g., OK for 200)
+   - `.ok`: `true` if the HTTP status is the range 200-299
+   - `.url`: The URL of the response -- after any redirections
+   - `.text`: Text from the loaded page. This is **not a Promise**, but the actual text
 -->
 <template $name="fetch-page" src:url="">
   <% if (src === null) { %>
@@ -1025,39 +1035,109 @@ They run only once (even if you use the component multiple times.)
 
 
 <!--
-## Always delegate events
+## Use lifecycle events to render components using JavaScript
 
-`<script>` tags run *before the component is rendered*.
-So **ALWAYS use event delegation**.
+Components fire these events at different stages of their lifecycle:
 
-```js
-// DON'T DO THIS -- your component has not yet been added to the document!
-document.querySelector('<your-component>').addEventListener('<event>', function (e) {
-  // do what you want -- but it won't work
-})
-// INSTEAD, DO THIS. Listen to your event (e.g. "click") on document.body
-document.body.addEventListener('<your-event>', function (e) {
-  // Check if the clicked element is in YOUR component
-  let target = e.target.closest('<your-component>')
-  if (target) {
-    // do what you want
-  }
-})
+- `preconnect`: when the instance is created, but no properties are defined yet
+- `connect`: properties are defined, but external scripts may not be loaded
+- `prerender`: external scripts are loaded, but template not yet rendered
+- `render`: template is rendered
+
+Add `<script onpreconnect>...</script>`, `<script onrender>...</script>`, etc to create listeners.
+For example:
+
+```html
+<template $name="repeat-events" icon="★" value:number="1">
+  <script onrender>
+    /* globals e, icon, value */
+    console.log(e.type)   // "e" is the custom event. Prints "render"
+    // Listeners can use this (the component) and properties like in templates
+    this.innerHTML = icon.repeat(value)
+  </script>
+</template>
 ```
 
-For example, this is a simple button component that logs click events to the console:
+Now, `<repeat-events icon="★" value="8"><repeat-html>` renders this output:
+
+![8 stars](docs/img/repeat-8-star.png)
+
+Notes:
+
+- You can add a listener to multiple events, like `<script onprerender onrender>`
+- You can add multiple listeners to an event, e.g. by repeating `<script onrender>...</script>`
+- You can add listeners using `this.addEventListener('render', ...)` too
+-->
+
+<template $name="repeat-events" icon="★" value:number="1">
+  Hello
+  <script onpreconnect>
+    this.preconnect = {
+      value: this.$data.value,
+      content: this.innerHTML
+    }
+  </script>
+  <script onconnect>
+    this.connect = {
+      value: this.$data.value,
+      content: this.innerHTML
+    }
+  </script>
+  <script onprerender>
+    this.prerender = {
+      value: this.$data.value,
+      content: this.innerHTML
+    }
+  </script>
+  <script onrender>
+    /* globals icon, value */
+    this.render = {
+      value: this.$data.value,
+      content: this.innerHTML
+    }
+    // Listeners can use this (the component) and properties like in templates
+    this.innerHTML = icon.repeat(value)
+  </script>
+</template>
+<repeat-events icon="★" value="8"></repeat-events>
+
+<script>
+  tape('Use lifecycle events to render components using JavaScript', function (t) {
+    let el = document.querySelector('repeat-events')
+    t.deepEquals(el.preconnect, {value: undefined, content: ''}, 'script preconnect works')
+    t.deepEquals(el.connect, {value: 8, content: ''}, 'script connect works')
+    t.deepEquals(el.prerender, {value: 8, content: ''}, 'script prerender works')
+    t.equals(el.render.value, 8, 'script render has data')
+    t.equals(el.render.content.trim(), 'Hello', 'script render applies template')
+    t.end()
+  })
+  tape('Every render triggers a `render` event', function (t) {
+    t.plan(3)
+    let el = document.querySelector('repeat-events')
+    el.addEventListener('render', e => t.equals(e.target.value, 3), { once: true })
+    el.value = 3
+    el.addEventListener('render', e => t.equals(e.target.value, 4), { once: true })
+    el.value = 4
+    el.addEventListener('render', e => t.equals(e.target.value, 5), { once: true })
+    el.value = 5
+  })
+</script>
+
+<!--
+## Add listeners using lifecycle events
+
+The best place to add an event listener to your component is in `<script onrender>`.
+For example, this component toggles text red when a button is pressed.
 
 ```html
 <template $name="toggle-red">
   <style>
-    .red { color: red; }
+    toggle-red .red { color: red; }
   </style>
   <button>Toggle</button> <span>Some text</span>
-  <script>
-    document.body.addEventListener('click', function (e) {
-      let target = e.target.closest('toggle-red button')
-      if (target)
-        target.nextElementSibling.classList.toggle('red')
+  <script onrender>
+    this.querySelector('button').addEventListener('click', e => {
+      this.querySelector('span').classList.toggle('red')
     })
   </script>
 </template>
@@ -1071,22 +1151,31 @@ When you add the component to your page:
 
 ... it renders this output:
 
-![Add events via event delegation](docs/img/toggle-red.gif)
+![Add listeners via lifecycle events](docs/img/toggle-red.gif)
 -->
 <template $name="toggle-red">
   <style>
-    .red { color: red; }
+    toggle-red .red { color: red; }
   </style>
   <button>Toggle</button> <span>Some text</span>
-  <script>
-    document.body.addEventListener('click', function (e) {
-      let target = e.target.closest('toggle-red button')
-      if (target)
-        target.nextElementSibling.classList.toggle('red')
+  <script onrender>
+    this.querySelector('button').addEventListener('click', e => {
+      this.querySelector('span').classList.toggle('red')
     })
   </script>
 </template>
 <toggle-red></toggle-red>
+
+<script>
+  tape('Add listeners using lifecycle events', function (t) {
+    let el = document.querySelector('toggle-red')
+    let span = el.querySelector('span')
+    t.notOk(span.classList.contains('red'))
+    el.querySelector('button').click()
+    t.ok(span.classList.contains('red'))
+    t.end()
+  })
+</script>
 
 
 <!--
@@ -1284,22 +1373,26 @@ uifactory.register({
 </script>
 
 <!--
-## `el.$data[property]` stores all properties
+## `this.$data[property]` stores all properties
 
-All properties are stored in `el.$data` as an object. For example:
+All properties are stored in `this.$data` as an object. You can read and write these values.
+For example, this `<print-default>` component changes the default attribute before rendering:
 
 ```html
-<script>
-let el = document.querySelector('repeat-html')  // Find first <repeat-html>
-console.log(el.$data)                           // Prints { "value": ".." }
-el.$data.value = 12                             // Re-renders with new value
-</script>
+<template $name="print-default" default="old">
+  <script onprerender>
+    console.log(this.$data)     // Prints { "default": "old" }
+    this.$data.default = 'new'  // Updates default value
+  </script>
+  <%= this.$data.default %>     // renders "new"
+</template>
 ```
 
-For example, if you define a `<template query-selector="xx">`, will `el.querySelector` be "xx" or the
-[el.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector) function?
+Normally, properties are ALSO accessible as `this.<attributeName>`.
+But if you define a `<template query-selector="xx">`, will `this.querySelector` be "xx" or the
+[this.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector) function?
 
-ANS: `el.querySelector` is the function. `el.$data.querySelector` holds "xx".
+ANS: `this.querySelector` is the function. `this.$data.querySelector` holds "xx".
 
 This is be useful if you don't know whether a property is defined or not.
 For example, when you add this to your page:
@@ -1319,6 +1412,14 @@ For example, when you add this to your page:
 
 `Properties: x=10 y=20 z=undefined`
 -->
+<template $name="print-default" default="old">
+  <script onprerender>
+    console.log(this.$data)     // Prints { "default": "old" }
+    this.$data.default = 'new'  // Updates default value
+  </script>
+  <%= this.$data.default %>
+</template>
+<print-default></print-default>
 <template $name="obj-values" x:number="0" y:number="0">
   Properties:
     <% for (let key in this.$data) { %>
@@ -1328,8 +1429,10 @@ For example, when you add this to your page:
 </template>
 <obj-values x="10" y="20"></obj-values>
 <script>
-  tape('All properties are stored in `el.$data` as an object.', function (t) {
-    let el = document.querySelector('obj-values')
+  tape('`this.$data[property]` stores all properties', function (t) {
+    let el = document.querySelector('print-default')
+    t.equals(el.innerHTML.trim(), 'new', 'this.$data can be updated')
+    el = document.querySelector('obj-values')
     t.equals(el.innerHTML.trim().split(/\s+/).join(' '), 'Properties: x=10 y=20 z=undefined', 'this.$data works')
     t.end()
   })
@@ -1700,47 +1803,6 @@ It turns the `<strong>` element red when it's ready:
 
 
 <!--
-## Every render triggers a `render` event
-
-Every time a component is rendered, it fires a `render` event.
-
-```html
-<template $name="repeat-event" value:number="10">
-  ${this.$template.repeat(value)}
-</template>
-
-<repeat-event>★</repeat-event>
-```
-
-For example, this code logs the `.value` of the component every time it is rendered:
-
-```js
-  let el = document.querySelector('repeat-event')
-  el.addEventListener('render', e => console.log(e.target.value))
-  el.value = 3
-```
--->
-<template $name="repeat-event" value:number="10">
-  ${this.$template.repeat(value)}
-</template>
-
-<repeat-event>★</repeat-event>
-
-<script>
-  tape('Every render triggers a `render` event', function (t) {
-    t.plan(3)
-    let el = document.querySelector('repeat-event')
-    el.addEventListener('render', e => t.equals(e.target.value, 3), { once: true })
-    el.value = 3
-    el.addEventListener('render', e => t.equals(e.target.value, 4), { once: true })
-    el.value = 4
-    el.addEventListener('render', e => t.equals(e.target.value, 5), { once: true })
-    el.value = 5
-  })
-</script>
-
-
-<!--
 ## Get registered components from `uifactory.components`
 
 If you register a `<ui-config>` component, `uifactory.components['ui-config']` has the component's
@@ -1905,6 +1967,16 @@ Now, suppose you change the circle's color programmatically and then change the 
     t.end()
   })
 </script>
+
+<template $name="event-scripts" x="20">
+  <script onrender onpreconnect onprerender>
+    /* globals x */
+    if (typeof x != 'undefined')
+      this.innerHTML = x.repeat(20)
+  </script>
+</template>
+
+<event-scripts x="ok">...</event-scripts>
 
 
 <script src="works-even-with-missing-script">

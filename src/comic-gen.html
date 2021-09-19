@@ -2,14 +2,21 @@
   eye="" mouth="" head="" side="" bottom="" body="" nose="" emotion="" attire="" pose="" face=""
   shirt="" pant="" suit="" tie="" hair="" shoe="" shirt-left="" shirt-right="" pant-right=""
   pant-left="" belt="" dress="" mirror="" x="" y="" width="" height="" scale="" ext="">
-  <img src="<%= uifactory.comicGen(this) %>">
-  <script>
-    uifactory.comicGen = function(node) {
-      let q = []
-      for (let [key, val] of Object.entries(node.$data))
-        if (!key.match(/baseUrl/) && !key.match(/^\$/) && val)
-          q.push(encodeURIComponent(key) + '=' + encodeURIComponent(val))
-      return `${node.$data.baseUrl}?${q.join('&')}`
-    }
+  <script onrender>
+    /* globals ext */
+    let q = []
+    for (let [key, val] of Object.entries(this.$data))
+      if (!key.match(/baseUrl/) && !key.match(/^\$/) && val)
+        q.push(encodeURIComponent(key) + '=' + encodeURIComponent(val))
+    let url = `${this.$data.baseUrl}?${q.join('&')}`
+    if (ext == 'png')
+      this.innerHTML = `<img src="${url}">`
+    else
+      fetch(url)
+        .then(r => r.text())
+        .then(contents => {
+          this.innerHTML = contents
+          this.dispatchEvent(new CustomEvent('load', { bubbles: true }))
+        })
   </script>
 </template>

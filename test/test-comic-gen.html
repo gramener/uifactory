@@ -15,15 +15,15 @@
     })
   </script>
 
-  <comic-gen id="c1" name="aryan" emotion="angry"></comic-gen>
+  <comic-gen id="c1" name="aryan" emotion="angry" ext="png"></comic-gen>
   <comic-gen id="c2" name="aryan" emotion="angry" pose="handsfolded"></comic-gen>
   <script>
     tape('Test comic-gen', function (t) {
       // TODO: querySelector('comicgen img') is null until the image is loaded. (Not sure why.)
       // So we wait till the images are loaded. This is not a good approach.
       setTimeout(function() {
-        t.equals(document.querySelector('#c1 img').src, 'https://gramener.com/comicgen/v1/comic?name=aryan&emotion=angry')
-        t.equals(document.querySelector('#c2 img').src, 'https://gramener.com/comicgen/v1/comic?name=aryan&emotion=angry&pose=handsfolded')
+        t.equals(document.querySelector('#c1 img').src, 'https://gramener.com/comicgen/v1/comic?name=aryan&emotion=angry&ext=png')
+        t.equals(document.querySelector('#c2 svg').getAttribute('viewBox'), '0 0 500 600')
         t.end()
       }, 500)
     })

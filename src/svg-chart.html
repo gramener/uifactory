@@ -1,8 +1,9 @@
 <template $name="svg-chart" src:urltext="" rules:urljson="" data:urljson="">
-  <%= src ? uifactory.svgChart(this, src, rules, data) : this.innerHTML %>
-
-  <script>
-    uifactory.svgChart = function (self, src, rules, data) {
+  <%= this.$contents.innerHTML %>
+  <script onrender>
+    // <%= src ? uifactory.svgChart(this, src, rules, data) : this.innerHTML %>
+    /* globals src, rules, data */
+    if (src) {
       const parser = new DOMParser()
       const doc = parser.parseFromString(src, 'image/svg+xml')
       if (rules) {
@@ -18,7 +19,7 @@
         }
       }
       const serializer = new XMLSerializer()
-      return serializer.serializeToString(doc)
+      this.innerHTML = serializer.serializeToString(doc)
     }
   </script>
 </template>

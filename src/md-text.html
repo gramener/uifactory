@@ -17,12 +17,13 @@
   smartypants:boolean="false"
   xhtml:boolean="false"
 >
-  <%
+  <script onrender>
+    /* globals src, dedent, marked */
     let content
     if (src)
       content = src.text
     else {
-      content = this.innerHTML
+      content = this.$contents.innerHTML
       if (dedent) {
         content = content.replace(/^\n+/, '')
         const match = content.match(/^\s+/)
@@ -30,8 +31,7 @@
           content = content.replace(new RegExp(`^${match[0]}`, 'gm'), '')
       }
     }
-  %>
-  <%= marked(content, {baseUrl, breaks, gfm, headerIds, headerPrefix, highlight,
-      langPrefix, mangle, pedantic, sanitize, sanitizer, silent, smartLists, smartypants, xhtml}) %>
+    this.innerHTML = marked(content, this.$data)
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </template>

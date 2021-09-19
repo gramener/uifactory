@@ -74,9 +74,9 @@ inside the `<template>` to generate the HTML. Now,
 For better control, you can use [Lodash templates](https://lodash.com/docs/#template) like this:
 
 ```html
-<template $name="repeat-template" value="30">
+<template $name="repeat-template" value="30" icon="★">
   <% for (var j=0; j < +value; j++) { %>
-    <slot></slot>
+    <%= icon %>
   <% } %>
 </template>
 ```
@@ -84,18 +84,18 @@ For better control, you can use [Lodash templates](https://lodash.com/docs/#temp
 When you add the component to your page:
 
 ```html
-<repeat-template value="8">★</repeat-template>
+<repeat-template value="8" icon="★"></repeat-template>
 ```
 
 ... it renders this output:
 
 ![8 stars](docs/img/repeat-8-star.png).
 
-There are 3 kinds of template tags.
+There are 3 kinds of template tags you can use:
 
-1. **`<% ... %>` evaluates JavaScript**. `<% console.log('ok') %>` logs `ok`
-2. **`<%= ... %>` renders JavaScript**. ``<%= `<b>${2 + 3}</b>` %>`` renders **5** in bold
-3. **`<%- ... %>` renders JavaScript, HTML-escaped**. ``<%- `<b>${2 + 3}</b>` %>`` renders `<b>5</b>` in bold
+1. **`<% ... %>` evaluates JavaScript**. e.g., `<% console.log('ok') %>` logs `ok`
+2. **`<%= ... %>` renders JavaScript**. e.g., ``<%= `<b>${2 + 3}</b>` %>`` renders **5** in bold
+3. **`<%- ... %>` renders JavaScript, HTML-escaped**. e.g., ``<%- `<b>${2 + 3}</b>` %>`` renders `<b>5</b>` in bold
 
 
 ## Use `<slot>`s in templates
@@ -132,7 +132,7 @@ When you add the component to your page:
 
 - `<slot name="a">` is replaced with all `slot="a"` elements (🔴 and **x**).
 - `<slot name="b">` is replaced with all `slot="b"` elements (🟩 and *y*).
-- `<slot>` is replaced with the component's child nodes (🔴 🟩 **x** *y*).
+- `<slot>` is replaced with all elements in the component (🔴 🟩 **x** *y*). This is similar to the `.innerHTML`
 
 See ["Using templates and slots" on MDN](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
 for more.
@@ -195,13 +195,15 @@ el.value = 10                                   // Re-render with value=10
 
 ![Access and change properties](docs/img/g-repeat-properties.gif)
 
-Changing `.value = ...` *re-renders* the component. So does `.setAttribute('value', ...)`.
+Setting a property, e.g. `.value = ...` *re-renders* the component.
+So does `.setAttribute('value', ...)`.
 
 Notes:
 
 - Attributes with uppercase letters (e.g. `fontSize`) are converted to lowercase properties (e.g. `fontsize`)
 - Attributes with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* properties (e.g. `fontSize`).
 - Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<my-component extra="x">` does not define a `.extra`).
+- But [attributes with types (e.g. `extra:string="x"`) are available as properties](#add-properties-to-an-instance-using-types).
 
 
 ## Access properties as variables inside templates
@@ -219,6 +221,11 @@ For example, `<template value:number="30">` defines the variable `value` as a nu
 ```
 
 Inside the template, the variable `value` has a value `8`.
+
+Notes:
+
+- If the attribute is a JavaScript keyword (e.g. `default=""`), you can't access it as a variable.
+  Use `this.$data['default']` instead. [`this.$data` stories all properties](#thisdataproperty-stores-all-properties).
 
 
 ## Define property types using `<template attr:type="...">`
@@ -257,121 +264,57 @@ For example, when you add this to your page:
 ```
 
 
-## Fetch URLs as text using the `:urltext` type
+## Update multiple properties with `.update()`
 
-To fetch a URL as text, specify `:urltext` as the property type. For example, this `<fetch-text>`
-component displays "Loading..." until a URL is loaded, and then displays its text.
-
-```html
-<template $name="fetch-text" src:urltext="">
-  <% if (src === null) { %>
-    Loading...
-  <% } else { %>
-    <%= src %>
-  <% } %>
-</template>
-<fetch-text src="page.txt"></fetch-text>
-```
-
-... it renders the contents of [page.txt](test/page.txt) as text:
-
-```text
-Contents of page.txt
-```
-
-The `:urltext` property is null until it is loaded. Once loaded, it has the text from the URL.
-
-To reload the URL and re-render, you can set `.src = 'page.pxt'` or `.update({src: 'page.txt'})`:
-
-```js
-document.querySelector('.fetch-text').src = 'page.txt'
-// OR
-document.querySelector('.fetch-text').update({ src: 'page.txt' })
-```
-
-You can set the property to another URL (which is fetched) or a non-string JS object (which is used as-is).
-For example:
-
-```js
-document.querySelector('.fetch-text').src = 'page2.txt'   // Loads page2.txt, re-renders
-document.querySelector('.fetch-text').src = null          // Sets src=null, re-renders
-```
-
-<!-- TODO: to set .src to a string, use .update({ src: 'result', { noparse: true } }) -->
-
-## Fetch URLs as JSON using the `:urljson` type
-
-To fetch a URL as JSON, specify `:urljson` as the property type. For example, this `<fetch-json>`
-component displays "Loading..." until a URL is loaded, and then displays its JSON.
+You can change multiple properties together using `.update({'attr-1': val, 'attr-2': val})`. For
+example, this component has 2 properties, `char` and `repeat-value`:
 
 ```html
-<template $name="fetch-json" src:urljson="">
-  <% if (src === null) { %>
-    Loading...
-  <% } else { %>
-    <%= JSON.stringify(src) %>
-  <% } %>
+<template $name="repeat-props" char="★" repeat-value:number="10">
+  ${char.repeat(repeatValue)}
 </template>
-<fetch-url src="page.json"></fetch-url>
+<repeat-props char="★" repeat-value="10"></repeat-props>
 ```
 
-... it renders the contents of [page.json](test/page.json):
-
-```text
-{"text":"abc","number":10,"object":{"x":[1,2,3]}}
-```
-
-The `:urljson` property is null until it is loaded. Once loaded, it has the contents of the URL as a JavaScript object.
-
-To reload the URL and re-render, you can set `.src = 'page.json'` or `.update({src: 'page.json'})`:
-
-```js
-document.querySelector('.fetch-json').src = 'page.json'
-// OR
-document.querySelector('.fetch-json').update({ src: 'page.json' })
-```
-
-You can set the property to another URL (which is fetched) or a non-string JS object (which is used as-is).
-For example:
-
-```js
-document.querySelector('.fetch-json').src = 'page2.json'  // Loads page2.json, re-renders
-document.querySelector('.fetch-json').src = {x: 1}        // Sets src={x:1}, re-renders
-```
-
-
-## Fetch URLs using the `:url` type
-
-To fetch a URL as text, specify `:url` as the property type. For example, this `<fetch-page>`
-component displays "Loading..." until a URL is loaded, and then displays it.
+When you add this script to your page:
 
 ```html
-<template $name="fetch-page" src:url="">
-  <% if (src === null) { %>
-    Loading...
-  <% } else { %>
-    <%= src.text %>
-  <% } %>
-</template>
-<fetch-page src="page.txt"></fetch-page>
+<script>
+  document.querySelector('repeat-props').update({
+    char: '⚡',
+    'repeat-value': 8       // Note: use 'repeat-value', not repeatValue
+  })
+</script>
 ```
 
-... it renders the contents of [page.txt](test/page.txt):
+... updates both `char` and `repeat-value` to generate this output:
 
-```text
-Contents of page.txt
+![update() changes multiple properties](docs/img/repeat-props.png)
+
+`.update()` also updates the attributes and re-renders the component. `.update()` takes a second dict with options:
+
+- `attr: false` does not update the attribute. Default: `true`
+- `render: false` does not re-render the component. Default: `true`
+
+For example, this updates the properties without changing the attributes and without re-rendering.
+
+```html
+<script>
+  document.querySelector('repeat-props').update({
+    char: '⚽',
+    'repeat-value': 5
+  }, { attr: false, render: false })
+</script>
 ```
 
-The `:url` property is null until it is loaded. Once loaded, it is a
-[Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object
-with one change: `.text` has the text of response. The following keys maybe useful:
+To just re-render the component without changing properties, use `.update()`.
 
-- `.headers`: response [headers](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)
-- `.status`: HTTP status code
-- `.statusText`: HTTP status message corresponding to the status code (e.g., OK for 200)
-- `.ok`: `true` if the HTTP status is the range 200-299
-- `.url`: The URL of the response -- after any redirections
-- `.text`: Text from the loaded page. This is **not a Promise**, but the actual text
+```html
+<script>
+  document.querySelector('repeat-props').update()
+</script>
+```
+
 
 ## Access component as `this` inside templates
 
@@ -426,56 +369,6 @@ For example, `<repeat-icons>` repeats everything under `class="x"` x times, and 
 
 🙂🙂🙂🙂🙂😡😡😡😡
 
-## Update multiple properties with `.update()`
-
-You can change multiple properties together using `.update({'attr-1': val, 'attr-2': val})`. For
-example, this component has 2 properties, `char` and `repeat-value`:
-
-```html
-<template $name="repeat-props" char="★" repeat-value:number="10">
-  ${char.repeat(repeatValue)}
-</template>
-<repeat-props char="★" repeat-value="10"></repeat-props>
-```
-
-When you add this script to your page:
-
-```html
-<script>
-  document.querySelector('repeat-props').update({
-    char: '⚡',
-    'repeat-value': 8       // Note: use 'repeat-value', not repeatValue
-  })
-</script>
-```
-
-... updates both `char` and `repeat-value` to generate this output:
-
-![update() changes multiple properties](docs/img/repeat-props.png)
-
-`.update()` also updates the attributes and re-renders the component. `.update()` takes a second dict with options:
-
-- `attr: false` does not update the attribute. Default: `true`
-- `render: false` does not re-render the component. Default: `true`
-
-For example, this updates the properties without changing the attributes and without re-rendering.
-
-```html
-<script>
-  document.querySelector('repeat-props').update({
-    char: '⚽',
-    'repeat-value': 5
-  }, { attr: false, render: false })
-</script>
-```
-
-To just re-render the component without changing properties, use `.update()`.
-
-```html
-<script>
-  document.querySelector('repeat-props').update()
-</script>
-```
 
 
 ## Style components with CSS
@@ -590,39 +483,55 @@ Rather than using global variables, we suggest you add methods to `uifactory.<co
 like `uifactory.textDiff = {...}` above.
 
 
-## Always delegate events
+## Use lifecycle events to render components using JavaScript
 
-`<script>` tags run *before the component is rendered*.
-So **ALWAYS use event delegation**.
+Components fire these events at different stages of their lifecycle:
 
-```js
-// DON'T DO THIS -- your component has not yet been added to the document!
-document.querySelector('<your-component>').addEventListener('<event>', function (e) {
-  // do what you want -- but it won't work
-})
-// INSTEAD, DO THIS. Listen to your event (e.g. "click") on document.body
-document.body.addEventListener('<your-event>', function (e) {
-  // Check if the clicked element is in YOUR component
-  let target = e.target.closest('<your-component>')
-  if (target) {
-    // do what you want
-  }
-})
+- `preconnect`: when the instance is created, but no properties are defined yet
+- `connect`: properties are defined, but external scripts may not be loaded
+- `prerender`: external scripts are loaded, but template not yet rendered
+- `render`: template is rendered
+- `disconnect`: element is disconnected from the DOM
+
+Add `<script onpreconnect>...</script>`, `<script onrender>...</script>`, etc to create listeners.
+For example:
+
+```html
+<template $name="repeat-events" icon="★" value:number="1">
+  <script onrender>
+    /* globals e, icon, value */
+    console.log(e.type)   // "e" is the custom event. Prints "render"
+    // Listeners can use this (the component) and properties like in templates
+    this.innerHTML = icon.repeat(value)
+  </script>
+</template>
 ```
 
-For example, this is a component that toggles color when a button is clicked:
+Now, `<repeat-events icon="★" value="8"><repeat-events>` renders this output:
+
+![8 stars](docs/img/repeat-8-star.png)
+
+Notes:
+
+- You can add a listener to multiple events, like `<script onprerender onrender>`
+- You can add multiple listeners to an event, e.g. by repeating `<script onrender>...</script>`
+- You can add listeners using `this.addEventListener('render', ...)` too
+
+
+## Add listeners using lifecycle events
+
+The best place to add an event listener to your component is in `<script onrender>`.
+For example, this component toggles text red when a button is pressed.
 
 ```html
 <template $name="toggle-red">
   <style>
-    .red { color: red; }
+    toggle-red .red { color: red; }
   </style>
   <button>Toggle</button> <span>Some text</span>
-  <script>
-    document.body.addEventListener('click', function (e) {
-      let target = e.target.closest('toggle-red button')
-      if (target)
-        target.nextElementSibling.classList.toggle('red')
+  <script onrender>
+    this.querySelector('button').addEventListener('click', e => {
+      this.querySelector('span').classList.toggle('red')
     })
   </script>
 </template>
@@ -636,7 +545,7 @@ When you add the component to your page:
 
 ... it renders this output:
 
-![Add events via event delegation](docs/img/toggle-red.gif)
+![Add listeners via lifecycle events](docs/img/toggle-red.gif)
 
 
 ## Import components with `import="file.html"`
@@ -735,6 +644,128 @@ When you add the component to your page:
 **Strong text** and *italics*
 
 
+## Fetch URLs as text using the `:urltext` type
+
+To fetch a URL as text, specify `:urltext` as the property type. For example, this `<fetch-text>`
+component displays "Loading..." until a URL is loaded, and then displays its text.
+
+```html
+<template $name="fetch-text" src:urltext="">
+  <% if (src === null) { %>
+    Loading...
+  <% } else { %>
+    <%= src %>
+  <% } %>
+</template>
+<fetch-text src="page.txt"></fetch-text>
+```
+
+... it renders the contents of [page.txt](test/page.txt) as text:
+
+```text
+Contents of page.txt
+```
+
+This component will be **rendered twice** (and fire two `prerender`/`render` events.)
+
+1. The first happens immediately, before loading the URL. `src` is `null`. This is useful to display a "Loading..." sign
+2. The second happens after loading the URL. `src` now has the contents as text
+
+To reload the URL and re-render, you can set `.src = 'page.pxt'` or `.update({src: 'page.txt'})`:
+
+```js
+document.querySelector('.fetch-text').src = 'page.txt'
+// OR
+document.querySelector('.fetch-text').update({ src: 'page.txt' })
+```
+
+You can set the property to another URL (which is fetched) or a non-string JS object (which is used as-is).
+For example:
+
+```js
+document.querySelector('.fetch-text').src = 'page2.txt'   // Loads page2.txt, re-renders
+document.querySelector('.fetch-text').src = null          // Sets src=null, re-renders
+```
+
+<!-- TODO: to set .src to a string, use .update({ src: 'result', { noparse: true } }) -->
+
+## Fetch URLs as JSON using the `:urljson` type
+
+To fetch a URL as JSON, specify `:urljson` as the property type. For example, this `<fetch-json>`
+component displays "Loading..." until a URL is loaded, and then displays its JSON.
+
+```html
+<template $name="fetch-json" src:urljson="">
+  <% if (src === null) { %>
+    Loading...
+  <% } else { %>
+    <%= JSON.stringify(src) %>
+  <% } %>
+</template>
+<fetch-url src="page.json"></fetch-url>
+```
+
+... it renders the contents of [page.json](test/page.json):
+
+```text
+{"text":"abc","number":10,"object":{"x":[1,2,3]}}
+```
+
+This component will be **rendered twice** (and fire two `prerender`/`render` events.)
+
+1. The first happens immediately, before loading the URL. `src` is `null`. This is useful to display a "Loading..." sign
+2. The second happens after loading the URL. `src` now has the contents as JSON
+
+To reload the URL and re-render, you can set `.src = 'page.json'` or `.update({src: 'page.json'})`:
+
+```js
+document.querySelector('.fetch-json').src = 'page.json'
+// OR
+document.querySelector('.fetch-json').update({ src: 'page.json' })
+```
+
+You can set the property to another URL (which is fetched) or a non-string JS object (which is used as-is).
+For example:
+
+```js
+document.querySelector('.fetch-json').src = 'page2.json'  // Loads page2.json, re-renders
+document.querySelector('.fetch-json').src = {x: 1}        // Sets src={x:1}, re-renders
+```
+
+
+## Fetch URLs using the `:url` type
+
+To fetch a URL as text, specify `:url` as the property type. For example, this `<fetch-page>`
+component displays "Loading..." until a URL is loaded, and then displays it.
+
+```html
+<template $name="fetch-page" src:url="">
+  <% if (src === null) { %>
+    Loading...
+  <% } else { %>
+    <%= src.text %>
+  <% } %>
+</template>
+<fetch-page src="page.txt"></fetch-page>
+```
+
+... it renders the contents of [page.txt](test/page.txt):
+
+```text
+Contents of page.txt
+```
+
+This component will be **rendered twice** (and fire two `prerender`/`render` events.)
+
+1. The first happens immediately, before loading the URL. `src` is `null`. This is useful to display a "Loading..." sign
+2. The second happens after loading the URL. `src` now has the contents as
+   a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object with these keys:
+   - `.headers`: response [headers](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)
+   - `.status`: HTTP status code
+   - `.statusText`: HTTP status message corresponding to the status code (e.g., OK for 200)
+   - `.ok`: `true` if the HTTP status is the range 200-299
+   - `.url`: The URL of the response -- after any redirections
+   - `.text`: Text from the loaded page. This is **not a Promise**, but the actual text
 
 -------------------------------------------------
 
@@ -769,22 +800,26 @@ The object has these keys:
 - `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
 
 
-## `el.$data[property]` stores all properties
+## `this.$data[property]` stores all properties
 
-All properties are stored in `el.$data` as an object. For example:
+All properties are stored in `this.$data` as an object. You can read and write these values.
+For example, this `<print-default>` component changes the default attribute before rendering:
 
 ```html
-<script>
-let el = document.querySelector('repeat-html')  // Find first <repeat-html>
-console.log(el.$data)                            // Prints { "value": ".." }
-el.$data.value = 12                              // Re-renders with new value
-</script>
+<template $name="print-default" default="old">
+  <script onprerender>
+    console.log(this.$data)     // Prints { "default": "old" }
+    this.$data.default = 'new'  // Updates default value
+  </script>
+  <%= this.$data.default %>
+</template>
 ```
 
-For example, if you define a `<template query-selector="xx">`, will `el.querySelector` be "xx" or the
-[el.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector) function?
+Normally, properties are ALSO accessible as `this.<attributeName>`.
+But if you define a `<template query-selector="xx">`, will `this.querySelector` be "xx" or the
+[this.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector) function?
 
-ANS: `el.querySelector` is the function. `el.$data.querySelector` holds "xx".
+ANS: `this.querySelector` is the function. `this.$data.querySelector` holds "xx".
 
 This is be useful if you don't know whether a property is defined or not.
 For example, when you add this to your page:
@@ -1016,27 +1051,6 @@ When check if it has been ready, use:
 It turns the `<strong>` element red when it's ready:
 
 ![When ready, element is rendered](docs/img/text-diff2.png)
-
-
-## Every render triggers a `render` event
-
-Every time a component is rendered, it fires a `render` event.
-
-```html
-<template $name="repeat-event" value:number="10">
-  ${this.innerHTML.repeat(value)}
-</template>
-
-<repeat-event>★</repeat-event>
-```
-
-For example, this code logs the `.value` of the component every time it is rendered:
-
-```js
-  let el = document.querySelector('repeat-event')
-  el.addEventListener('render', e => console.log(e.target.value))
-  el.value = 3
-```
 
 
 ## Get registered components from `uifactory.components`
