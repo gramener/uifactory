@@ -1,0 +1,265 @@
+<template $name="bs5-input" type="" title="" placeholder="" bs5-class="" maxLength:number="" default="" media=""
+    items:array="" height:number="" width:number="" help="" html-content="" prefix-item="" suffix-item=""
+    title-placement="">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <style>
+        /* TODO: Should these be global, given that it should be theme-based? */
+        bs5-input {
+            --box-shadow: 0px 2px 4px #d3d3d3;
+            --text-color: #212529;
+            --border-color: #cecece;
+            --error: #dc3545;
+            --placeholder-color: rgb(117, 117, 117);
+            --focus-blue: #0d6efd;
+            --focus-bg-grey: #c2bfbf2d;
+            --upload_file-bg: rgba(26, 118, 189, 0.1);
+            --upload-file-border: rgba(126, 170, 205, 0.5);
+            --btn-primary: #1979C2;
+            --txt-white: #fff;
+            --white-bg: #fff;
+            --secondary-color: #1979C2;
+            --disabled-color: #A1A1A1;
+        }
+
+        bs5-input input:hover {
+            box-shadow: var(--box-shadow)
+        }
+
+        bs5-input input:focus {
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+            outline: 0 !important;
+            box-shadow: var(--box-shadow) !important;
+        }
+
+        bs5-input[disabled='true']>*,
+        bs5-input[disabled='true'] :hover {
+            color: #a1a1a1;
+            box-shadow: none
+        }
+
+        bs5-input[bs5-class=error] input {
+            border-color: var(--error);
+        }
+
+        bs5-input[bs5-class=error] input:focus {
+            border-color: var(--error) !important;
+        }
+
+        bs5-input input:focus::-webkit-input-placeholder {
+            color: var(--placeholder-color) !important;
+        }
+
+        bs5-input[type="checkbox"] input:hover:enabled {
+            border-color: var(--focus-blue);
+        }
+
+        bs5-input[type="checkbox"] input:disabled {
+            pointer-events: unset !important;
+            cursor: no-drop;
+        }
+
+        bs5-input textarea:hover {
+            box-shadow: var(--box-shadow)
+        }
+
+        bs5-input[type="textarea"] :focus {
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+            outline: 0 !important;
+            box-shadow: var(--box-shadow) !important;
+        }
+
+        bs5-input[type="textarea"][bs5-class=error] textarea {
+            border-color: var(--error);
+        }
+
+        bs5-input[type="textarea"][bs5-class=error] textarea:focus {
+            border-color: var(--error) !important;
+        }
+
+        bs5-input[type="textarea"] .badge {
+            background-color: var(--white-bg);
+            border: 1px solid var(--border-color);
+            left: 90% !important;
+            color: var(--bs-secondary) !important;
+        }
+
+        bs5-input[type="select"] :hover {
+            box-shadow: var(--box-shadow)
+        }
+
+        bs5-input .form-select:focus {
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+            outline: 0 !important;
+            box-shadow: var(--box-shadow) !important;
+        }
+
+        bs5-input select option {
+            background: var(--white-bg);
+            color: rgb(0, 0, 0);
+            top: 10em;
+            border: 1px solid var(--border-color);
+        }
+
+        bs5-input[type="switch"] input:hover:enabled {
+            border-color: var(--focus-blue);
+        }
+
+        bs5-input[type="switch"] input:disabled {
+            pointer-events: unset !important;
+            cursor: no-drop;
+        }
+
+        bs5-input[disabled]>* {
+            pointer-events: unset !important;
+            cursor: no-drop;
+            opacity: 0.5;
+        }
+
+        bs5-input[disabled]>* :hover {
+            box-shadow: none;
+        }
+
+        bs5-input .dropdown-menu.show > * {
+            display: block;
+            padding: 5px 10px;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <% let disabledAttr = this.hasAttribute('disabled') %>
+    <% if (type == "text" || type == "email" || type == "password" || type =="number" || type == "search") { %>
+      <% if (prefixItem.trim().length != 0 && suffixItem.trim().length != 0) { %>
+        <label for="basic-url" class="mb-3"> <%- title %> </label>
+        <div class="input-group mb-3">
+          <div class="input-group-prepend">
+            <span class="input-group-text"><%= prefixItem %></span>
+          </div>
+          <input type="text" class="form-control">
+          <div class="input-group-append">
+            <span class="input-group-text"><%= suffixItem %></span>
+          </div>
+        </div>
+      <% } else { %>
+        <% if (titlePlacement.trim() == 'inline' || titlePlacement.trim() == 'block'){ %>
+          <% let placeTitle = titlePlacement.trim() == 'inline' ? 'col-sm-2' : '' %>
+          <div class="form-group row">
+            <label for="inputPassword" class="<%- placeTitle %> col-form-label"><%- title %></label>
+            <div class="col-sm-10">
+              <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>" value="<%- obj.default %>"
+                  class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>" aria-describedby="helpText"
+                  style="background: url(<%- media %>) no-repeat right 5px top 3px" ; />
+              <small id="helpText" class="form-text text-muted"><%- help %></small>
+            </div>
+          </div>
+        <% } else { %>
+          <div class="form-floating mb-3">
+            <% if(disabledAttr) {  %>
+            <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>"
+                class="form-control <%- bs5Class %>" disabled />
+            <% }else{ %>
+            <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>"
+                class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>" aria-describedby="helpText"
+                value="<%- obj.default %>" style="background: url(<%- media %>) no-repeat right 5px top 15px" />
+            <small id="helpText" class="form-text text-muted"><%- help %></small>
+            <% }%>
+            <label><%= title %></label>
+          </div>
+        <% } %>
+      <% } %>
+    <% } else if (type =="textarea") { %>
+      <div class="form-floating">
+        <span class="position-absolute top-0 translate-middle badge">
+            <span class="word-count"></span> / <%- maxlength %>
+        </span>
+        <textarea class="form-control <%- bs5Class %>" placeholder="Leave a comment here" id="floatingTextarea2"
+            style="height: <%- height %>px" aria-describedby="helpText"></textarea>
+        <label for="floatingTextarea2"><%= title %></label>
+        <small id="helpText" class="form-text text-muted"><%- help %></small>
+      </div>
+      <script oninput>
+        this.querySelector('.word-count').textContent = e.target.value.length
+      </script>
+    <% } else if (type == "select") { %>
+      <% if (disabledAttr) { %>
+        <select class="form-select" disabled>
+          <% for(var i = 0; i < items.length; i++) { %>
+            <option value="<%- i %>"><%- items[i] %></option>
+          <% } %></select>
+      <% } else { %>
+        <select class="form-select" aria-describedby="helpText">
+            <% for(var i = 0; i < items.length; i++) { %>
+            <option value="<%- i %>"><%- items[i] %></option>
+            <% } %>
+        </select>
+        <small id="helpText" class="form-text text-muted"><%- help %></small>
+      <% } %>
+    <% } else if (type == "checkbox" || type == "radio") { %>
+      <% for (var i = 0; i < items.length; i++) { %>
+        <% if (disabledAttr) { %>
+          <div class="form-check"><input class="form-check-input" type="<%- type %>" default=""
+              id="flexCheckDefault <%= i %>" name="flexRadioDefault" disabled>
+        <% } else { %>
+          <% if ($.inArray(items[i], obj.default) > -1) { %>
+            <div class="form-check"> <input class="form-check-input" type="<%- type %>" default=""
+                id="flexCheckDefault <%= i %>" name="flexRadioDefault" checked>
+          <% } else { %>
+              <div class="form-check"> <input class="form-check-input" type="<%- type %>" default=""
+                  id="flexCheckDefault <%= i %>" name="flexRadioDefault">
+          <% } %>
+        <% } %>
+        <label class="form-check-label" for="flexCheckDefault <%= i %>"><%- items[i] %></label>
+      </div>
+        </br>
+
+        <% } %>
+        <% } else if (type == "switch") { %>
+
+        <% for(var i = 0; i < items.length; i++) { %>
+        <div class="form-switch">
+            <% if(disabledAttr) { %>
+            <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>" name="flexRadioDefault"
+                disabled>
+            <% }else{ %>
+                <% if($.inArray(items[i], obj.default) > -1) { %>
+            <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>"
+                name="flexRadioDefault" checked>
+                <% } else { %>
+                    <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>"
+                    name="flexRadioDefault">
+                    <% } %>
+
+            <%}   %>
+            <label class="form-check-label" for="switchBtn <%= i %>">
+                <%- items[i] %>
+            </label>
+        </div>
+        </br>
+        <% } %>
+        <% } else if (type == "dropdown") { %>
+
+        <div class="dropdown">
+            <% if (disabledAttr) { %>
+            <button class="btn btn-primary  dropdown-toggle" type="button" id="dropdownMenuButton1"
+                data-bs-toggle="dropdown" aria-expanded="false" aria-describedby="helpText" disabled>
+                <% } else { %>
+                <button class="btn btn-primary  dropdown-toggle" type="button" id="dropdownMenuButton1"
+                    data-bs-toggle="dropdown" aria-expanded="false" aria-describedby="helpText">
+                    <%} %>
+                    <%= title%>
+                </button>
+                <small id="helpText" class="form-text text-muted"><%- help %></small>
+                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                    <slot></slot>
+                </div>
+        </div>
+
+        <% } else { %>
+        incorrect input field type
+        <% } %>
+
+</template>
