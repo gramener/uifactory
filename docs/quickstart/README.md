@@ -279,9 +279,9 @@ To create this, change the `<p>We will add some text here about performance.</p>
 [See on CodePen](https://codepen.io/sanand0/pen/xxrYwJM?editors=1000)
 
 
-## 10. Put it together in the dashboard
+## 10. Consolidate into the dashboard
 
-Now, let's re-write the dashboad component to be able to accept the status like this:
+Now, let's re-write the dashboard component to be able to accept the status like this:
 
 ```html
 <kpi-dashboard status:js="{Speed: [80, 120], 'Fuel used': [15, 40], Temperature: [90, 100]}"></kpi-dashboard>
@@ -304,7 +304,33 @@ and value attributes:
 [See on CodePen](https://codepen.io/sanand0/pen/GREQoKj?editors=1000)
 
 
-## 11. Distribute components as files
+## 11. Make it interactive
+
+Let's test this component with different values. When it's clicked, we'll replace the numbers with
+a random value.
+
+To do this, we add an event handler inside `<script onclick>...</script>`, like this:
+
+```html
+<!-- Create the dashboard component -->
+<template $name="kpi-dashboard" status:js="">
+  <% for (let key in status) { %>
+    <kpi-card title="${key}" value="${status[key][0]}" limit="${status[key][1]}"></kpi-card>
+  <% } %>
+  <script onclick>
+    let v = Math.round(Math.random() * 100)
+    // 'this' is the component instance. Updating an attribute re-renders it
+    this.status = {Speed: [v, 120], 'Fuel used': [v, 40], Temperature: [v, 100]}
+  </script>
+</template>
+```
+
+![Dashboard with interaction](img/kpi-dashboard-interactive.gif)
+
+[See on CodePen](https://codepen.io/sanand0/pen/qBjYEzd?editors=1000)
+
+
+## 12. Distribute components as files
 
 These web components can be stored in a HTML file. The filename is the same as component name, by
 convention. This component is saved at [`kpi-dashboard.html`](kpi-dashboard.html).
@@ -318,7 +344,7 @@ To use it in your application, add:
 Note the `import="kpi-dashboard.html"` in the 2nd line. That makes `<kpi-dashboard>` available to
 use in your page.
 
-## 12. Use it with Angular or React or Vue
+## 13. Use it with Angular or React or Vue
 
 Frameworks like Angular, React or Vue focus on building applications.
 

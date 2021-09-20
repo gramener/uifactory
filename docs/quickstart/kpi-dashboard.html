@@ -61,4 +61,10 @@
   <% for (let key in status) { %>
     <kpi-card title="${key}" value="${status[key][0]}" limit="${status[key][1]}"></kpi-card>
   <% } %>
+  <h2>Click anywhere to randomize</h2>
+  <script onclick>
+    let v = Math.round(Math.random() * 100)
+    // 'this' is the component instance. Updating an attribute re-renders it
+    this.status = {Speed: [v, 120], 'Fuel used': [v, 40], Temperature: [v, 100]}
+  </script>
 </template>
