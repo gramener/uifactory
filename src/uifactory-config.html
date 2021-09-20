@@ -1,0 +1,19 @@
+<template $name="uifactory-config" component="comic-gen">
+  <% for (let [name, info] of Object.entries(uifactory.components[component])) { %>
+    <bs5-input type="text" title="<%= name %>"></bs5-input>
+  <% } %>
+</template>
+
+
+
+
+
+<script src="uifactory.js" import="@svg-chart @bs5-input"></script>
+<button>Render</button>
+<div id="output"></div>
+
+<script>
+  document.querySelector('button').addEventListener('click', function () {
+    document.querySelector('#output').innerHTML = `<uifactory-config component="svg-chart"></uifactory-config>`
+  })
+</script>
