@@ -199,60 +199,8 @@
 
       // Called when element is connected to the parent. "this" is the HTMLElement.
       connectedCallback() {
-        // Fire a preconnect event. At this point, $data has no attributes
-        this.dispatchEvent(new CustomEvent('preconnect', { bubbles: true }))
-
-        // Clone instance contents for future reference
-        this.$contents = this.cloneNode(true)
-
-        // Update properties from template attributes
-        for (let [propName, propInfo] of Object.entries(this.$properties)) {
-          this.update({ [propName]: propInfo.value }, { attr: false, render: false })
-        }
-        // Override with properties from instance attributes
-        let hasTypedAttribute = false
-        for (let attr of this.attributes) {
-          let [name, type] = attr.name.split(':')
-          // If the name has a : in it (e.g. x:number), add it as a typed property
-          if (type)
-            hasTypedAttribute = this.$properties[name] = { type, value: attr.value}
-          // If the name is a property, update it.
-          // Note: If the template has name:type=, but component has just name=, we STILL update it
-          if (name in this.$properties)
-            this.update({ [name]: attr.value }, { attr: false, render: false })
-        }
-
-        // Getting / setting properties updates the .$data model.
-        for (let name in this.$properties) {
-          let property = camelize(name)
-          // If the property is already in HTMLElement, don't override it
-          if (!(property in this)) {
-            Object.defineProperty(this, property, {
-              get: () => this.$data[property],
-              // When property is updated, change the attribute, and re-render.
-              // eslint-disable-next-line no-setter-return
-              set: val => this.update({ [property]: val })
-            })
-          }
-        }
-
-        // If any instance attribute is typed, observe all attributes. Update on any typed attribute change
-        if (hasTypedAttribute)
-          observer.observe(this, { attributes: true })
-
-        // Wait for external scripts to get loaded. Then render.
-        scriptsResolve.then(() => {
-          // Add lifecycle events
-          for (let [eventName, listeners] of Object.entries(eventScripts)) {
-            listeners.forEach(listener => this.addEventListener(eventName, listener))
-          }
-          // Render the component
-          renderComponent.call(this)
-        })
-
-        // Fire a connect event. At this point, $data has attributes, but external scripts
-        // may not be loaded, and contents have not been rendered.
-        this.dispatchEvent(new CustomEvent('connect', { bubbles: true }))
+        // Wait for external scripts to get loaded. Then connect the
+        scriptsResolve.then(() => connectComponent.call(this))
       }
 
       disconnectedCallback() {
@@ -317,6 +265,62 @@
       attributeChangedCallback(name, oldValue, value) {
         this.update({ [name]: value }, { attr: false, render: true })
       }
+    }
+
+    function connectComponent() {
+      // Add lifecycle events first, to allow preconnect
+      for (let [eventName, listeners] of Object.entries(eventScripts)) {
+        listeners.forEach(listener => this.addEventListener(eventName, listener))
+      }
+
+      // Fire a preconnect event. At this point, $data has no attributes
+      this.dispatchEvent(new CustomEvent('preconnect', { bubbles: true }))
+
+      // Clone instance contents for future reference
+      this.$contents = this.cloneNode(true)
+
+      // Update properties from template attributes
+      for (let [propName, propInfo] of Object.entries(this.$properties)) {
+        this.update({ [propName]: propInfo.value }, { attr: false, render: false })
+      }
+
+      // Override with properties from instance attributes
+      let hasTypedAttribute = false
+      for (let attr of this.attributes) {
+        let [name, type] = attr.name.split(':')
+        // If the name has a : in it (e.g. x:number), add it as a typed property
+        if (type)
+          hasTypedAttribute = this.$properties[name] = { type, value: attr.value }
+        // If the name is a property, update it.
+        // Note: If the template has name:type=, but component has just name=, we STILL update it
+        if (name in this.$properties)
+          this.update({ [name]: attr.value }, { attr: false, render: false })
+      }
+
+      // Getting / setting properties updates the .$data model.
+      for (let name in this.$properties) {
+        let property = camelize(name)
+        // If the property is already in HTMLElement, don't override it
+        if (!(property in this)) {
+          Object.defineProperty(this, property, {
+            get: () => this.$data[property],
+            // When property is updated, change the attribute, and re-render.
+            // eslint-disable-next-line no-setter-return
+            set: val => this.update({ [property]: val })
+          })
+        }
+      }
+
+      // If any instance attribute is typed, observe all attributes. Update on any typed attribute change
+      if (hasTypedAttribute)
+        observer.observe(this, { attributes: true })
+
+      // Fire a connect event. At this point, $data has attributes, but external scripts
+      // may not be loaded, and contents have not been rendered.
+      this.dispatchEvent(new CustomEvent('connect', { bubbles: true }))
+
+      // Render
+      renderComponent.call(this)
     }
 
     // Re-renders the object based on current and supplied properties.

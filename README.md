@@ -9,6 +9,7 @@ UIFactory is a small, easy library that creates web components.
 - **It's small**. <4 KB compressed
 - **It's compliant** with the [Web Components](https://developer.mozilla.org/en-US/docs/Web/Web_Components) standard. Works on all modern browsers
 - **It's easy to learn**. Write any HTML, CSS and JS and wrap it in a `<template>` componentize it.
+- **No compilation**. No server. No hosting. Just save to and edit a HTML file.
 
 It's [MIT licensed](LICENSE).
 
@@ -104,9 +105,9 @@ There are 3 kinds of template tags you can use:
 3. **`<%- ... %>` renders JavaScript, HTML-escaped**. e.g., ``<%- `<b>${2 + 3}</b>` %>`` renders `<b>5</b>` in bold
 
 
-## Use `<slot>`s in templates
+## Use `<slot>` in templates
 
-Use [`<slot>`s in `<template>`s](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
+Use [`<slot>` in `<template>`](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
 to replace content. For example:
 
 ```html
@@ -489,13 +490,24 @@ Rather than using global variables, we suggest you add methods to `uifactory.<co
 like `uifactory.textDiff = {...}` above.
 
 
-## Use lifecycle events to render components using JavaScript
+## Add events with `<script on...>`
+
+To add an `click` event listener to your component, write the code inside a
+`<script onclick>...</script>`, like this:
+
+```html
+<template $name="bg-color" color="red">
+  TODO
+</template>
+```
+
+## Lifecycle events are supported
 
 Components fire these events at different stages of their lifecycle:
 
 - `preconnect`: when the instance is created, but no properties are defined yet
-- `connect`: properties are defined, but external scripts may not be loaded
-- `prerender`: external scripts are loaded, but template not yet rendered
+- `connect`: properties are defined, but external scripts & event listeners may not be available
+- `prerender`: external scripts & event listeners are available, but template not yet rendered
 - `render`: template is rendered
 - `disconnect`: element is disconnected from the DOM
 
@@ -506,8 +518,8 @@ For example:
 <template $name="repeat-events" icon="★" value:number="1">
   <script onrender>
     /* globals e, icon, value */
-    console.log(e.type)   // "e" is the custom event. Prints "render"
-    // Listeners can use this (the component) and properties like in templates
+    console.log(e.type)   // Prints "render". "e" is the custom event
+    // "this" is your component. "icon" and "value" are properties defined above
     this.innerHTML = icon.repeat(value)
   </script>
 </template>
@@ -528,9 +540,11 @@ Notes:
   - `e` is the [custom event](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent) fired by the component
 
 
-## Add listeners using lifecycle events
+## Add listeners inside lifecycle events
 
-The best place to add an event listener to your component is in `<script onrender>`.
+The best place to add an event listeners to your component's **child elements** is after they're
+rendered, i.e. in `<script onrender>`.
+
 For example, this component toggles text red when a button is pressed.
 
 ```html
@@ -540,7 +554,7 @@ For example, this component toggles text red when a button is pressed.
   </style>
   <button>Toggle</button> <span>Some text</span>
   <script onrender>
-    this.querySelector('button').addEventListener('click', e => {
+    this.querySelector('button').addEventListener('click', () => {
       this.querySelector('span').classList.toggle('red')
     })
   </script>
@@ -555,7 +569,7 @@ When you add the component to your page:
 
 ... it renders this output:
 
-![Add listeners via lifecycle events](docs/img/toggle-red.gif)
+![Add listeners inside lifecycle events](docs/img/toggle-red.gif)
 
 
 ## Import components with `import="file.html"`
@@ -805,7 +819,7 @@ The object has these keys:
 
 - `name`: component name, e.g. `"g-repeat"`
 - `template`: component contents as a [template](#lodash-templates-are-supported)
-- `properties`: OPTIONAL: mapping of [properties](#define-property-types-as-json) as `name: {value, type}` property definitions
+- `properties`: OPTIONAL: mapping of [properties](#define-properties-using-template-attr) as `name: {value, type}` property definitions
 - `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
 - `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
 
@@ -1232,7 +1246,7 @@ npm publish
 
 - 1.18.0 (19 Sep 2021):
   - Major API rewrite. See [migration to v1](docs/migration-v1.md)
-  - [Lifecycle events](#use-lifecycle-events-to-render-components-using-javascript)
+  - [Lifecycle events](#lifecycle-events-are-supported)
 - 0.0.17 (18 Sep 2021): Remove lodash dependency
 - 0.0.16 (1 Sep 2021):
   - `<style scoped>` applies style only to component
@@ -1242,7 +1256,7 @@ npm publish
 - 0.0.15 (11 Aug 2021): `@render:js` attribute supports [custom renderers](#use-any-renderer)
 - 0.0.14 (30 Jun 2021): `<comic-gen>` component added
 - 0.0.13 (29 Jun 2021): Minify code into `dist/uifactory.min.js`
-- 0.0.12 (25 Jun 2021): [`<slot>` support](#use-slots-in-templates)
+- 0.0.12 (25 Jun 2021): [`<slot>` support](#use-slot-in-templates)
 - 0.0.11 (17 Jun 2021): [`:urljson`](#fetch-urls-as-json-using-the-urljson-type) and
   [`:urltext`](#fetch-urls-as-text-using-the-urltext-type) types added.
   [`"import=@component-name"` support](#import-standard-components-with-importcomponent-name)

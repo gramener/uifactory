@@ -168,9 +168,9 @@ There are 3 kinds of template tags you can use:
 
 
 <!--
-## Use `<slot>`s in templates
+## Use `<slot>` in templates
 
-Use [`<slot>`s in `<template>`s](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
+Use [`<slot>` in `<template>`](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
 to render different parts. For example:
 
 ```html
@@ -1071,6 +1071,7 @@ Notes:
 
 <template $name="repeat-events" icon="★" value:number="1">
   Hello
+  <script src="externalscript.js"></script>
   <script onpreconnect>
     this.preconnect = {
       value: this.$data.value,
@@ -1136,7 +1137,7 @@ For example, this component toggles text red when a button is pressed.
   </style>
   <button>Toggle</button> <span>Some text</span>
   <script onrender>
-    this.querySelector('button').addEventListener('click', e => {
+    this.querySelector('button').addEventListener('click', () => {
       this.querySelector('span').classList.toggle('red')
     })
   </script>
@@ -1159,7 +1160,7 @@ When you add the component to your page:
   </style>
   <button>Toggle</button> <span>Some text</span>
   <script onrender>
-    this.querySelector('button').addEventListener('click', e => {
+    this.querySelector('button').addEventListener('click', () => {
       this.querySelector('span').classList.toggle('red')
     })
   </script>

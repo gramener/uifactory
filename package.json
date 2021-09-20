@@ -12,7 +12,7 @@
     "Samarth Gulati <samarth.gulati@gramener.com>"
   ],
   "scripts": {
-    "lint": "remark -q --no-stdout -u validate-links README.md && eslint src/*.html test/*.js test/*.html",
+    "lint": "remark -q --no-stdout -u validate-links README.md && eslint src/*.js src/*.html test/*.js test/*.html",
     "build": "node build.js",
     "pretest": "npm run lint && browserify -s tape -r tape -o test/tape.js",
     "test": "node test/server.js",
