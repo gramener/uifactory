@@ -10,6 +10,8 @@ We'll build a simple dashboard showing KPI cards that looks like this:
 
 ![Final dashboard](img/kpi-dashboard-narrative.png)
 
+[![Watch on YouTube](img/youtube.svg)](https://youtu.be/mamSpo••Wa8BM)
+
 ## 1. Create a CodePen
 
 [Create a CodePen](https://codepen.io/pen/?editors=1000) by visiting `https://codepen.io/pen/`. Name it `kpi-card`.
