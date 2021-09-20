@@ -1035,6 +1035,61 @@ They run only once (even if you use the component multiple times.)
 
 
 <!--
+## Add events with `<script on...>`
+
+To add an `click` event listener to your component, write the code inside a
+`<script onclick>...</script>`, like this:
+
+```html
+<template $name="count-items" count:number="0" step:number="2" event="">
+  Counted ${count} items -- ${step} every ${event} event.
+  <script onclick>
+    // 'this' is the component instance
+    // You can also access properties (count, step, event, etc.) as variables
+    this.count += step
+    // 'e' is the click event
+    this.event = e.type
+  </script>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<count-items></count-items>
+```
+
+... it renders this output:
+
+![Click event demo](docs/img/count-items.gif)
+-->
+<template $name="count-items" count:number="0" step:number="2" event="">
+  Counted ${count} items -- ${step} every ${event} event.
+  <script onclick>
+    /* globals e, step */
+    // 'this' is the component instance
+    // You can also access properties (count, step, event, etc.) as variables
+    this.count += step
+    // 'e' is the click event
+    this.event = e.type
+  </script>
+</template>
+<count-items></count-items>
+<script>
+  tape('Add events with `<script on...>`', function (t) {
+    let el = document.querySelector('count-items')
+    t.equals(el.innerHTML.trim(), 'Counted 0 items -- 2 every  event.', 'count-items 0')
+    el.click()
+    t.equals(el.innerHTML.trim(), 'Counted 2 items -- 2 every click event.', 'count-items 1')
+    el.click()
+    t.equals(el.innerHTML.trim(), 'Counted 4 items -- 2 every click event.', 'count-items 2')
+    t.end()
+  })
+</script>
+
+
+
+<!--
 ## Use lifecycle events to render components using JavaScript
 
 Components fire these events at different stages of their lifecycle:
@@ -1121,60 +1176,6 @@ Notes:
     el.value = 4
     el.addEventListener('render', e => t.equals(e.target.value, 5), { once: true })
     el.value = 5
-  })
-</script>
-
-<!--
-## Add listeners using lifecycle events
-
-The best place to add an event listener to your component is in `<script onrender>`.
-For example, this component toggles text red when a button is pressed.
-
-```html
-<template $name="toggle-red">
-  <style>
-    toggle-red .red { color: red; }
-  </style>
-  <button>Toggle</button> <span>Some text</span>
-  <script onrender>
-    this.querySelector('button').addEventListener('click', () => {
-      this.querySelector('span').classList.toggle('red')
-    })
-  </script>
-</template>
-```
-
-When you add the component to your page:
-
-```html
-<toggle-red></toggle-red>
-```
-
-... it renders this output:
-
-![Add listeners via lifecycle events](docs/img/toggle-red.gif)
--->
-<template $name="toggle-red">
-  <style>
-    toggle-red .red { color: red; }
-  </style>
-  <button>Toggle</button> <span>Some text</span>
-  <script onrender>
-    this.querySelector('button').addEventListener('click', () => {
-      this.querySelector('span').classList.toggle('red')
-    })
-  </script>
-</template>
-<toggle-red></toggle-red>
-
-<script>
-  tape('Add listeners using lifecycle events', function (t) {
-    let el = document.querySelector('toggle-red')
-    let span = el.querySelector('span')
-    t.notOk(span.classList.contains('red'))
-    el.querySelector('button').click()
-    t.ok(span.classList.contains('red'))
-    t.end()
   })
 </script>
 

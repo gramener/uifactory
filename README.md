@@ -496,20 +496,38 @@ To add an `click` event listener to your component, write the code inside a
 `<script onclick>...</script>`, like this:
 
 ```html
-<template $name="bg-color" color="red">
-  TODO
+<template $name="count-items" count:number="0" step:number="2" event="">
+  Counted ${count} items -- ${step} every ${event} event.
+  <script onclick>
+    // 'this' is the component instance
+    // You can also access properties (count, step, event, etc.) as variables
+    this.count += step
+    // 'e' is the click event
+    this.event = e.type
+  </script>
 </template>
 ```
+
+When you add the component to your page:
+
+```html
+<count-items></count-items>
+```
+
+... it renders this output:
+
+![Click event demo](docs/img/count-items.gif)
+
 
 ## Lifecycle events are supported
 
 Components fire these events at different stages of their lifecycle:
 
-- `preconnect`: when the instance is created, but no properties are defined yet
-- `connect`: properties are defined, but external scripts & event listeners may not be available
-- `prerender`: external scripts & event listeners are available, but template not yet rendered
-- `render`: template is rendered
-- `disconnect`: element is disconnected from the DOM
+- `preconnect`: when the instance is created, before properties are defined
+- `connect`: when the instance is created, after properties are defined
+- `prerender`: when the instance is about to be rendered
+- `render`: when the instance is rendered
+- `disconnect`: when the element is disconnected from the DOM
 
 Add `<script onpreconnect>...</script>`, `<script onrender>...</script>`, etc to create listeners.
 For example:
@@ -538,38 +556,6 @@ Notes:
   - [`this` is the component itself](#access-component-as-this-inside-templates)
   - [All properties are available as variables](#access-properties-as-variables-inside-templates)
   - `e` is the [custom event](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent) fired by the component
-
-
-## Add listeners inside lifecycle events
-
-The best place to add an event listeners to your component's **child elements** is after they're
-rendered, i.e. in `<script onrender>`.
-
-For example, this component toggles text red when a button is pressed.
-
-```html
-<template $name="toggle-red">
-  <style>
-    toggle-red .red { color: red; }
-  </style>
-  <button>Toggle</button> <span>Some text</span>
-  <script onrender>
-    this.querySelector('button').addEventListener('click', () => {
-      this.querySelector('span').classList.toggle('red')
-    })
-  </script>
-</template>
-```
-
-When you add the component to your page:
-
-```html
-<toggle-red></toggle-red>
-```
-
-... it renders this output:
-
-![Add listeners inside lifecycle events](docs/img/toggle-red.gif)
 
 
 ## Import components with `import="file.html"`
