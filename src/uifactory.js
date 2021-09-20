@@ -195,11 +195,6 @@
         // INTERNAL variables -- not guaranteed to remain
         // this.$resolve is a resolve promise. Called when component is ready
         // this.$updating: Is the component currently being updated?
-
-        // Add lifecycle events
-        for (let [eventName, listeners] of Object.entries(eventScripts)) {
-          listeners.forEach(listener => this.addEventListener(eventName, listener))
-        }
       }
 
       // Called when element is connected to the parent. "this" is the HTMLElement.
@@ -246,7 +241,14 @@
           observer.observe(this, { attributes: true })
 
         // Wait for external scripts to get loaded. Then render.
-        scriptsResolve.then(() => renderComponent.call(this))
+        scriptsResolve.then(() => {
+          // Add lifecycle events
+          for (let [eventName, listeners] of Object.entries(eventScripts)) {
+            listeners.forEach(listener => this.addEventListener(eventName, listener))
+          }
+          // Render the component
+          renderComponent.call(this)
+        })
 
         // Fire a connect event. At this point, $data has attributes, but external scripts
         // may not be loaded, and contents have not been rendered.
