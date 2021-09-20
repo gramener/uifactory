@@ -1,4 +1,4 @@
-<template $name="bs5-input" type="" title="" placeholder="" bs5-class="" maxLength:number="" default="" media=""
+<template $name="bs5-input" type="text" title="" placeholder="" bs5-class="" maxLength:number="" default="" media=""
     items:array="" height:number="" width:number="" help="" html-content="" prefix-item="" suffix-item=""
     title-placement="">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -192,9 +192,9 @@
           <% } %></select>
       <% } else { %>
         <select class="form-select" aria-describedby="helpText">
-            <% for(var i = 0; i < items.length; i++) { %>
+          <% for(var i = 0; i < items.length; i++) { %>
             <option value="<%- i %>"><%- items[i] %></option>
-            <% } %>
+          <% } %>
         </select>
         <small id="helpText" class="form-text text-muted"><%- help %></small>
       <% } %>
