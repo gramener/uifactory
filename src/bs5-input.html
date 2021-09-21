@@ -133,8 +133,8 @@
         integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <% let disabledAttr = this.hasAttribute('disabled') %>
     <% if (type == "text" || type == "email" || type == "password" || type =="number" || type == "search") { %>
-      <% if (prefixItem.trim().length != 0 && suffixItem.trim().length != 0) { %>
-        <label for="basic-url" class="mb-3"> <%- title %> </label>
+      <% if (prefixItem.length != 0 && suffixItem.length != 0) { %>
+        <label for="inputGroup" class="mb-3"> <%- title %> </label>
         <div class="input-group mb-3">
           <div class="input-group-prepend">
             <span class="input-group-text"><%= prefixItem %></span>
@@ -145,12 +145,12 @@
           </div>
         </div>
       <% } else { %>
-        <% if (titlePlacement.trim() == 'inline' || titlePlacement.trim() == 'block'){ %>
-          <% let placeTitle = titlePlacement.trim() == 'inline' ? 'col-sm-2' : '' %>
+        <% if (titlePlacement == 'inline' || titlePlacement == 'block'){ %>
+          <% let placeTitle = titlePlacement == 'inline' ? 'col-sm-2' : '' %>
           <div class="form-group row">
             <label for="inputPassword" class="<%- placeTitle %> col-form-label"><%- title %></label>
             <div class="col-sm-10">
-              <input type="<%- type %>" name="<%- title %>" placeholder="<%- placeholder %>" value="<%- obj.default %>"
+              <input type="<%- type %>" name="<%- title %>"  placeholder="<%- placeholder %>" value="<%- obj.default %>"
                   class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>" aria-describedby="helpText"
                   style="background: url(<%- media %>) no-repeat right 5px top 3px" ; />
               <small id="helpText" class="form-text text-muted"><%- help %></small>
@@ -173,13 +173,12 @@
       <% } %>
     <% } else if (type =="textarea") { %>
       <div class="form-floating">
-        <span class="position-absolute top-0 translate-middle badge">
-            <span class="word-count"></span> / <%- maxlength %>
-        </span>
-        <textarea class="form-control <%- bs5Class %>" placeholder="Leave a comment here" id="floatingTextarea2"
-            style="height: <%- height %>px" aria-describedby="helpText"></textarea>
-        <label for="floatingTextarea2"><%= title %></label>
-        <small id="helpText" class="form-text text-muted"><%- help %></small>
+            <span class="position-absolute top-0 translate-middle badge">
+            <span class="word-count"></span> / <%- maxlength %></span>
+            <textarea class="form-control <%- bs5Class %>" placeholder="Leave a comment here" id="floatingTextarea2"
+            style="height: <%- height %>px" aria-describedby="helpText" maxlength=" <%- maxlength %>"></textarea>
+            <label for="floatingTextarea2"><%= title %></label>
+            <small id="helpText" class="form-text text-muted"><%- help %></small>
       </div>
       <script oninput>
         this.querySelector('.word-count').textContent = e.target.value.length
@@ -199,67 +198,55 @@
         <small id="helpText" class="form-text text-muted"><%- help %></small>
       <% } %>
     <% } else if (type == "checkbox" || type == "radio") { %>
-      <% for (var i = 0; i < items.length; i++) { %>
+        <% for (var i = 0; i < items.length; i++) { %>
         <% if (disabledAttr) { %>
-          <div class="form-check"><input class="form-check-input" type="<%- type %>" default=""
+             <div class="form-check"><input class="form-check-input" type="<%- type %>" default=""
               id="flexCheckDefault <%= i %>" name="flexRadioDefault" disabled>
         <% } else { %>
-          <% if ($.inArray(items[i], obj.default) > -1) { %>
+        <% if ($.inArray(items[i], obj.default) > -1) { %>
             <div class="form-check"> <input class="form-check-input" type="<%- type %>" default=""
-                id="flexCheckDefault <%= i %>" name="flexRadioDefault" checked>
-          <% } else { %>
-              <div class="form-check"> <input class="form-check-input" type="<%- type %>" default=""
-                  id="flexCheckDefault <%= i %>" name="flexRadioDefault">
-          <% } %>
+                  id="flexCheckDefault <%= i %>" name="flexRadioDefault" checked>  </div>
+        <% } else { %>
+            <div class="form-check"> <input class="form-check-input" type="<%- type %>" default=""
+                  id="flexCheckDefault <%= i %>" name="flexRadioDefault">  </div>
+        <% } %>
         <% } %>
         <label class="form-check-label" for="flexCheckDefault <%= i %>"><%- items[i] %></label>
-      </div>
         </br>
-
         <% } %>
-        <% } else if (type == "switch") { %>
-
+    <% } else if (type == "switch") { %>
         <% for(var i = 0; i < items.length; i++) { %>
         <div class="form-switch">
             <% if(disabledAttr) { %>
-            <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>" name="flexRadioDefault"
-                disabled>
+                <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>" name="flexRadioDefault"disabled>
             <% }else{ %>
                 <% if($.inArray(items[i], obj.default) > -1) { %>
-            <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>"
-                name="flexRadioDefault" checked>
+                <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>" name="flexRadioDefault" checked>
                 <% } else { %>
-                    <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>"
-                    name="flexRadioDefault">
-                    <% } %>
-
-            <%}   %>
-            <label class="form-check-label" for="switchBtn <%= i %>">
-                <%- items[i] %>
-            </label>
+                <input class="form-check-input" type="checkbox" value="" id="switchBtn <%= i %>" name="flexRadioDefault">
+                <% } %>
+            <% } %>
+        <label class="form-check-label" for="switchBtn <%= i %>"><%- items[i] %></label>
         </div>
         </br>
         <% } %>
-        <% } else if (type == "dropdown") { %>
-
+    <% } else if (type == "dropdown") { %>
         <div class="dropdown">
             <% if (disabledAttr) { %>
-            <button class="btn btn-primary  dropdown-toggle" type="button" id="dropdownMenuButton1"
-                data-bs-toggle="dropdown" aria-expanded="false" aria-describedby="helpText" disabled>
-                <% } else { %>
-                <button class="btn btn-primary  dropdown-toggle" type="button" id="dropdownMenuButton1"
-                    data-bs-toggle="dropdown" aria-expanded="false" aria-describedby="helpText">
-                    <%} %>
-                    <%= title%>
-                </button>
-                <small id="helpText" class="form-text text-muted"><%- help %></small>
-                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                    <slot></slot>
-                </div>
+                <button class="btn btn-primary  dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false" aria-describedby="helpText" disabled>
+            <% } else { %>
+                <button class="btn btn-primary  dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false" aria-describedby="helpText">
+            <%} %>
+        <%= title%>
+        </button>
+        <small id="helpText" class="form-text text-muted"><%- help %></small>
+        <div class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+        <slot></slot>
+        </div>
         </div>
 
-        <% } else { %>
+    <% } else { %>
         incorrect input field type
-        <% } %>
+    <% } %>
 
 </template>
