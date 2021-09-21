@@ -1,3 +1,18 @@
+<template $name="custom-property">
+  <button>+ custom property</button>
+  <bs5-input style="display: none" title="custom property name" help="hit enter to create new field"></bs5-input>
+  <script onclick>
+    if(!e.target.matches('button')) return
+    this.querySelector('bs5-input').style.display = 'block'
+    e.target.style.display = 'none'
+  </script>
+  <script onkeypress>
+    if(!e.target.matches('input')) return
+    if(e.key !== 'Enter') return
+    this.querySelector('button').style.display = 'block'
+    this.querySelector('bs5-input').style.display = 'none'
+  </script>
+</template>
 <template $name="uifactory-config" component="comic-gen" ratio="2:5">
   <style>
     /* Customize website's scrollbar like Mac OS
@@ -53,6 +68,21 @@
       display: flex;
       font-family: monospace;
     } 
+    uifactory-config bs5-input {
+      display: block;
+    }
+    uifactory-config bs5-input[data-type="attribute"] {
+      background: hsl(90deg, 100%, 97%);
+    }
+    uifactory-config bs5-input[data-type="property"] {
+      background: hsl(50deg, 100%, 98%);
+    }
+    uifactory-config bs5-input[data-type="style"] {
+      background: hsl(20deg, 100%, 98%);
+    }
+    uifactory-config bs5-input[type="textarea"] {
+      margin-bottom: 1rem;
+    }
     uifactory-config bs5-input[title="innerHTML"] {
       font-family: monospace;
     }
@@ -69,6 +99,9 @@
     <bs5-input data-type="property" type="textarea" title="innerHTML"></bs5-input>
     <bs5-input data-type="style" default="auto" title="width"></bs5-input>
     <bs5-input data-type="style" default="auto" title="height"></bs5-input>
+    <bs5-input data-type="property" default="" title="style"></bs5-input>
+    <bs5-input data-type="property" default="" title="class"></bs5-input>
+    <bs5-input data-type="property" default="" title="id"></bs5-input>
   </section>
   <section class="preview"></section>
   <pre>
@@ -146,7 +179,13 @@
       if('type' in bs5Input.dataset && bs5Input.dataset.type === 'style') {
         comp.style[prop.name] = prop.value
       } else if('type' in bs5Input.dataset && bs5Input.dataset.type === 'property') {
-        comp[bs5Input.title] = prop.value
+        let val = ''
+        if(bs5Input.title === 'style') {
+          this.querySelectorAll('bs5-input[data-type="style"] input').forEach(p => {
+            val += `${p.name}:${p.value}; `
+          })
+        }
+        comp[bs5Input.title] = val + prop.value
       } else {
         if(prop.value.length > 0) {
           comp.setAttribute(prop.name, prop.value)
