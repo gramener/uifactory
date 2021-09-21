@@ -111,9 +111,12 @@
         console.error('Async: Could not copy text: ', err);
       });
     }
-    this.querySelector('pre > button').textContent = 'Copying...'
+    this.querySelector('pre > button').textContent = 'Copying'
     copyTextToClipboard(this.querySelector('code').textContent, () => {
-      this.querySelector('pre > button').textContent = 'Copy'
+      this.querySelector('pre > button').textContent = 'Copied'
+      setTimeout(_ => {
+        this.querySelector('pre > button').textContent = 'Copy'
+      }, 1000)
     })
   </script>
   <script onrender onchange>
@@ -144,10 +147,6 @@
     preview.appendChild(comp)
   </script>
 </template>
-
-
-
-
 
 <script src="uifactory.js" import="@bs5-input @svg-chart"></script>
 <script>
