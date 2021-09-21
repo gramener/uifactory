@@ -53,6 +53,9 @@
       display: flex;
       font-family: monospace;
     } 
+    uifactory-config bs5-input[title="innerHTML"] {
+      font-family: monospace;
+    }
   </style>
   <% 
     const split = ratio.split(':');
@@ -61,8 +64,9 @@
   %>
   <section>
     <% for (let [name, props] of Object.entries(uifactory.components[component].properties)) { %>
-      <bs5-input default="<%- props.value %>" title="<%- name %>"></bs5-input>
+      <bs5-input data-type="attribute" default="<%- props.value %>" title="<%- name %>"></bs5-input>
     <% } %>
+    <bs5-input data-type="property" type="textarea" title="innerHTML"></bs5-input>
     <bs5-input data-type="style" default="auto" title="width"></bs5-input>
     <bs5-input data-type="style" default="auto" title="height"></bs5-input>
   </section>
@@ -133,10 +137,16 @@
     lib.setAttribute('import', '@' + component)
     preview.appendChild(lib)
     const comp = document.createElement(component)
-    this.querySelectorAll('input').forEach(prop => {
-      const bs5Input = prop.parentElement.parentElement
+    this.querySelectorAll('bs5-input').forEach(bs5Input => {
+      let prop = bs5Input.querySelector('input')
+      if(!prop) { 
+        prop = bs5Input.querySelector('textarea')
+        if(!prop) return
+      }
       if('type' in bs5Input.dataset && bs5Input.dataset.type === 'style') {
         comp.style[prop.name] = prop.value
+      } else if('type' in bs5Input.dataset && bs5Input.dataset.type === 'property') {
+        comp[bs5Input.title] = prop.value
       } else {
         if(prop.value.length > 0) {
           comp.setAttribute(prop.name, prop.value)
@@ -148,7 +158,7 @@
   </script>
 </template>
 
-<script src="uifactory.js" import="@bs5-input @svg-chart"></script>
+<script src="uifactory.js" import="@bs5-input @svg-chart @head-ing"></script>
 <script>
   new Promise(res => {
     const interval = setInterval(function(){
@@ -160,7 +170,7 @@
     }, 100)
   })
 </script>
-<bs5-input onchange="updateConfig(event)" type="select" title="component" default="svg-chart" items="['bs5-input', 'svg-chart']"></bs5-input>
+<bs5-input onchange="updateConfig(event)" type="select" title="component" default="svg-chart" items="['bs5-input', 'svg-chart', 'head-ing']"></bs5-input>
 <div id="output"></div>
 <script>
   function updateConfig(e) {

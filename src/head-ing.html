@@ -1,0 +1,23 @@
+<template $name="head-ing" size="1">
+  <% if(size === '1') { %>
+    <h1>
+      <slot>hello world</slot>
+    </h1>
+  <% } else if(size === '2') { %>
+    <h2>
+      <slot>hello world</slot>
+    </h2>
+  <% } else if(size === '3') { %>
+    <h3>
+      <slot>hello world</slot>
+    </h3>
+  <% } else if(size === '4') { %>
+    <h4>
+      <slot>hello world</slot>
+    </h4>
+  <% } else if(size === '5') { %>
+    <h5>
+      <slot>hello world</slot>
+    </h5>
+  <% } %>
+</template>
