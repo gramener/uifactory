@@ -45,14 +45,149 @@
         if (spec.$schema && spec.$schema.match(/vega-lite/))
           spec = vegaLite.compile(spec).spec
 
+        // Add signals
+        if (spec.uifactoryConfig) {
+          let signals = spec.signals = spec.signals || []
+          spec.uifactoryConfig.forEach(config => {
+            // TODO: Avoid lodash
+            let insertion = _.get(spec, config.insert)
+            uifactory.vegaChart.types[config.type].forEach(row => {
+              let name = config.prefix + row.name.charAt(0).toUpperCase() + row.name.substr(1)
+              let value = row.name in insertion ? insertion[row.name] : row.value
+              if (typeof value == 'object' && value && 'value' in value)
+                value = value.value
+              signals.push({ name, value, type: row.type })
+              insertion[row.name] = { signal: name }
+            })
+          })
+        }
+
         // Render the chart. Store the view in the node's .ui object
         node.$.view = new vega.View(vega.parse(spec), { renderer: 'svg', container: node })
         // Update with signals
         uifactory.vegaChart.updateSignal(node)
-        node.$.view.runAsync()
+        node.ui.view.runAsync()
+      },
+      types: {
+        "axis": [
+          // { "name": "scale", "value": null, "type": null },
+          { "name": "orient", "value": 'bottom', "type": null },
+          { "name": "bandPosition", "value": null, "type": null },
+          { "name": "domain", "value": null, "type": null },
+          { "name": "domainCap", "value": null, "type": null },
+          { "name": "domainColor", "value": "black", "type": null },
+          { "name": "domainDash", "value": null, "type": null },
+          { "name": "domainDashOffset", "value": null, "type": null },
+          { "name": "domainOpacity", "value": null, "type": null },
+          { "name": "domainWidth", "value": null, "type": null },
+          { "name": "encode", "value": null, "type": null },
+          { "name": "format", "value": null, "type": null },
+          { "name": "formatType", "value": null, "type": null },
+          // TODO: grid signal is not working
+          { "name": "grid", "value": null, "type": "boolean" },
+          { "name": "gridCap", "value": null, "type": null },
+          { "name": "gridColor", "value": "black", "type": "color" },
+          { "name": "gridDash", "value": null, "type": null },
+          { "name": "gridDashOffset", "value": null, "type": null },
+          { "name": "gridOpacity", "value": 0.1, "type": "number" },
+          // TODO: gridScale is the name of a scale. Default is same as scale
+          // { "name": "gridScale", "value": null, "type": null },
+          { "name": "gridWidth", "value": null, "type": null },
+          // TODO: labels signal is not working
+          { "name": "labels", "value": true, "type": "boolean" },
+          { "name": "labelAlign", "value": "center", "type": "text" },
+          { "name": "labelAngle", "value": null, "type": null },
+          { "name": "labelBaseline", "value": "top", "type": null },
+          { "name": "labelBound", "value": null, "type": null },
+          { "name": "labelColor", "value": "black", "type": "color" },
+          { "name": "labelFlush", "value": null, "type": null },
+          { "name": "labelFlushOffset", "value": null, "type": null },
+          { "name": "labelFont", "value": null, "type": null },
+          { "name": "labelFontSize", "value": null, "type": "number" },
+          { "name": "labelFontStyle", "value": null, "type": null },
+          { "name": "labelFontWeight", "value": null, "type": null },
+          { "name": "labelLimit", "value": null, "type": null },
+          { "name": "labelLineHeight", "value": null, "type": null },
+          { "name": "labelOffset", "value": null, "type": null },
+          { "name": "labelOpacity", "value": null, "type": null },
+          { "name": "labelOverlap", "value": null, "type": null },
+          { "name": "labelPadding", "value": 2, "type": "number" },
+          { "name": "labelSeparation", "value": null, "type": null },
+          { "name": "minExtent", "value": null, "type": null },
+          { "name": "maxExtent", "value": null, "type": null },
+          { "name": "offset", "value": null, "type": null },
+          { "name": "position", "value": null, "type": null },
+          { "name": "ticks", "value": null, "type": null },
+          { "name": "tickBand", "value": null, "type": null },
+          { "name": "tickCap", "value": null, "type": null },
+          { "name": "tickColor", "value": "black", "type": "color" },
+          { "name": "tickCount", "value": null, "type": null },
+          { "name": "tickDash", "value": null, "type": null },
+          { "name": "tickDashOffset", "value": null, "type": null },
+          { "name": "tickMinStep", "value": null, "type": null },
+          { "name": "tickExtra", "value": null, "type": null },
+          { "name": "tickOffset", "value": null, "type": null },
+          { "name": "tickOpacity", "value": null, "type": null },
+          { "name": "tickRound", "value": null, "type": null },
+          { "name": "tickSize", "value": 5, "type": null },
+          { "name": "tickWidth", "value": null, "type": null },
+          { "name": "title", "value": null, "type": "text" },
+          { "name": "titleAnchor", "value": "end", "type": null },
+          { "name": "titleAlign", "value": "right", "type": "text" },
+          { "name": "titleAngle", "value": null, "type": null },
+          { "name": "titleBaseline", "value": "bottom", "type": null },
+          { "name": "titleColor", "value": "black", "type": "color" },
+          { "name": "titleFont", "value": null, "type": null },
+          { "name": "titleFontSize", "value": null, "type": null },
+          { "name": "titleFontStyle", "value": null, "type": null },
+          { "name": "titleFontWeight", "value": null, "type": null },
+          { "name": "titleLimit", "value": null, "type": null },
+          { "name": "titleLineHeight", "value": null, "type": null },
+          { "name": "titleOpacity", "value": null, "type": null },
+          { "name": "titlePadding", "value": -5, "type": "number" },
+          // TODO: Setting titleX, titleY overrides positioning
+          // { "name": "titleX", "value": null, "type": null },
+          // { "name": "titleY", "value": null, "type": null },
+          { "name": "translate", "value": null, "type": null },
+          { "name": "values", "value": null, "type": null },
+          { "name": "zindex", "value": 1, "type": "number" }
+        ],
+        "mark.rect": [
+          { "name": "cornerRadius", "value": null, "type": null },
+          { "name": "cornerRadiusTopLeft", "value": null, "type": null },
+          { "name": "cornerRadiusTopRight", "value": null, "type": null },
+          { "name": "cornerRadiusBottomLeft", "value": null, "type": null },
+          { "name": "cornerRadiusBottomRight", "value": null, "type": null },
+          { "name": "x", "value": null, "type": null },
+          { "name": "x2", "value": null, "type": null },
+          { "name": "xc", "value": null, "type": null },
+          { "name": "width", "value": null, "type": null },
+          // { "name": "y", "value": null, "type": null },
+          // { "name": "y2", "value": null, "type": null },
+          // { "name": "yc", "value": null, "type": null },
+          // { "name": "height", "value": null, "type": null },
+          // { "name": "opacity", "value": null, "type": null },
+          { "name": "fill", "value": null, "type": null },
+          // { "name": "fillOpacity", "value": null, "type": null },
+          // { "name": "stroke", "value": null, "type": null },
+          // { "name": "strokeOpacity", "value": null, "type": null },
+          // { "name": "strokeWidth", "value": null, "type": null },
+          // { "name": "strokeCap", "value": null, "type": null },
+          // { "name": "strokeDash", "value": null, "type": null },
+          // { "name": "strokeDashOffset", "value": null, "type": null },
+          // { "name": "strokeJoin", "value": null, "type": null },
+          // { "name": "strokeMiterLimit", "value": null, "type": null },
+          // { "name": "blend", "value": null, "type": null },
+          // { "name": "cursor", "value": null, "type": null },
+          // { "name": "href", "value": null, "type": null },
+          // { "name": "tooltip", "value": null, "type": null },
+          { "name": "zindex", "value": null, "type": null },
+        ]
       }
     }
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
-  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <!-- script src="https://cdn.jsdelivr.net/npm/vega@5"></script -->
+  <!-- script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script -->
+  <script src="vega.js"></script>
+  <script src="vega-lite.js"></script>
 </template>

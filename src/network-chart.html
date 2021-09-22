@@ -1,0 +1,187 @@
+<!--
+  - Update to filter
+  - Double-click to [unpin]
+  - Click node
+    - If no child nodes are visible, [expand-1] 1 level
+    - Else [collapse]
+  - Right-click offers menu listing all actions
+    - [hide]
+    - [pin]
+    - [unpin]
+    - [focus-1] = Focus - children
+    - [focus-2] = Focus - grandchildren
+    - [unfocus] = Clear focus
+    - [collapse] = Collapse
+    - [expand-1] = Expand - children
+    - [expand-2] = Expand - grandchildren
+  - Events
+    - Brush
+    - Select
+  - Properties
+    - Graph gravity
+    - Link arrows
+    - Label
+    - Tooltip properties
+  - Filters
+  - Data source:
+    - [x] node-link
+    - [ ] k-partite
+    - [ ] hierarchy
+    - [ ] parent-child
+  - Responsive behavior
+-->
+
+<template $name="network-chart"
+  data:js="{}"
+  type="node-link"
+  width:number="500"
+  height:number="500"
+  node:boolean="true"
+  node-size:number="5"
+  node-fill:string="red"
+  node-opacity:number="1"
+  node-stroke:string="#fff"
+  node-stroke-width:number="1"
+  node-charge:number="30"
+  link:boolean="true"
+  link-id:string=""
+  link-stroke:string="#999"
+  link-stroke-width:number="1"
+  link-opacity:number="0.6"
+  link-distance:number="30"
+  label:boolean="true"
+  label-text:string=""
+  label-text-anchor:string="middle"
+  label-dominant-baseline:string="middle"
+  label-font-family:string="sans-serif"
+  label-font-size:number="12"
+  label-font-weight:string="bold"
+  label-fill:string="black"
+  label-dx:number="0"
+  label-dy:number="0"
+  collide:boolean="false"
+  drag-action:string="pin"
+  >
+  <script onrender>
+    /* globals d3 */
+    // Parse data
+    let nodes, links
+    if (this.type.match(/node.*link/i)) {
+      nodes = this.data.nodes.map(Object.create)
+      links = this.data.links.map(Object.create)
+    }
+    let drag = simulation => d3.drag()
+      .on('start', (event, d) => {
+        if (!event.active) simulation.alphaTarget(0.3).restart()
+        d.fx = d.x
+        d.fy = d.y
+      })
+      .on('drag', (event, d) => {
+        d.fx = event.x
+        d.fy = event.y
+      })
+      .on('end', (event, d) => {
+        if (!event.active) simulation.alphaTarget(0)
+        if (!this.dragAction.match(/pin/i)) {
+          d.fx = null
+          d.fy = null
+        } else {
+          event.sourceEvent.target.classList.add('pinned')
+        }
+      })
+
+    let ui = this.networkChart
+    if (!ui) {
+      ui = this.networkChart = {}
+      ui.simulation = d3.forceSimulation()
+        .force('charge', d3.forceManyBody())
+        .force('center', d3.forceCenter(this.width / 2, this.height / 2))
+      // collide:js="d => ..." specifies collision distance as a function
+      // collide:number="20" specifies it as nodeSize + 20
+      // Anything else (true, "any string") is the same as using nodeSize
+      if (this.collide)
+        ui.simulation
+          .force('collide', d3.forceCollide(
+            typeof this.collide == 'function' ? this.collide :
+              typeof this.collide == 'number' ? (d => this.nodeSize(d) + this.collide) : this.nodeSize))
+      let svg = ui.svg = d3.create('svg')
+        .attr('viewBox', [0, 0, this.width, this.height])
+        .attr('width', this.width)
+        .attr('height', this.height)
+      svg.append('g').classed('link', !!this.link)
+      svg.append('g').classed('node', !!this.node)
+      svg.append('g').classed('label', !!this.label)
+      svg.on('dblclick.action', event => {
+        // If a single node is double-clicked, unpin it
+        if (event.target.matches('.node circle')) {
+          let d = d3.select(event.target).datum()
+          d.fx = d.fy = null
+          event.target.classList.remove('pinned')
+        }
+        // Else (if the entire SVG is double-clicked) unpin all
+        else {
+          ui.node.each(d => d.fx = d.fy = null)
+          ui.node.classed('pinned', false)
+        }
+      })
+      ui.simulation.on('tick', () => {
+        ui.link
+          .attr('x1', d => d.source.x)
+          .attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x)
+          .attr('y2', d => d.target.y)
+        ui.node
+          .attr('cx', d => d.x)
+          .attr('cy', d => d.y)
+        ui.label
+          .attr('x', d => d.x)
+          .attr('y', d => d.y)
+      })
+      this.replaceChildren(svg.node())
+    }
+
+    ui.simulation
+      .nodes(nodes.filter(d => !d.hide))
+    let forceLinks = d3.forceLink(links)
+      .distance(this.linkDistance)
+    if (this.linkId)
+      forceLinks.id(d => d[this.linkId])
+    ui.simulation.force('link', forceLinks)
+    ui.simulation.force('charge')
+      .strength(this.nodeCharge)
+    ui.link = ui.svg.select('g.link')
+      .selectAll('line')
+      .data(links.filter(d => !d.source.hide && !d.target.hide))
+      .join('line')
+      .attr('stroke', this.linkStroke)
+      .attr('stroke-opacity', this.linkOpacity)
+      .attr('stroke-width', this.linkStrokeWidth)
+    ui.node = ui.svg.selectAll('g.node')
+      .selectAll('circle')
+      .data(nodes.filter(d => !d.hide))
+      .join('circle')
+      .attr('stroke', this.nodeStroke)
+      .attr('stroke-width', this.nodeStrokeWidth)
+      .attr('r', this.nodeSize)
+      .attr('fill', this.nodeFill)
+      .attr('opacity', this.nodeOpacity)
+      .call(drag(ui.simulation))
+    ui.label = ui.svg.select('g.label')
+      .selectAll('text')
+      .data(nodes.filter(d => !d.hide))
+      .join('text')
+      .style('pointer-events', 'none')
+      .style('user-select', 'none')
+      .text(this.labelText)
+      .attr('fill', this.labelFill)
+      .attr('font-weight', this.labelFontWeight)
+      .attr('font-size', this.labelFontSize)
+      .attr('font-family', this.labelFontFamily)
+      .attr('text-anchor', this.labelTextAnchor)
+      .attr('dominant-baseline', this.labelDominantBaseline)
+      .attr('dx', this.labelDx)
+      .attr('dy', this.labelDy)
+    ui.simulation.alpha(0.3).restart()
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.0.1" data-unless="d3" data-check="d3.version.match(/^7/)"></script>
+</template>
