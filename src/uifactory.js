@@ -2,6 +2,7 @@
 
 (function (window) {
   let uifactory = window.uifactory = window.uifactory || {
+    version: '1.18.0',
     // List of all UI components and their configuration
     components: {},
     // Registry of all attribute types and their convertors

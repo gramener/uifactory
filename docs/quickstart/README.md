@@ -10,7 +10,7 @@ We'll build a simple dashboard showing KPI cards that looks like this:
 
 ![Final dashboard](img/kpi-dashboard-narrative.png)
 
-[![Watch on YouTube](img/youtube.svg)](https://youtu.be/mamSpo••Wa8BM)
+[![Watch on YouTube](img/youtube.svg)](https://youtu.be/mamSpoWa8BM)
 
 ## 1. Create a CodePen
 
