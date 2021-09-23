@@ -6,6 +6,8 @@
   <script src="../src/uifactory.js"></script>
 </head>
 <body>
+  <h1>UIFactory tests</h1>
+
   <script>
     /* globals tape */
     // Don't run the tests upfront. Run them after all scripts are loaded. Just cache them for now.
@@ -848,14 +850,15 @@ To just re-render the component without changing properties, use `.update()`.
 <!--
 ## Style components with CSS
 
-Use regular CSS in the `<style>` tag to style components.
-
-For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`:
+Use regular CSS in the `<style>` tag to style components. For example:
 
 ```html
 <template $name="repeat-style" value:number="30">
   <style>
-    repeat-style[value="8"] { background-color: yellow; }
+    /* If class="highlight", add a yellow background */
+    repeat-style.highlight { background-color: yellow; }
+    /* Color all bold items green INSIDE THE COMPONENT */
+    b { color: green; }
   </style>
   <% for (var j=0; j < value; j++) { %>
     <slot></slot>
@@ -866,28 +869,68 @@ For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`
 When you add the component to your page:
 
 ```html
-<repeat-style value="8">★</repeat-style>
+<repeat-style class="highlight" value="8">
+  <b>★</b>
+</repeat-style>
 ```
 
 ... it renders this output:
 
-![Yellow background applied to g-repeat](docs/img/g-repeat-8-star-yellow.png)
+![Style applied to repeat-style](docs/img/repeat-style.png)
+
+**You can override component style from the outside**. UIFactory just copies the `<style>` into the
+document -- no shadow DOM. Adding this `<style>` overrides the component color:
+
+```css
+repeat-style b { color: red; }
 ```
+
+![Red overrides repeat-style's green](docs/img/repeat-style-red.png)
+
+**You can't pollute styles outside the component**. UIFactory adds the component name before every
+selector (if it's missing). For example:
+
+- `b { color: green}` becomes `repeat-style b { color:green; }`
+- `repeat-style.highlight {...}` stays as-is -- it already has `repeat-style`
+- `.highlight b {...}` becomes `repeat-style .highlight b {...}`. If you want `repeat-style.highlight b {...}` instead, explicitly use that
+
+So any `<b>` outside the component does not turn green.
+
+**Note**: This isn't foolproof. It's simply to prevent accidental pollution.
 -->
-<template $name="repeat-style" value="30">
+<template $name="repeat-style" value:number="30">
   <style>
-    repeat-style[value="8"] { background-color: yellow; }
+    /* If class="highlight", add a yellow background */
+    repeat-style.highlight { background-color: yellow; }
+    /* Color all bold items green INSIDE THE COMPONENT */
+    b { color: green; }
   </style>
-  <% for (var j=0; j < +value; j++) { %>
+  <% for (var j=0; j < value; j++) { %>
     <slot></slot>
   <% } %>
 </template>
-<repeat-style value="8">★</repeat-style>
+<repeat-style class="highlight" value="8">
+  <b>★</b>
+</repeat-style>
+<style>
+repeat-style.overridden b { color: red; }
+</style>
+<repeat-style class="highlight overridden" value="8">
+  <b>★</b>
+</repeat-style>
+<b id="outside">Outside</b>
 
 <script>
   tape('Style components with CSS', function (t) {
-    let el = document.querySelector('repeat-style')
-    t.equals(getComputedStyle(el).backgroundColor, 'rgb(255, 255, 0)', 'style is applied on component')
+    let repeatStyle = getComputedStyle(document.querySelector('repeat-style'))
+    let innerStyle = getComputedStyle(document.querySelector('repeat-style b'))
+    let overridenStyle = getComputedStyle(document.querySelector('repeat-style.overridden b'))
+    let outerStyle = getComputedStyle(document.querySelector('b#outside'))
+    let headingStyle = getComputedStyle(document.querySelector('body > h1'))
+    t.equals(repeatStyle.backgroundColor, 'rgb(255, 255, 0)', 'style is applied on component')
+    t.equals(innerStyle.color, 'rgb(0, 128, 0)', 'style is applied inside component')
+    t.equals(overridenStyle.color, 'rgb(255, 0, 0)', 'style is overridden from outside')
+    t.equals(outerStyle.color, headingStyle.color, 'style is not applied outside component')
     t.end()
   })
 </script>
@@ -1979,6 +2022,13 @@ Now, suppose you change the circle's color programmatically and then change the 
 </template>
 
 <event-scripts x="ok">...</event-scripts>
+
+<template $name="style-scoped">
+  <style scoped>
+    h1 { color: red; }
+  </style>
+  <h1>In red</h1>
+</template>
 
 
 <script src="works-even-with-missing-script">

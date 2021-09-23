@@ -119,13 +119,13 @@
         let clone = _window.document.createElement(el.tagName)
         let listeners
         for (let attr of el.attributes) {
-          // If it's a <script onrender> or <script onpreconnect> etc, it's a lifecycle event script.
+          // If it's a <script onrender> or <script onpreconnect> etc, it's an event script.
           // Compile it and don't add it to <head>
-          if (attr.name.startsWith('on')) {
+          if (el.matches('script') && attr.name.startsWith('on')) {
             listeners = eventScripts[attr.name.slice(2)] = eventScripts[attr.name.slice(2)] || []
             listeners.push(new Function(attr.value || 'e', `with (this.$data) { ${el.innerHTML} }`))
           }
-          // Otherwise, copy attributes to the clone that we'll add into the <head>
+          // Otherwise, copy all attributes to the clone tp add into the <head>
           clone.setAttribute(attr.name, attr.value)
         }
         if (listeners)
@@ -137,10 +137,17 @@
         // NOTE: Why not just...
         //    Use clone.async = false? Doesn't work
         //    Add all scripts to a documentFragment and add it at one shot? Doesn't work
-        let externalScript = el.hasAttribute('src') && el.matches('script')
+        let externalScript = el.matches('script') && el.hasAttribute('src')
         if (externalScript)
           clone.onload = clone.onerror = () => loadExtract(target, els, index + 1)
         _window.document[target].appendChild(clone)
+        // If it's a <style>, add component name as prefix whenever required.
+        // (Components shouldn't pollute global styles.)
+        if (el.matches('style'))
+          for (let rule of clone.sheet.cssRules)
+            if (rule.selectorText && !rule.selectorText.startsWith(config.name))
+              rule.selectorText = `${config.name} ${rule.selectorText}`
+
         // If this is a <script src="...">, we've scheduled the next loadExtract.
         // So stop looping. In fact, OUTRIGHT return. DON'T resolve scripts until loaded
         if (externalScript)

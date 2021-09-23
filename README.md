@@ -9,7 +9,7 @@ UIFactory is a small, easy library that creates web components.
 - **It's small**. <4 KB compressed
 - **It's compliant** with the [Web Components](https://developer.mozilla.org/en-US/docs/Web/Web_Components) standard. Works on all modern browsers
 - **It's easy to learn**. Write any HTML, CSS and JS and wrap it in a `<template>` componentize it.
-- **No compilation**. No server. No hosting. Just save to and edit a HTML file.
+- **No compilation**. No server. No hosting. Just save in a HTML file.
 
 It's [MIT licensed](LICENSE).
 
@@ -38,6 +38,7 @@ UIFactory ships with these ready-to-use components:
 
 - [`<comic-gen>`](docs/comic-gen.md) renders comic characters from data
 - [`<md-text>`](docs/md-text.md) converts Markdown to HTML
+- [`<network-chart>`](docs/network-chart.md) renders network graphs
 - [`<svg-chart>`](docs/svg-chart.md) creates data-driven infographics from SVGs
 - [`<vega-chart>`](docs/vega-chart.md) renders charts using Vega
 
@@ -314,7 +315,7 @@ For example, this updates the properties without changing the attributes and wit
 </script>
 ```
 
-To just re-render the component without changing properties, use `.update()`.
+To re-render the component without changing properties, use `.update()`.
 
 ```html
 <script>
@@ -380,14 +381,15 @@ For example, `<repeat-icons>` repeats everything under `class="x"` x times, and 
 
 ## Style components with CSS
 
-Use regular CSS in the `<style>` tag to style components.
-
-For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`:
+Use regular CSS in the `<style>` tag to style components. For example:
 
 ```html
 <template $name="repeat-style" value:number="30">
   <style>
-    repeat-style[value="8"] { background-color: yellow; }
+    /* If class="highlight", add a yellow background */
+    repeat-style.highlight { background-color: yellow; }
+    /* Color all bold items green INSIDE THE COMPONENT */
+    b { color: green; }
   </style>
   <% for (var j=0; j < value; j++) { %>
     <slot></slot>
@@ -398,13 +400,34 @@ For example, this adds a yellow background to `<g-repeat>` if it has `value="8"`
 When you add the component to your page:
 
 ```html
-<repeat-style value="8">★</repeat-style>
+<repeat-style class="highlight" value="8">
+  <b>★</b>
+</repeat-style>
 ```
 
 ... it renders this output:
 
-![Yellow background applied to g-repeat](docs/img/g-repeat-8-star-yellow.png)
+![Style applied to repeat-style](docs/img/repeat-style.png)
 
+**You can override component styles from the outside**. UIFactory just copies the `<style>` into the
+document -- no shadow DOM. Adding this `<style>` overrides the component color:
+
+```css
+repeat-style b { color: red; }
+```
+
+![Red overrides repeat-style's green](docs/img/repeat-style-red.png)
+
+**You can't pollute styles outside the component**. UIFactory adds the component name before every
+selector (if it's missing). For example:
+
+- `b { color: green}` becomes `repeat-style b { color:green; }`
+- `repeat-style.highlight {...}` stays as-is -- it already has `repeat-style`
+- `.highlight b {...}` becomes `repeat-style .highlight b {...}`. If you want `repeat-style.highlight b {...}` instead, explicitly use that
+
+So any `<b>` outside the component does not turn green.
+
+**Note**: This isn't foolproof. It's simply to prevent accidental pollution.
 
 ## Link to external stylesheets
 
@@ -427,31 +450,8 @@ When you add the component to your page:
 
 ![Bootstrap button with external style](docs/img/bootstrap-button.png)
 
-All `<style>`s and `<link rel="stylesheet">`s are copied from the `<template>` and appended to the document's HEAD.
+All `<style>`s and `<link rel="stylesheet">`s are copied from the `<template>` and appended to the document's `<head>`.
 They run only once (even if you use the component multiple times.)
-
-
-## Override styles normally
-
-UIFactory just copies the HTML into the component. There's no shadow DOM. You can override a component styles normally.
-
-For example, this `<style>` affects buttons inside the component:
-
-```html
-<style>
-  /* When user hovers on any button inside a repeat-style, or a .lime button, color it lime */
-  repeat-style button:hover, repeat-style button.lime {
-    background-color: lime;
-  }
-</style>
-<repeat-style value="5">
-  🙂<button>★</button>
-</repeat-style>
-```
-
-... it renders this output:
-
-![repeat-style colors button on hover](docs/img/repeat-style-hover.gif)
 
 
 ## Add behavior with JavaScript
@@ -1008,7 +1008,7 @@ uifactory.types.formula = {
     let fn = new Function('data', `with (data) { return (${string}) }`)
     return fn(data)
   },
-  // Just convert the value into a JSON string
+  // Convert the value into a JSON string
   stringify: value => JSON.stringify(value)
 }
 ```
