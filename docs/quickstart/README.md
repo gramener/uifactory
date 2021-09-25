@@ -21,7 +21,7 @@ We'll build a simple dashboard showing KPI cards that looks like this:
 Add these 2 lines to the HTML. This links directly to UIFactory from CDNJS, and you don't need to install anything.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/uifactory@1.18.0/dist/uifactory.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@1.19.0/dist/uifactory.min.js"></script>
 ```
 
 [See on CodePen](https://codepen.io/sanand0/pen/QWgaXmg?editors=1000)
@@ -311,7 +311,7 @@ and value attributes:
 Let's test this component with different values. When it's clicked, we'll replace the numbers with
 a random value.
 
-To do this, we add an event handler inside `<script onclick>...</script>`, like this:
+To do this, we add an event handler inside `<script $onclick>...</script>`, like this:
 
 ```html
 <!-- Create the dashboard component -->
@@ -319,7 +319,7 @@ To do this, we add an event handler inside `<script onclick>...</script>`, like 
   <% for (let key in status) { %>
     <kpi-card title="${key}" value="${status[key][0]}" limit="${status[key][1]}"></kpi-card>
   <% } %>
-  <script onclick>
+  <script $onclick>
     let v = Math.round(Math.random() * 100)
     // 'this' is the component instance. Updating an attribute re-renders it
     this.status = {Speed: [v, 120], 'Fuel used': [v, 40], Temperature: [v, 100]}
@@ -340,7 +340,7 @@ convention. This component is saved at [`kpi-dashboard.html`](kpi-dashboard.html
 To use it in your application, add:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/uifactory@1.18.0/dist/uifactory.min.js" import="kpi-dashboard.html"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@1.19.0/dist/uifactory.min.js" import="kpi-dashboard.html"></script>
 ```
 
 Note the `import="kpi-dashboard.html"` in the 2nd line. That makes `<kpi-dashboard>` available to

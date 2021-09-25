@@ -1232,12 +1232,16 @@ Then run:
 
 ```bash
 git commit . -m"BLD: Release x.x.x"
-git push
+git push --tags
 npm publish
 ```
 
 ## Change log
 
+- 1.19.0 (25 Sep 2021):
+  - `<script $onevent="selector" $once>` adds [listener to selector, running only once](#add-events-with-script-on)
+  - `<style>` is restricted to component with a `component-name` prefix
+  - [Network-chart](docs/network-chart.md) published
 - 1.18.0 (19 Sep 2021):
   - Major API rewrite. See [migration to v1](docs/migration-v1.md)
   - [Lifecycle events](#lifecycle-events-are-supported)

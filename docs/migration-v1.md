@@ -7,8 +7,9 @@ To migrate your component from UIFactory v0.x, make these changes in your compon
 3. Replace `this` with `this.$contents`
 4. Replace `$target` with `this`
 5. Replace `this.data` with `this.$data`
-6. Rewrite any `<style scoped>` styles without the scoped attribute -- by prefixing all selectors with `component-name`
-7. Rewrite properties specified as `<script type="application/json">` as attributes.
+6. Replace `this.ui.ready` with `this.$ready`
+7. Rewrite any `<style scoped>` styles without the scoped attribute -- by prefixing all selectors with `component-name`
+8. Rewrite properties specified as `<script type="application/json">` as attributes.
    For example:
    ```html
    <template component="...">
@@ -22,7 +23,7 @@ To migrate your component from UIFactory v0.x, make these changes in your compon
    <template $name="..." list:array="[]">
    </template>
    ```
-8. Rewrite the `properties` in `uifactory.register({properties})` as a dict, not list.
+9. Rewrite the `properties` in `uifactory.register({properties})` as a dict, not list.
    For example:
    ```js
    uifactory.register({
