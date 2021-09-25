@@ -490,20 +490,16 @@ Rather than using global variables, we suggest you add methods to `uifactory.<co
 like `uifactory.textDiff = {...}` above.
 
 
-## Add events with `<script on...>`
+## Add events with `<script $on...>`
 
 To add an `click` event listener to your component, write the code inside a
-`<script onclick>...</script>`, like this:
+`<script $onclick>...</script>`, like this:
 
 ```html
-<template $name="count-items" count:number="0" step:number="2" event="">
-  Counted ${count} items -- ${step} every ${event} event.
-  <script onclick>
-    // 'this' is the component instance
-    // You can also access properties (count, step, event, etc.) as variables
+<template $name="count-items" count:number="0" step:number="2">
+  Click to count ${count} items in steps of ${step}.
+  <script $onclick>
     this.count += step
-    // 'e' is the click event
-    this.event = e.type
   </script>
 </template>
 ```
@@ -518,26 +514,61 @@ When you add the component to your page:
 
 ![Click event demo](docs/img/count-items.gif)
 
+To add a `click` event listener **to a child**, use `<script $onclick $select="child-selector">...</script>`:
+
+```html
+<template $name="count-button" count:number="0" step:number="2">
+  <button>Click here</button>
+  <span>Count: ${count}</span>
+  <script $onclick="button">
+    this.count += step
+  </script>
+</template>
+```
+
+Now, `<count-button></count-button>` renders:
+
+![Click event on child demo](docs/img/count-button.gif)
+
+Listeners can use these variables:
+
+- `e` is the [event object](https://developer.mozilla.org/en-US/docs/Web/API/Event)
+- `this` is the [component instance](#access-component-as-this-inside-templates)
+- [All properties]((#access-properties-as-variables-inside-templates)), e.g. `count`, `step`
+
+To call the listener only once, add the `$once` attribute to `<script>`:
+
+```html
+<template $name="count-once" count:number="0" step:number="2">
+  <button>Click here once</button>
+  <span>Count: ${count}</span>
+  <script $onclick="button" $once>
+    this.count += step
+  </script>
+</template>
+```
+
+Now, `<count-once></count-once>` renders:
+
+![$once demo](docs/img/count-once.gif)
+
 
 ## Lifecycle events are supported
 
 Components fire these events at different stages of their lifecycle:
 
-- `preconnect`: when the instance is created, before properties are defined
-- `connect`: when the instance is created, after properties are defined
-- `prerender`: when the instance is about to be rendered
-- `render`: when the instance is rendered
-- `disconnect`: when the element is disconnected from the DOM
+- `preconnect`: before the instance is created and properties are defined
+- `connect`: after the instance is created and properties are defined
+- `prerender`: before the instance is rendered
+- `render`: after the instance is rendered
+- `disconnect`: after the element is disconnected from the DOM
 
-Add `<script onpreconnect>...</script>`, `<script onrender>...</script>`, etc to create listeners.
+Add `<script $onpreconnect>...</script>`, `<script $onrender>...</script>`, etc to create listeners.
 For example:
 
 ```html
 <template $name="repeat-events" icon="★" value:number="1">
-  <script onrender>
-    /* globals e, icon, value */
-    console.log(e.type)   // Prints "render". "e" is the custom event
-    // "this" is your component. "icon" and "value" are properties defined above
+  <script $onrender>
     this.innerHTML = icon.repeat(value)
   </script>
 </template>
@@ -549,72 +580,49 @@ Now, `<repeat-events icon="★" value="8"><repeat-events>` renders this output:
 
 Notes:
 
-- You can add a listener to multiple events, like `<script onprerender onrender>`
-- You can add multiple listeners to an event, e.g. by repeating `<script onrender>...</script>`
-- You can add listeners using `this.addEventListener('render', ...)` too
-- You can use these variables in `<script onrender>`, etc:
-  - [`this` is the component itself](#access-component-as-this-inside-templates)
-  - [All properties are available as variables](#access-properties-as-variables-inside-templates)
-  - `e` is the [custom event](https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent) fired by the component
+- `<script $onrender $once>` creates a listener that runs only once
+- `<script $onprerender $onrender>` runs the listener both on prerender **AND** render
+- Multiple `<script $onrender>...</script>` creates multiple listeners
+- `this.addEventListener('render', ...)` is exactly the same as `<script $onrender>`
+- Listeners can use these variables:
+  - `e` is the [event object](https://developer.mozilla.org/en-US/docs/Web/API/Event)
+  - `this` is the [component instance](#access-component-as-this-inside-templates)
+  - [All properties]((#access-properties-as-variables-inside-templates)), e.g. `count`, `step`
 
 
 ## Import components with `import="file.html"`
 
-To re-use components across projects, save one or more component `<template>`s in a HTML file.
+You can save one (or more) component `<template>`s in a HTML file.
 For example, `tag.html` could look like this:
 
 ```html
-<template $name="tag-a">
-  This is tag-a
-</template>
-<template $name="tag-b">
-  This is tag-b
-</template>
+<template $name="tag-a">This is tag-a</template>
+<template $name="tag-b">This is tag-b</template>
 ```
 
-To import it in another file, use:
+To use `<tag-a>` and `<tag-b>` in your HTML file, import it like this:
 
 ```html
 <script src="node_modules/uifactory/dist/uifactory.min.js" import="tag.html"></script>
 ```
 
-Now you can use all `<template $name="...">` components from `tag.html`. For example:
-
-```html
-<tag-a></tag-a>
-<tag-b></tag-b>
-```
-
-This uses [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch),
-the fetched files must be in the same domain, or
+This uses [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).
+The fetched files must be in the same domain or
 [CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
 
-You can import multiple component files separated by comma and/or spaces.
+**Multiple component files** are separated by comma and/or spaces. Relative and absolute URLs both work.
 
 ```html
-<tag2-a></tag2-a>
-<tag2-b></tag2-b>
-<script src="node_modules/uifactory/dist/uifactory.min.js" import="tag.html, tag2.html"></script>
-```
-
-You can use relative and absolute paths, too. For example:
-
-```html
-<tag3-a></tag3-a>
-<tag3-b></tag3-b>
-<tag4-a></tag4-a>
-<tag4-b></tag4-b>
 <script src="node_modules/uifactory/dist/uifactory.min.js" import="
+  tag.html, tag2.html,
   ../test/tag3.html
   https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
 "></script>
 ```
 
-You can also import via JavaScript:
+**Import additional files** via JavaScript if you already added `uifactory.min.js`:
 
 ```html
-<tag5-a></tag5-a>
-<tag5-b></tag5-b>
 <script>
 uifactory.register('tag5.html')
 </script>
@@ -817,7 +825,7 @@ For example, this `<print-default>` component changes the default attribute befo
 
 ```html
 <template $name="print-default" default="old">
-  <script onprerender>
+  <script $onprerender>
     console.log(this.$data)     // Prints { "default": "old" }
     this.$data.default = 'new'  // Updates default value
   </script>

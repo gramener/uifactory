@@ -100,53 +100,75 @@
     // Extract specific tags out of the HTML template. Used to remove <style>, <script>, etc.
     tmpl.innerHTML = config.template
     let htmlScript = tmpl.content.querySelector('script[type="text/html"]')
+
+    function cloneNode(el) {
+      let clone = _window.document.createElement(el.tagName)
+      for (let attr of el.attributes) {
+        clone.setAttribute(attr.name, attr.value)
+      }
+      clone.innerHTML = el.innerHTML
+      return clone
+    }
+
+    for (let el of tmpl.content.querySelectorAll('link[rel="stylesheet"], style')) {
+      let clone = cloneNode(el)
+      _window.document.head.appendChild(clone)
+      // If it's a <style>, add component name as prefix whenever required.
+      // (Components shouldn't pollute global styles.)
+      if (clone.matches('style'))
+        for (let rule of clone.sheet.cssRules)
+          if (rule.selectorText && !rule.selectorText.startsWith(config.name))
+            rule.selectorText = `${config.name} ${rule.selectorText}`
+    }
+
     // When the scripts are loaded, resolve this promise.
     let scriptsLoaded       // boolean: have all external scripts been loaded?
     let _scriptsResolve     // fn: resolves the scriptsLoad promise
     let scriptsResolve = new Promise(resolve => _scriptsResolve = resolve)
-    let eventScripts = {}   // Lifecycle event scripts
-    // Add the <link>/<style> under <head>, and <script> into <body> of target doc.
-    loadExtract('head', tmpl.content.querySelectorAll('link[rel="stylesheet"], style'))
-    loadExtract('body', tmpl.content.querySelectorAll('script'))
-    // target is "head" or "body". els the list of DOM elements to add into target
-    function loadExtract(target, els, _start = 0) {
-      let index = _start
-      // Loop through elements starting from the start index
-      scriptLoop: for (; index < els.length; index++) {
+    let eventScripts = []   // Lifecycle event scripts
+
+    loadScripts(tmpl.content.querySelectorAll('script'))
+    function loadScripts(els, _start = 0) {
+      let index
+      for (index=_start; index < els.length; index++) {
         let el = els[index]
         // Copy the element into the target document with attributes.
         // NOTE: Just inserting el into the document doesn't let <script> elements execute.
-        let clone = _window.document.createElement(el.tagName)
-        let listeners
+        let listener
         for (let attr of el.attributes) {
           // If it's a <script onrender> or <script onpreconnect> etc, it's an event script.
           // Compile it and don't add it to <head>
-          if (el.matches('script') && attr.name.startsWith('on')) {
-            listeners = eventScripts[attr.name.slice(2)] = eventScripts[attr.name.slice(2)] || []
-            listeners.push(new Function(attr.value || 'e', `with (this.$data) { ${el.innerHTML} }`))
+          // DEP-2.0: Deprecate use without $ in 2.0
+          let match = attr.name.match(/^\$?on(.*)/)
+          if (match) {
+            let code = `with (this.$data) { ${el.innerHTML} }`
+            // If onclick="selector", run code only if e.target matches the selector
+            if (attr.value)
+              code = `if (e.target.matches("${attr.value}")) { ${code} }`
+            listener = [
+              match[1],                   // type
+              new Function('e', code),    // listener
+              {
+                once: el.hasAttribute('$once')
+              }
+            ]
+            eventScripts.push(listener)
           }
-          // Otherwise, copy all attributes to the clone tp add into the <head>
-          clone.setAttribute(attr.name, attr.value)
         }
-        if (listeners)
-          continue scriptLoop
-        clone.innerHTML = el.innerHTML
+        if (listener)
+          continue
+
+        let clone = cloneNode(el)
         // If this is a <script src="...">, then load the remaining extracts AFTER it's loaded
         // WHY? If I use <script src="jquery"> and then <script>$(...)</script>
         //    the 2nd script should wait for the 1st script to load.
         // NOTE: Why not just...
         //    Use clone.async = false? Doesn't work
         //    Add all scripts to a documentFragment and add it at one shot? Doesn't work
-        let externalScript = el.matches('script') && el.hasAttribute('src')
+        let externalScript = el.hasAttribute('src')
         if (externalScript)
-          clone.onload = clone.onerror = () => loadExtract(target, els, index + 1)
-        _window.document[target].appendChild(clone)
-        // If it's a <style>, add component name as prefix whenever required.
-        // (Components shouldn't pollute global styles.)
-        if (el.matches('style'))
-          for (let rule of clone.sheet.cssRules)
-            if (rule.selectorText && !rule.selectorText.startsWith(config.name))
-              rule.selectorText = `${config.name} ${rule.selectorText}`
+          clone.onload = clone.onerror = () => loadScripts(els, index + 1)
+        _window.document.body.appendChild(clone)
 
         // If this is a <script src="...">, we've scheduled the next loadExtract.
         // So stop looping. In fact, OUTRIGHT return. DON'T resolve scripts until loaded
@@ -154,11 +176,12 @@
           return
       }
       // If we've loaded all scripts -- internal and external -- mark scripts as loaded
-      if (target == 'body' && index == els.length) {
+      if (index == els.length) {
         scriptsLoaded = true
         _scriptsResolve(true)
       }
     }
+
     // Remove extracted styles and scripts from template.
     // This also removes script type="application/json" and "text/html"
     for (let el of tmpl.content.querySelectorAll('link[rel="stylesheet"], style, script'))
@@ -277,9 +300,7 @@
 
     function connectComponent() {
       // Add lifecycle events first, to allow preconnect
-      for (let [eventName, listeners] of Object.entries(eventScripts)) {
-        listeners.forEach(listener => this.addEventListener(eventName, listener))
-      }
+      eventScripts.forEach(eventArgs => this.addEventListener.apply(this, eventArgs))
 
       // Fire a preconnect event. At this point, $data has no attributes
       this.dispatchEvent(new CustomEvent('preconnect', { bubbles: true }))

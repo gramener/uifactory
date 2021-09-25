@@ -1078,20 +1078,16 @@ They run only once (even if you use the component multiple times.)
 
 
 <!--
-## Add events with `<script on...>`
+## Add events with `<script $on...>`
 
 To add an `click` event listener to your component, write the code inside a
-`<script onclick>...</script>`, like this:
+`<script $onclick>...</script>`, like this:
 
 ```html
-<template $name="count-items" count:number="0" step:number="2" event="">
-  Counted ${count} items -- ${step} every ${event} event.
-  <script onclick>
-    // 'this' is the component instance
-    // You can also access properties (count, step, event, etc.) as variables
+<template $name="count-items" count:number="0" step:number="2">
+  Click to count ${count} items in steps of ${step}.
+  <script $onclick>
     this.count += step
-    // 'e' is the click event
-    this.event = e.type
   </script>
 </template>
 ```
@@ -1105,32 +1101,128 @@ When you add the component to your page:
 ... it renders this output:
 
 ![Click event demo](docs/img/count-items.gif)
--->
-<template $name="count-items" count:number="0" step:number="2" event="">
-  Counted ${count} items -- ${step} every ${event} event.
-  <script onclick>
-    /* globals e, step */
-    // 'this' is the component instance
-    // You can also access properties (count, step, event, etc.) as variables
+
+To add a `click` event listener **to a child**, use `<script $onclick $select="child-selector">...</script>`:
+
+```html
+<template $name="count-button" count:number="0" step:number="2">
+  <button>Click here</button>
+  <span>Count: ${count}</span>
+  <script $onclick="button">
     this.count += step
-    // 'e' is the click event
-    this.event = e.type
+  </script>
+</template>
+```
+
+Now, `<count-button></count-button>` renders:
+
+![Click event on child demo](docs/img/count-button.gif)
+
+Listener functions can use these variables:
+
+- `e` is the [event object](https://developer.mozilla.org/en-US/docs/Web/API/Event)
+- `this` is the component instance
+- All properties, e.g. `count`, `step`
+
+To call the listener only once, add the `$once` attribute to `<script>`:
+
+```html
+<template $name="count-once" count:number="0" step:number="2">
+  <button>Click here once</button>
+  <span>Count: ${count}</span>
+  <script $onclick="button" $once>
+    this.count += step
+  </script>
+</template>
+```
+
+Now, `<count-once></count-once>` renders:
+
+![$once demo](docs/img/count-once.gif)
+-->
+<template $name="count-items" count:number="0" step:number="2">
+  Click to count ${count} items in steps of ${step}.
+  <script $onclick>
+    /* globals e, step */
+    console.log(e.type.toLowerCase())
+    this.count += step
   </script>
 </template>
 <count-items></count-items>
 <script>
-  tape('Add events with `<script on...>`', function (t) {
+  tape('Add events with `<script $onclick>`', function (t) {
     let el = document.querySelector('count-items')
-    t.equals(el.innerHTML.trim(), 'Counted 0 items -- 2 every  event.', 'count-items 0')
+    t.equals(el.innerHTML.trim(), 'Click to count 0 items in steps of 2.', 'count-items base')
     el.click()
-    t.equals(el.innerHTML.trim(), 'Counted 2 items -- 2 every click event.', 'count-items 1')
+    t.equals(el.innerHTML.trim(), 'Click to count 2 items in steps of 2.', 'count-items click 1')
     el.click()
-    t.equals(el.innerHTML.trim(), 'Counted 4 items -- 2 every click event.', 'count-items 2')
+    t.equals(el.innerHTML.trim(), 'Click to count 4 items in steps of 2.', 'count-items click 2')
     t.end()
   })
 </script>
 
+<template $name="count-items2" count:number="0" step:number="2">
+  Click to count ${count} items in steps of ${step}.
+  <script onclick>
+    /* globals e, step */
+    console.log(e.type.toLowerCase())
+    this.count += step
+  </script>
+</template>
+<count-items2></count-items2>
+<script>
+  tape('Add events with `<script onclick> -- without $ works too`', function (t) {
+    let el = document.querySelector('count-items2')
+    t.equals(el.innerHTML.trim(), 'Click to count 0 items in steps of 2.', 'count-items2 base')
+    el.click()
+    t.equals(el.innerHTML.trim(), 'Click to count 2 items in steps of 2.', 'count-items2 click 1')
+    el.click()
+    t.equals(el.innerHTML.trim(), 'Click to count 4 items in steps of 2.', 'count-items2 click 2')
+    t.end()
+  })
+</script>
 
+<template $name="count-button" count:number="0" step:number="2">
+  <button class="button">Click here</button>
+  <span>Count: ${count}</span>
+  <script $onclick=".button">
+    /* globals e, step */
+    console.log(e.type.toLowerCase())
+    this.count += step
+  </script>
+</template>
+<count-button></count-button>
+<script>
+  tape('Add events with `<script $onclick="selector">`', function (t) {
+    let el = document.querySelector('count-button')
+    t.equals(el.querySelector('span').innerHTML.trim(), 'Count: 0', 'count-button base')
+    el.querySelector('button').click()
+    t.equals(el.querySelector('span').innerHTML.trim(), 'Count: 2', 'count-button click 1')
+    el.querySelector('button').click()
+    t.equals(el.querySelector('span').innerHTML.trim(), 'Count: 4', 'count-button click 2')
+    t.end()
+  })
+</script>
+
+<template $name="count-once" count:number="0" step:number="2">
+  <button>Click here once</button>
+  <span>Count: ${count}</span>
+  <script $onclick="button" $once>
+    this.count += step
+  </script>
+</template>
+<count-once></count-once>
+<script>
+  tape('Add single listener with `<script $onclick="selector" $once>`', function (t) {
+    let el = document.querySelector('count-once')
+    t.equals(el.querySelector('span').innerHTML.trim(), 'Count: 0', 'count-once base')
+    el.querySelector('button').click()
+    t.equals(el.querySelector('span').innerHTML.trim(), 'Count: 2', 'count-once click 1')
+    el.querySelector('button').click()
+    t.equals(el.querySelector('span').innerHTML.trim(), 'Count: 2', 'count-once click 2')
+    t.end()
+  })
+</script>
 
 <!--
 ## Use lifecycle events to render components using JavaScript
@@ -1147,10 +1239,7 @@ For example:
 
 ```html
 <template $name="repeat-events" icon="★" value:number="1">
-  <script onrender>
-    /* globals e, icon, value */
-    console.log(e.type)   // "e" is the custom event. Prints "render"
-    // Listeners can use this (the component) and properties like in templates
+  <script $onrender>
     this.innerHTML = icon.repeat(value)
   </script>
 </template>
@@ -1173,29 +1262,36 @@ Notes:
   <script onpreconnect>
     this.preconnect = {
       value: this.$data.value,
-      content: this.innerHTML
+      count: this.count,
+      content: this.innerHTML.trim()
     }
   </script>
   <script onconnect>
     this.connect = {
       value: this.$data.value,
-      content: this.innerHTML
+      count: this.count,
+      content: this.innerHTML.trim()
     }
   </script>
   <script onprerender>
     this.prerender = {
       value: this.$data.value,
-      content: this.innerHTML
+      count: this.count,
+      content: this.innerHTML.trim()
     }
   </script>
   <script onrender>
     /* globals icon, value */
     this.render = {
       value: this.$data.value,
-      content: this.innerHTML
+      count: this.count,
+      content: this.innerHTML.trim()
     }
     // Listeners can use this (the component) and properties like in templates
     this.innerHTML = icon.repeat(value)
+  </script>
+  <script onpreconnect onconnect onprerender onrender>
+    this.count = (this.count || 0) + 1
   </script>
 </template>
 <repeat-events icon="★" value="8"></repeat-events>
@@ -1203,11 +1299,10 @@ Notes:
 <script>
   tape('Use lifecycle events to render components using JavaScript', function (t) {
     let el = document.querySelector('repeat-events')
-    t.deepEquals(el.preconnect, {value: undefined, content: ''}, 'script preconnect works')
-    t.deepEquals(el.connect, {value: 8, content: ''}, 'script connect works')
-    t.deepEquals(el.prerender, {value: 8, content: ''}, 'script prerender works')
-    t.equals(el.render.value, 8, 'script render has data')
-    t.equals(el.render.content.trim(), 'Hello', 'script render applies template')
+    t.deepEquals(el.preconnect, {value: undefined, count: undefined, content: ''}, 'script preconnect works')
+    t.deepEquals(el.connect, {value: 8, count: 1, content: ''}, 'script connect works')
+    t.deepEquals(el.prerender, {value: 8, count: 2, content: ''}, 'script prerender works')
+    t.deepEquals(el.render, {value: 8, count: 3, content: 'Hello'}, 'script render works')
     t.end()
   })
   tape('Every render triggers a `render` event', function (t) {
@@ -1226,69 +1321,44 @@ Notes:
 <!--
 ## Import components with `import="file.html"`
 
-To re-use components across projects, save one or more component `<template>`s in a HTML file.
+You can save one (or more) component `<template>`s in a HTML file.
 For example, `tag.html` could look like this:
 
 ```html
-<template $name="tag-a">
-  This is tag-a
-</template>
-<template $name="tag-b">
-  This is tag-b
-</template>
+<template $name="tag-a">This is tag-a</template>
+<template $name="tag-b">This is tag-b</template>
 ```
 
-To import it in another file, use:
+To use `<tag-a>` and `<tag-b>` in your HTML file, import it like this:
 
 ```html
-<script src="node_modules/uifactory/src/uifactory.js" import="tag.html"></script>
+<script src="node_modules/uifactory/dist/uifactory.min.js" import="tag.html"></script>
 ```
 
-Now you can use all `<template $name="...">` components from `tag.html`. For example:
-
-```html
-<tag-a></tag-a>
-<tag-b></tag-b>
-```
-
-This uses [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch),
-the fetched files must be in the same domain, or
+This uses [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).
+The fetched files must be in the same domain or
 [CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
 
-You can import multiple component files separated by comma and/or spaces.
+**Multiple component files** are separated by comma and/or spaces. Relative and absolute URLs both work.
 
 ```html
-<tag2-a></tag2-a>
-<tag2-b></tag2-b>
-<script src="node_modules/uifactory/src/uifactory.js" import="tag.html, tag2.html"></script>
-```
-
-You can use relative and absolute paths, too. For example:
-
-```html
-<tag3-a></tag3-a>
-<tag3-b></tag3-b>
-<tag4-a></tag4-a>
-<tag4-b></tag4-b>
-<script src="node_modules/uifactory/src/uifactory.js" import="
+<script src="node_modules/uifactory/dist/uifactory.min.js" import="
+  tag.html, tag2.html,
   ../test/tag3.html
   https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
 "></script>
 ```
 
-You can also import via JavaScript:
+**Import additional files** via JavaScript if you already added `uifactory.min.js`:
 
 ```html
-<tag5-a></tag5-a>
-<tag5-b></tag5-b>
 <script>
 uifactory.register('tag5.html')
 </script>
 ```
 -->
+<tag-a></tag-a><tag-b></tag-b>
 <script src="../src/uifactory.js" import="tag.html"></script>
-<tag-a></tag-a>
-<tag-b></tag-b>
 
 <tag2-a></tag2-a>
 <tag2-b></tag2-b>
@@ -1298,10 +1368,9 @@ uifactory.register('tag5.html')
 <tag3-b></tag3-b>
 <tag4-a></tag4-a>
 <tag4-b></tag4-b>
-<!-- TODO: tag4 must be from the CDN -->
 <script src="../src/uifactory.js" import="
   ../test/tag3.html
-  ../test/tag4.html
+  https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
 "></script>
 
 <tag5-a></tag5-a>
