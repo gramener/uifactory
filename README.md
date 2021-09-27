@@ -218,6 +218,8 @@ When you add two versions of this page:
 
 Note:
 
+- In the scripts, `this` is the [component instance](#access-component-as-this-inside-templates).
+  [All properties]((#access-properties-as-variables-inside-templates)) are available as variables.
 - If multiple `<script type="text/html">` have the same `$block` value, the last one is used
 
 ## Define properties using `<template attr="...">`

@@ -141,7 +141,7 @@
         // <script type="text/html" $block="name"> is copied as a block and can be used
         // anywhere in the component as block({...})
         if (el.type == 'text/html') {
-          blockScripts[el.getAttribute('$block') || ''] = compiler(el.innerHTML)
+          blockScripts[el.getAttribute('$block') || ''] = el.innerHTML
           continue
         }
 
@@ -210,7 +210,7 @@
 
         // CONFIG variables -- BASED on (but not exactly same as) options in registerComponent()
         // this.$compile($this.data) returns the compiled HTML to be rendered.
-        this.$compile = blockScripts[''] || compiler(unescape(tmpl.innerHTML))
+        this.$compile = compiler(blockScripts[''] || unescape(tmpl.innerHTML))
         // this.$properties is a dict of all component properties and their info
         this.$properties = Object.assign({}, config.properties || {})
         // this.$render is the rendering function
@@ -232,7 +232,11 @@
         // this.$ready is a promise that's resolved when the element is rendered
         this.$ready = new Promise(resolve => this.$resolve = resolve)
         // this.$data has all variables available to a template
-        this.$data = { ...blockScripts }
+        this.$data = {}
+        // this.$data has all non-empty blockScripts compiled, bound to this element and its data
+        for (let key in blockScripts)
+          if (key)
+            this.$data[key] = obj => compiler(blockScripts[key]).call(this, Object.assign({}, this.$data, obj))
         // this.$contents has the original instance DOM element, cloned for future reference
 
         // INTERNAL variables -- not guaranteed to remain

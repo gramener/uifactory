@@ -330,6 +330,8 @@ When you add two versions of this page:
 
 Note:
 
+- In the scripts, `this` is the [component instance](#access-component-as-this-inside-templates).
+  [All properties]((#access-properties-as-variables-inside-templates)) are available as variables.
 - If multiple `<script type="text/html">` have the same `$block` value, the last one is used
 -->
 
@@ -352,6 +354,31 @@ Note:
     let els = document.querySelectorAll('repeat-block')
     t.equals(els[0].innerText.trim(), 'Even ▸ ★★', '$block rendered')
     t.equals(els[1].innerText.trim(), '★★★ ◂ Odd', '$block rendered')
+    t.end()
+  })
+</script>
+
+<template $name="test-block" x="1" y="2">
+  <script type="text/html" $block="a">ignored because it's a duplicate</script>
+  <script type="text/html" $block="b">ignored because it's a duplicate</script>
+  <script type="text/html" $block="a">x=${x} y=${y} z=${obj.z || 'na'} this.x=${this.x}</script>
+  <script type="text/html" $block="b"><%= a(obj).replace(/\s/g, ',') %></script>
+  <span class="a"><%= a() %></span>
+  <span class="a-x3"><%= a({ x: 3 }) %></span>
+  <span class="a-x3z4"><%= a({ x: 3, z: 4 }) %></span>
+  <span class="b"><%= b() %></span>
+  <span class="b-x3"><%= b({ x: 3 }) %></span>
+  <span class="b-x3z4"><%= b({ x: 3, z: 4 }) %></span>
+</template>
+<test-block></test-block>
+<script>
+  tape('Test re-usable blocks variable binding`', function (t) {
+    t.equals(document.querySelector('test-block .a').innerHTML, 'x=1 y=2 z=na this.x=1', 'test-block .a')
+    t.equals(document.querySelector('test-block .a-x3').innerHTML, 'x=3 y=2 z=na this.x=1', 'test-block .a-x3')
+    t.equals(document.querySelector('test-block .a-x3z4').innerHTML, 'x=3 y=2 z=4 this.x=1', 'test-block .a-x3z4')
+    t.equals(document.querySelector('test-block .b').innerHTML, 'x=1,y=2,z=na,this.x=1', 'test-block .a')
+    t.equals(document.querySelector('test-block .b-x3').innerHTML, 'x=3,y=2,z=na,this.x=1', 'test-block .a-x3')
+    t.equals(document.querySelector('test-block .b-x3z4').innerHTML, 'x=3,y=2,z=4,this.x=1', 'test-block .a-x3z4')
     t.end()
   })
 </script>
