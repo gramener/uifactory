@@ -146,11 +146,9 @@ See ["Using templates and slots" on MDN](https://developer.mozilla.org/en-US/doc
 for more.
 
 
-## Wrap tables in HTML scripts
+## Wrap tables in `<script type="text/html">`
 
-Some templates may lead to invalid HTML.
-
-For example, HTML doesn't allow `<% for ... %>` inside a `<tbody>`. (Only `<tr>` is allowed.) So this is invalid:
+HTML doesn't allow `<% for ... %>` inside a `<tbody>`. (Only `<tr>` is allowed.) So this is invalid:
 
 ```html
 <template $name="table-invalid" rows="3">
@@ -164,12 +162,12 @@ For example, HTML doesn't allow `<% for ... %>` inside a `<tbody>`. (Only `<tr>`
 </template>
 ```
 
-Instead, you should wrap your HTML inside a `<script type="text/html">...</script>`.
-Anything you write inside it will be rendered as a template.
-(Any HTML outside it is ignored.)
+To avoid this, wrap tables inside a `<script type="text/html">...</script>`.
+Anything inside it is rendered as a template. (Any HTML outside it is ignored.)
 
 ```html
-<template $name="table-valid" rows="3">
+<template $name="table-valid" rows="0">
+  This text is ignored!
   <script type="text/html">
     <table>
       <tbody>
@@ -179,12 +177,48 @@ Anything you write inside it will be rendered as a template.
       </tbody>
     </table>
   </script>
-  If you have a script type="text/html",
-  any HTML outside it is ignored.
+  This text is ignored too!
 </template>
-<table-valid rows="5"></table-valid>
+<table-valid rows="3"></table-valid>
 ```
 
+It renders this output:
+
+![Valid table inside HTML script](docs/img/table-valid.png)
+
+## Add re-usable blocks with `<script type="text/html" $block="...">`
+
+To re-use HTML later, add it into a `<script type="text/html" $block="blockname">...</script>`.
+
+In this example, `$block="wrap"` defines a `wrap()` function that renders the script contents.
+
+```html
+<template $name="repeat-block" value="8" icon="★">
+  <script type="text/html" $block="wrap">
+    <span style="border: 1px solid ${color}"><%- icon.repeat(+value) %></span>
+  </script>
+  <% if (+value % 2 == 0) { %>
+    Even ▸ <%= wrap({ ...this.$data, color: 'red' }) %>
+  <% } else { %>
+    <%= wrap({ ...this.$data, color: 'blue' }) %> ◂ Odd
+  <% } %>
+</template>
+```
+
+When you add two versions of this page:
+
+```html
+<repeat-block value="2"></repeat-block>
+<repeat-block value="3"></repeat-block>
+```
+
+... it renders this output:
+
+![Re-usable blocks rendered](docs/img/repeat-block.png)
+
+Note:
+
+- If multiple `<script type="text/html">` have the same `$block` value, the last one is used
 
 ## Define properties using `<template attr="...">`
 
@@ -1238,6 +1272,8 @@ npm publish
 
 ## Change log
 
+- 1.20.0 (WIP):
+  - `<script type="text/html" $block="name">` adds a [re-usable template block](#add-re-usable-blocks-with-script-typetexthtml-block)
 - 1.19.0 (25 Sep 2021):
   - `<script $onevent="selector" $once>` adds [listener to selector, running only once](#add-events-with-script-on)
   - `<style>` is restricted to component with a `component-name` prefix

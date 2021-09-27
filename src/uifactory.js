@@ -34,7 +34,7 @@
       // If we use <my-comp rules:js="rules">, we want "rules" to be window.rules,
       // not the default value of <template $name="my-comp" rules="">.
       // So replace "rules" (the name of the attribute) with window["rules"].
-      return fn(Object.assign({}, data, {[name]: window[name]}))
+      return fn({...data, [name]: window[name] })
     },
     stringify: JSON.stringify
   }
@@ -99,7 +99,6 @@
 
     // Extract specific tags out of the HTML template. Used to remove <style>, <script>, etc.
     tmpl.innerHTML = config.template
-    let htmlScript = tmpl.content.querySelector('script[type="text/html"]')
 
     function cloneNode(el) {
       let clone = _window.document.createElement(el.tagName)
@@ -126,14 +125,25 @@
     let _scriptsResolve     // fn: resolves the scriptsLoad promise
     let scriptsResolve = new Promise(resolve => _scriptsResolve = resolve)
     let eventScripts = []   // Lifecycle event scripts
+    let blockScripts = {}   // <script type="text/html" $block="..."> scripts
+
+    // HTML templating engine used. Defaults to microtemplate()
+    let compiler = config.compile || microtemplate
 
     loadScripts(tmpl.content.querySelectorAll('script'))
     function loadScripts(els, _start = 0) {
       let index
       for (index=_start; index < els.length; index++) {
         let el = els[index]
-        // Copy the element into the target document with attributes.
-        // NOTE: Just inserting el into the document doesn't let <script> elements execute.
+
+        // <script type="text/html" $block="name"> is copied as a block and can be used
+        // anywhere in the component as block({...})
+        if (el.type == 'text/html') {
+          blockScripts[el.getAttribute('$block') || ''] = compiler(el.innerHTML)
+          continue
+        }
+
+        // <script $onclick="selector"> is converted into an click event listener for selector
         let listener
         for (let attr of el.attributes) {
           // If it's a <script onrender> or <script onpreconnect> etc, it's an event script.
@@ -158,6 +168,8 @@
         if (listener)
           continue
 
+        // <script> and <script src=""> are copied into the target document with attributes.
+        // NOTE: Just inserting el into the document doesn't let <script> elements execute.
         let clone = cloneNode(el)
         // If this is a <script src="...">, then load the remaining extracts AFTER it's loaded
         // WHY? If I use <script src="jquery"> and then <script>$(...)</script>
@@ -169,7 +181,6 @@
         if (externalScript)
           clone.onload = clone.onerror = () => loadScripts(els, index + 1)
         _window.document.body.appendChild(clone)
-
         // If this is a <script src="...">, we've scheduled the next loadExtract.
         // So stop looping. In fact, OUTRIGHT return. DON'T resolve scripts until loaded
         if (externalScript)
@@ -187,9 +198,6 @@
     for (let el of tmpl.content.querySelectorAll('link[rel="stylesheet"], style, script'))
       el.remove()
 
-    // If there's a <script type="text/html">, use that for template. Else use rest of the template
-    let html = unescape((htmlScript || tmpl).innerHTML)
-
     // The properties keys become the observable attributes
     let attrList = Object.keys(config.properties || {})
 
@@ -198,9 +206,9 @@
       constructor() {
         super()
 
-        // CONFIG variables -- stuff that's in <template $render=""> etc are exposed
-        // this.$compile is the HTML templating engine used. Defaults to microtemplate()
-        this.$compile = (config.compile || microtemplate)(html)
+        // CONFIG variables -- BASED on (but not exactly same as) options in registerComponent()
+        // this.$compile($this.data) returns the compiled HTML to be rendered.
+        this.$compile = blockScripts[''] || compiler(unescape(tmpl.innerHTML))
         // this.$properties is a dict of all component properties and their info
         this.$properties = Object.assign({}, config.properties || {})
         // this.$render is the rendering function
@@ -208,7 +216,7 @@
           ? (typeof config.render == 'function' ? config.render : renderers[config.render])
           : renderers.replace
         // this.$template is the contents of the HTML
-        this.$template = html
+        this.$template = unescape(tmpl.innerHTML)
 
         // RESERVED variables -- may be exposed in the future
         // this.$name is the component name
@@ -220,7 +228,7 @@
         // this.$ready is a promise that's resolved when the element is rendered
         this.$ready = new Promise(resolve => this.$resolve = resolve)
         // this.$data has all variables available to a template
-        this.$data = {}
+        this.$data = { ...blockScripts }
         // this.$contents has the original instance DOM element, cloned for future reference
 
         // INTERNAL variables -- not guaranteed to remain
@@ -248,7 +256,7 @@
         this.$updating = true
         try {
           // By default, .update() sets attributes and renders
-          options = Object.assign({ attr: true, render: true }, options)
+          options = { attr: true, render: true, ...options }
           // If the component is not connected, don't render it.
           // this.$contents is defined only when the component is connected
           if (this.$contents) {
