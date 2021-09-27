@@ -892,6 +892,34 @@ For example, when you add this to your page:
 `Properties: x=10 y=20 z=undefined`
 
 
+## `this.$id` hold a unique ID for each component
+
+If you generate an `id=` attribute in your component, you need a unique identifier for each
+component. `this.$id` has a string that's unique for each component instance.
+
+For example, this creates a label-input combination with a unique ID for each input:
+
+```html
+<template $name="label-input" type="text" label="">
+  <div style="display: flex; gap: 10px">
+    <label for="${this.$id}-input">${label} <small>ID: ${this.$id}-input</small></label>
+    <input id="${this.$id}-input" type="${type}">
+  </div>
+</template>
+```
+
+Now, if you repeatedly use this component in a page:
+
+```html
+<label-input label="X"></label-input>
+<label-input label="Y"></label-input>
+```
+
+... it creates elements with different IDs:
+
+![this.$id generates unique IDs](docs/img/label-input.png)
+
+
 ## Create components dynamically
 
 You can dynamically add components at any time. For example:
@@ -1274,6 +1302,7 @@ npm publish
 
 - 1.20.0 (WIP):
   - `<script type="text/html" $block="name">` adds a [re-usable template block](#add-re-usable-blocks-with-script-typetexthtml-block)
+  - `this.$id` holds a [unique ID for each component](#thisid-hold-a-unique-id-for-each-component)
 - 1.19.0 (25 Sep 2021):
   - `<script $onevent="selector" $once>` adds [listener to selector, running only once](#add-events-with-script-on)
   - `<style>` is restricted to component with a `component-name` prefix

@@ -1612,6 +1612,53 @@ For example, when you add this to your page:
 
 
 <!--
+## `this.$id` hold a unique ID for each component
+
+If you generate an `id=` attribute in your component, you need a unique identifier for each
+component. `this.$id` has a string that's unique for each component instance.
+
+For example, this creates a label-input combination with a unique ID for each input:
+
+```html
+<template $name="label-input" type="text" label="">
+  <div style="display: flex; gap: 10px">
+    <label for="${this.$id}-input">${label} <small>ID: ${this.$id}-input</small></label>
+    <input id="${this.$id}-input" type="${type}">
+  </div>
+</template>
+```
+
+Now, if you repeatedly use this component in a page:
+
+```html
+<label-input label="X"></label-input>
+<label-input label="Y"></label-input>
+```
+
+... it creates elements with different IDs:
+
+![this.$id generates unique IDs](docs/img/label-input.png)
+-->
+<template $name="label-input" type="text" label="">
+  <div style="display: flex; gap: 10px">
+    <label for="${this.$id}-input">${label} <small>ID: ${this.$id}-input</small></label>
+    <input id="${this.$id}-input" type="${type}">
+  </div>
+</template>
+<label-input label="X"></label-input>
+<label-input label="Y"></label-input>
+<script>
+  tape('`this.$data[property]` stores all properties', function (t) {
+    for (let el of document.querySelectorAll('label-input')) {
+      t.ok(el.$id.match(/ui\d+/), 'this.$id exists')
+      t.equals(el.querySelector('small').innerHTML, `ID: ${el.$id}-input`, 'this.$id works in template')
+      t.equals(document.querySelectorAll(`#${el.$id}-input`).length, 1, 'Creates unique IDs')
+    }
+    t.end()
+  })
+</script>
+
+<!--
 ## Create components dynamically
 
 You can dynamically add components at any time. For example:

@@ -9,6 +9,8 @@
     types: {},
     // Registry of all renderers
     renderers: {},
+    // Unique ID counter for every UIFactory component
+    count: 0
   }
 
   // Used to create document fragments
@@ -217,6 +219,8 @@
           : renderers.replace
         // this.$template is the contents of the HTML
         this.$template = unescape(tmpl.innerHTML)
+        // this.$id is the unique ID of this element, even if it's disconnected & reconnected
+        this.$id = `ui${uifactory.count++}`
 
         // RESERVED variables -- may be exposed in the future
         // this.$name is the component name
