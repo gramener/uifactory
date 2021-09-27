@@ -588,6 +588,10 @@ Now, `<count-once></count-once>` renders:
 
 ![$once demo](docs/img/count-once.gif)
 
+Note:
+
+- Even if you add `<script $on...>` inside an `<% if (...) %>` or `<% for (...) %>` etc.,
+  the event listener is always added, only once, when the component is added to the page.
 
 ## Lifecycle events are supported
 
@@ -1296,6 +1300,7 @@ Then run:
 
 ```bash
 git commit . -m"BLD: Release x.x.x"
+git tag -a "x.x.x" -m""
 git push --tags
 npm publish
 ```

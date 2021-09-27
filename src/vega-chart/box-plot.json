@@ -1,0 +1,292 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "TODO: Box plot",
+  "width": 500,
+  "padding": 5,
+  "config": {
+    "axisBand": {
+      "bandPosition": 1,
+      "tickExtra": true,
+      "tickOffset": 0
+    }
+  },
+  "uifactoryConfig": [
+    {
+      "prefix": "xaxis",
+      "type": "axis",
+      "insert": "axes[0]"
+    },
+    {
+      "prefix": "yaxis",
+      "type": "axis",
+      "insert": "axes[1]"
+    },
+    {
+      "prefix": "line",
+      "type": "mark.rect",
+      "insert": "marks[0].marks[0].encode.enter"
+    },
+    {
+      "prefix": "box",
+      "type": "mark.rect",
+      "insert": "marks[0].marks[1].encode.enter"
+    },
+    {
+      "prefix": "median",
+      "type": "mark.rect",
+      "insert": "marks[0].marks[2].encode.enter"
+    }
+  ],
+  "signals": [
+    {
+      "name": "plotWidth",
+      "value": 30
+    },
+    {
+      "name": "height",
+      "update": "(plotWidth + 10) * 3"
+    },
+    {
+      "name": "data",
+      "value": null
+    },
+    {
+      "name": "groupby",
+      "value": "Species"
+    },
+    {
+      "name": "value",
+      "value": "Body Mass (g)"
+    }
+  ],
+  "data": [
+    {
+      "name": "source",
+      "values": {
+        "signal": "data"
+      }
+    }
+  ],
+  "scales": [
+    {
+      "name": "layout",
+      "type": "band",
+      "range": "height",
+      "domain": {
+        "data": "source",
+        "field": {
+          "signal": "groupby"
+        }
+      }
+    },
+    {
+      "name": "xscale",
+      "type": "linear",
+      "range": "width",
+      "round": true,
+      "domain": {
+        "data": "source",
+        "field": {
+          "signal": "value"
+        }
+      },
+      "zero": false,
+      "nice": true
+    }
+  ],
+  "axes": [
+    {
+      "scale": "xscale",
+      "orient": "bottom",
+      "gridOpacity": 0.1,
+      "labels": true,
+      "labelAlign": "center",
+      "labelBaseline": "top",
+      "labelPadding": 2,
+      "tickSize": 5,
+      "titleAnchor": "end",
+      "titleAlign": "right",
+      "titleBaseline": "bottom",
+      "titlePadding": -5,
+      "zindex": 1
+    },
+    {
+      "scale": "layout",
+      "orient": "left",
+      "gridOpacity": 0.1,
+      "labelAlign": "right",
+      "labelBaseline": "middle",
+      "labelPadding": 2,
+      "tickSize": 5,
+      "title": "Title",
+      "titleAnchor": "start",
+      "titleAlign": "left",
+      "titleBaseline": "top",
+      "titlePadding": -5,
+      "zindex": 1
+    }
+  ],
+  "marks": [
+    {
+      "type": "group",
+      "from": {
+        "facet": {
+          "data": "source",
+          "name": "groups",
+          "groupby": "Species"
+        }
+      },
+      "encode": {
+        "enter": {
+          "yc": {
+            "scale": "layout",
+            "field": {
+              "signal": "groupby"
+            },
+            "band": 0.5
+          },
+          "height": {
+            "signal": "plotWidth"
+          },
+          "width": {
+            "signal": "width"
+          }
+        }
+      },
+      "data": [
+        {
+          "name": "summary",
+          "source": "groups",
+          "transform": [
+            {
+              "type": "aggregate",
+              "fields": [
+                {
+                  "signal": "value"
+                },
+                {
+                  "signal": "value"
+                },
+                {
+                  "signal": "value"
+                },
+                {
+                  "signal": "value"
+                },
+                {
+                  "signal": "value"
+                }
+              ],
+              "ops": [
+                "min",
+                "q1",
+                "median",
+                "q3",
+                "max"
+              ],
+              "as": [
+                "min",
+                "q1",
+                "median",
+                "q3",
+                "max"
+              ]
+            }
+          ]
+        }
+      ],
+      "marks": [
+        {
+          "type": "rect",
+          "from": {
+            "data": "summary"
+          },
+          "encode": {
+            "enter": {
+              "fill": {
+                "value": "black"
+              },
+              "height": {
+                "value": 1
+              }
+            },
+            "update": {
+              "yc": {
+                "signal": "plotWidth / 2",
+                "offset": -0.5
+              },
+              "x": {
+                "scale": "xscale",
+                "field": "min"
+              },
+              "x2": {
+                "scale": "xscale",
+                "field": "max"
+              }
+            }
+          }
+        },
+        {
+          "type": "rect",
+          "from": {
+            "data": "summary"
+          },
+          "encode": {
+            "enter": {
+              "fill": {
+                "value": "steelblue"
+              },
+              "cornerRadius": {
+                "value": 4
+              }
+            },
+            "update": {
+              "yc": {
+                "signal": "plotWidth / 2"
+              },
+              "height": {
+                "signal": "plotWidth / 2"
+              },
+              "x": {
+                "scale": "xscale",
+                "field": "q1"
+              },
+              "x2": {
+                "scale": "xscale",
+                "field": "q3"
+              }
+            }
+          }
+        },
+        {
+          "type": "rect",
+          "from": {
+            "data": "summary"
+          },
+          "encode": {
+            "enter": {
+              "fill": {
+                "value": "aliceblue"
+              },
+              "width": {
+                "value": 2
+              }
+            },
+            "update": {
+              "yc": {
+                "signal": "plotWidth / 2"
+              },
+              "height": {
+                "signal": "plotWidth / 2"
+              },
+              "x": {
+                "scale": "xscale",
+                "field": "median"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
