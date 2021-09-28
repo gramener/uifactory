@@ -18,7 +18,7 @@ We'll build a simple dashboard showing KPI cards that looks like this:
 
 ## 2. Include UIFactory
 
-Add these 2 lines to the HTML. This links directly to UIFactory from CDNJS, and you don't need to install anything.
+Add this line to your HTML file. This links directly to UIFactory from the CDN. No need to install anything.
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/uifactory@1.19.0/dist/uifactory.min.js"></script>
@@ -266,9 +266,9 @@ To create this, change the `<p>We will add some text here about performance.</p>
 
 ```html
       <p>
-        <% if (percent < 50) { %>
+        <% if (percent <= 50) { %>
           ${title} is comfortably low at ${Math.round(percent)}% of the ${limit} limit.
-        <% } else if (percent < 75) { %>
+        <% } else if (percent <= 75) { %>
           ${title} is a bit high at ${Math.round(percent)}% of the ${limit} limit.
         <% } else { %>
           <strong>Reduce ${title}!</strong> You're at ${Math.round(percent)}% of the ${limit} limit.
