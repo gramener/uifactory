@@ -1296,13 +1296,14 @@ Then run:
 
 ```bash
 git commit . -m"BLD: Release x.x.x"
-git push --tags
+git tag -m"" -a vx.x.x
+git push --follow-tags
 npm publish
 ```
 
 ## Change log
 
-- 1.20.0 (WIP):
+- 1.20.0 (28 Sep 2021):
   - `<script type="text/html" $block="name">` adds a [re-usable template block](#add-re-usable-blocks-with-script-typetexthtml-block)
   - `this.$id` holds a [unique ID for each component](#thisid-hold-a-unique-id-for-each-component)
 - 1.19.0 (25 Sep 2021):
