@@ -1,0 +1,10 @@
+[
+  {"x": "OK1", "group": "A", "amount": 28},
+  {"x": "OK2", "group": "B", "amount": 55},
+  {"x": "OK3", "group": "C", "amount": 43},
+  {"x": "OK4", "group": "D", "amount": 91},
+  {"x": "OK5", "group": "E", "amount": 81},
+  {"x": "OK6", "group": "F", "amount": 53},
+  {"x": "OK7", "group": "G", "amount": 19},
+  {"x": "OK8", "group": "H", "amount": 87}
+]

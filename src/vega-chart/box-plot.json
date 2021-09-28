@@ -2,6 +2,7 @@
   "$schema": "https://vega.github.io/schema/vega/v5.json",
   "description": "TODO: Box plot",
   "width": 500,
+  "height": 300,
   "padding": 5,
   "config": {
     "axisBand": {
@@ -11,31 +12,11 @@
     }
   },
   "uifactoryConfig": [
-    {
-      "prefix": "xaxis",
-      "type": "axis",
-      "insert": "axes[0]"
-    },
-    {
-      "prefix": "yaxis",
-      "type": "axis",
-      "insert": "axes[1]"
-    },
-    {
-      "prefix": "line",
-      "type": "mark.rect",
-      "insert": "marks[0].marks[0].encode.enter"
-    },
-    {
-      "prefix": "box",
-      "type": "mark.rect",
-      "insert": "marks[0].marks[1].encode.enter"
-    },
-    {
-      "prefix": "median",
-      "type": "mark.rect",
-      "insert": "marks[0].marks[2].encode.enter"
-    }
+    { "prefix": "xaxis", "type": "axis", "insert": "axes[0]" },
+    { "prefix": "yaxis", "type": "axis", "insert": "axes[1]" },
+    { "prefix": "line", "type": "mark.rect", "insert": "marks[0].marks[0].encode.enter" },
+    { "prefix": "box", "type": "mark.rect", "insert": "marks[0].marks[1].encode.enter" },
+    { "prefix": "median", "type": "mark.rect", "insert": "marks[0].marks[2].encode.enter" }
   ],
   "signals": [
     {
@@ -62,9 +43,7 @@
   "data": [
     {
       "name": "source",
-      "values": {
-        "signal": "data"
-      }
+      "values": { "signal": "data" }
     }
   ],
   "scales": [

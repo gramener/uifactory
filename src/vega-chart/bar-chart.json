@@ -1,0 +1,93 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "description": "TODO: Bar chart",
+  "width": 500,
+  "height": 300,
+  "padding": 5,
+
+  "uifactoryConfig": [
+    { "prefix": "xaxis", "type": "axis", "insert": "axes[0]" },
+    { "prefix": "yaxis", "type": "axis", "insert": "axes[1]" },
+    { "prefix": "bar", "type": "mark.rect", "insert": "marks[0].encode.enter" }
+  ],
+
+  "signals": [
+    { "name": "data", "value": null },
+    { "name": "x", "value": null },
+    { "name": "y", "value": null },
+    {
+      "name": "tooltip",
+      "value": {},
+      "on": [
+        {"events": "rect:mouseover", "update": "datum"},
+        {"events": "rect:mouseout",  "update": "{}"}
+      ]
+    }
+  ],
+
+  "data": [
+    {
+      "name": "source",
+      "values": { "signal": "data" }
+    }
+  ],
+
+  "scales": [
+    {
+      "name": "xscale",
+      "type": "band",
+      "domain": {"data": "source", "field": {"signal": "x"}},
+      "range": "width",
+      "padding": 0.05,
+      "round": true
+    },
+    {
+      "name": "yscale",
+      "domain": {"data": "source", "field": {"signal": "y"}},
+      "nice": true,
+      "range": "height"
+    }
+  ],
+
+  "axes": [
+    { "orient": "bottom", "scale": "xscale" },
+    { "orient": "left", "scale": "yscale" }
+  ],
+
+  "marks": [
+    {
+      "type": "rect",
+      "from": {"data":"source"},
+      "encode": {
+        "enter": {
+          "x": {"scale": "xscale", "field": {"signal": "x"}},
+          "width": {"scale": "xscale", "band": 1},
+          "y": {"scale": "yscale", "field": {"signal": "y"}},
+          "y2": {"scale": "yscale", "value": 0}
+        },
+        "hover": {
+          "fill": {"value": "blue"}
+        }
+      }
+    },
+    {
+      "type": "text",
+      "encode": {
+        "enter": {
+          "align": {"value": "center"},
+          "baseline": {"value": "bottom"},
+          "fill": {"value": "#333"}
+        },
+        "update": {
+          "x": {"scale": "xscale", "signal": "tooltip[x]", "band": 0.5},
+          "y": {"scale": "yscale", "signal": "tooltip[y]", "offset": -2},
+          "text": {"signal": "tooltip[y]"},
+          "fillOpacity": [
+            {"test": "datum === tooltip", "value": 0},
+            {"value": 1}
+          ]
+        }
+      }
+    }
+  ]
+}
