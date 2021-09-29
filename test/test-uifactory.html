@@ -193,8 +193,8 @@ When you add the component to your page:
 <repeat-slots a="5" b="5">
   <span slot="a">🔴</span>
   <span slot="b">🟩</span>
-  <span slot="a"><strong>x</strong></span>
-  <span slot="b"><em>y</em></span>
+  <span slot="a"><strong>${j}</strong></span>
+  <span slot="b"><em>${j}</em></span>
 </repeat-slots>
 ```
 
@@ -211,7 +211,9 @@ for more.
 -->
 <template $name="repeat-slots" a="1" b="1">
   <% for (var j=0; j < +a; j++) { %>
-    <slot name="a">A</slot>
+    <slot
+          NAME =   'a' >A</slot
+    >
   <% } %>
   <% for (var j=0; j < +a; j++) { %>
     <slot name="b">B</slot>
@@ -221,15 +223,15 @@ for more.
 <repeat-slots a="5" b="5">
   <span slot="a">🔴</span>
   <span slot="b">🟩</span>
-  <span slot="a"><strong>x</strong></span>
-  <span slot="b"><em>y</em></span>
+  <span slot="a"><strong>${j}</strong></span>
+  <span slot="b"><em>${j + 1}</em></span>
 </repeat-slots>
 <script>
   tape('HTML scripts are supported', function (t) {
     let el = document.querySelector('repeat-slots')
-    t.equals(el.innerText.trim(), '🔴x 🔴x 🔴x 🔴x 🔴x 🟩y 🟩y 🟩y 🟩y 🟩y 🔴 🟩 x y', 'Slots rendered')
-    t.equals(el.querySelectorAll('strong').length, 6, 'Child HTML elements copied')
-    t.equals(el.querySelectorAll('em').length, 6, 'Child HTML elements copied')
+    t.equals(el.innerText.trim(), '🔴0 🔴1 🔴2 🔴3 🔴4 🟩1 🟩2 🟩3 🟩4 🟩5 🔴 🟩 5 6', 'Slots rendered')
+    t.equals(el.querySelectorAll('strong').length, 6, 'Child HTML element <strong> copied')
+    t.equals(el.querySelectorAll('em').length, 6, 'Child HTML element <em> copied')
     t.end()
   })
 </script>

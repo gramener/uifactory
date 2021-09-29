@@ -17,12 +17,6 @@
   let doc = window.document
   let tmpl = doc.createElement('template')
 
-  // Keep string -> DOM and DOM -> string converters ready
-  // parser.parseFromString(string) converts string to DOM
-  let parser = new DOMParser()
-  // serializer.serializeToString(dom) converts DOM to a string
-  let serializer = new XMLSerializer()
-
   // Used to serialize and parse values of different types
   let types = uifactory.types
   types.string = {
@@ -203,14 +197,16 @@
     // The properties keys become the observable attributes
     let attrList = Object.keys(config.properties || {})
 
+    // Store the template contents to be rendered. If there's a <script type="text/html">, use that.
+    // If not, use the <template> contents -- stripped off the script, style & link tags.
+    let html = blockScripts[''] || unescape(tmpl.innerHTML)
+
     // Create the custom HTML element
     class UIFactory extends _window.HTMLElement {
       constructor() {
         super()
 
         // CONFIG variables -- BASED on (but not exactly same as) options in registerComponent()
-        // this.$compile($this.data) returns the compiled HTML to be rendered.
-        this.$compile = compiler(blockScripts[''] || unescape(tmpl.innerHTML))
         // this.$properties is a dict of all component properties and their info
         this.$properties = Object.assign({}, config.properties || {})
         // this.$render is the rendering function
@@ -236,7 +232,7 @@
         // this.$data has all non-empty blockScripts compiled, bound to this element and its data
         for (let key in blockScripts)
           if (key)
-            this.$data[key] = obj => compiler(blockScripts[key]).call(this, Object.assign({}, this.$data, obj))
+            this.$data[key] = obj => compiler(blockScripts[key]).call(this, {...this.$data, ...obj})
         // this.$contents has the original instance DOM element, cloned for future reference
 
         // INTERNAL variables -- not guaranteed to remain
@@ -324,6 +320,20 @@
       // Clone instance contents for future reference
       this.$contents = this.cloneNode(true)
 
+      // Replace <slot name=""></slot> in the template contents with <... slot="..."> contents.
+      // First, extract all slot="" attributes from the instance into a dict
+      let slotContent = { '': this.$contents.innerHTML }
+      for (let slot of this.$contents.querySelectorAll('[slot]'))
+        slotContent[slot.slot] = (slotContent[slot.slot] || '') + unescape(slot.innerHTML)
+      // Next, replace all <slot> elements in the template.
+      // Don't use DOMParser(). The slot contents may be invalid HTML (e.g. <% %> templates inside a table).
+      // Parse as a regular expression. See https://regex101.com/r/lqnaz2/1
+      let src = html.replace(/<slot\s*(name\s*=\s*['"]?(?<name>[^'">\s]*)['"]?)?\s*>(?<contents>[\s\S]*?)<\/slot\s*>/ig,
+        (match, group, name, contents) => slotContent[name || ''] || contents)
+
+      // this.$compile($this.data) returns the compiled HTML to be rendered.
+      this.$compile = compiler(src)
+
       // Update properties from template attributes
       for (let [propName, propInfo] of Object.entries(this.$properties)) {
         this.update({ [propName]: propInfo.value }, { attr: false, render: false })
@@ -373,21 +383,10 @@
       // Fire a prerender event. At this point, $data has attributes, external scripts are loaded,
       // but contents are not rendered.
       this.dispatchEvent(new CustomEvent('prerender', { bubbles: true }))
-      // TODO: <slot data-template> should re-compile template before it is rendered
-      // Render the contents of the <template> as a microtemplate
+
+      // Render the contents of the <template> as a microtemplate after substituting slots
       let src = this.$compile.call(this, this.$data)
-      // Render slots
-      let doc = parser.parseFromString(src, 'text/html')
-      doc.querySelectorAll('slot').forEach(slot => {
-        let name = slot.getAttribute('name')
-        // TODO: For default slot, remove any slot="" elements
-        let replacements = name ? this.$contents.querySelectorAll(`[slot="${name}"]`) : this.$contents.childNodes
-        if (replacements.length)
-          slot.replaceWith(...Array.from(replacements).map(v => v.cloneNode(true)))
-        // TODO: if (slot.firstElementChild) slot.replaceWith(slot.firstElementChild)
-      })
-      // Render, i.e. set component contents to the target HTML
-      this.$render(this, serializer.serializeToString(doc))
+      this.$render(this, src)
 
       // Resolve the "$ready" Promise
       this.$resolve(this)

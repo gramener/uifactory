@@ -129,18 +129,21 @@ When you add the component to your page:
 <repeat-slots a="5" b="5">
   <span slot="a">🔴</span>
   <span slot="b">🟩</span>
-  <span slot="a"><strong>x</strong></span>
-  <span slot="b"><em>y</em></span>
+  <span slot="a"><strong>${j}</strong></span>
+  <span slot="b"><em>${j}</em></span>
 </repeat-slots>
 ```
 
 ... it renders this output:
 
-🔴**x** 🔴**x** 🔴**x** 🔴**x** 🔴**x** 🟩*y* 🟩*y* 🟩*y* 🟩*y* 🟩*y* 🔴 🟩 **x** *y*
+🔴**0** 🔴**1** 🔴**2** 🔴**3** 🔴**4** 🟩*1* 🟩*2* 🟩*3* 🟩*4* 🟩*5* 🔴 🟩 **5** *6*
 
 - `<slot name="a">` is replaced with all `slot="a"` elements (🔴 and **x**).
 - `<slot name="b">` is replaced with all `slot="b"` elements (🟩 and *y*).
-- `<slot>` is replaced with all elements in the component (🔴 🟩 **x** *y*). This is similar to the `.innerHTML`
+- `<slot>` is replaced with all elements (🔴 🟩 **x** *y*) -- like `.innerHTML`
+
+Slots can [contain variables](#lodash-templates-are-supported) like `${j}` or `<%= j %>`. This
+lets component users customize the component further.
 
 See ["Using templates and slots" on MDN](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
 for more.
