@@ -172,43 +172,53 @@ There are 3 kinds of template tags you can use:
 <!--
 ## Use `<slot>` in templates
 
-Use [`<slot>` in `<template>`](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
-to render different parts. For example:
+  Use [`<slot>` in `<template>`](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
+to replace content. For example, this defines a component with 2 slots:
 
 ```html
-<template $name="repeat-slots" a="1" b="1">
-  <% for (var j=0; j < +a; j++) { %>
-    <slot name="a">A</slot>
-  <% } %>
-  <% for (var j=0; j < +a; j++) { %>
-    <slot name="b">B</slot>
-  <% } %>
-  <slot></slot>
+<template $name="slot-translate">
+   Good = <slot name="good">...</slot>.
+   Bad = <slot name="bad">...</slot>.
 </template>
 ```
 
 When you add the component to your page:
 
 ```html
-<repeat-slots a="5" b="5">
-  <span slot="a">🔴</span>
-  <span slot="b">🟩</span>
-  <span slot="a"><strong>${j}</strong></span>
-  <span slot="b"><em>${j}</em></span>
-</repeat-slots>
+<slot-translate>
+  <span slot="good"><em>bon</em></span>
+  <span slot="bad"><strong>mauvais</strong></span>
+</slot-translate>
 ```
 
 ... it renders this output:
 
-🔴**x** 🔴**x** 🔴**x** 🔴**x** 🔴**x** 🟩*y* 🟩*y* 🟩*y* 🟩*y* 🟩*y* 🔴 🟩 **x** *y*
+Good = *bon*. Bad = **mauvais**.
 
-- `<slot name="a">` is replaced with all `slot="a"` elements (🔴 and **x**).
-- `<slot name="b">` is replaced with all `slot="b"` elements (🟩 and *y*).
-- `<slot>` is replaced with all elements in the component (🔴 🟩 **x** *y*). This is similar to the `.innerHTML`
+- `<slot name="good">` is replaced with all `slot="good"` elements.
+- `<slot name="bad">` is replaced with all `slot="bad"` elements.
+- `<slot>` (without `name=`) is replaced with the whole `<slot-translate>` contents.
 
-See ["Using templates and slots" on MDN](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
-for more.
+Slots can [contain variables](#lodash-templates-are-supported) like `${x}` or `<%= this %>`. This
+lets component users customize the component further.
 -->
+<template $name="slot-translate">
+   Good = <slot name="good">...</slot>.
+   Bad = <slot name="bad">...</slot>.
+</template>
+<slot-translate>
+  <span slot="good"><em>bon</em></span>
+  <span slot="bad"><strong>mauvais</strong></span>
+</slot-translate>
+<script>
+  tape('Use `<slot>` in templates', function (t) {
+    let el = document.querySelector('slot-translate')
+    t.ok(el.innerHTML.match(/Good = <span slot="good"><em>bon<\/em><\/span>./), 'Slot "good" rendered')
+    t.ok(el.innerHTML.match(/Bad = <span slot="bad"><strong>mauvais<\/strong><\/span>./), 'Slot "bad" rendered')
+    t.end()
+  })
+</script>
+
 <template $name="repeat-slots" a="1" b="1">
   <% for (var j=0; j < +a; j++) { %>
     <slot
@@ -221,15 +231,17 @@ for more.
   <slot></slot>
 </template>
 <repeat-slots a="5" b="5">
+  prefix
   <span slot="a">🔴</span>
   <span slot="b">🟩</span>
   <span slot="a"><strong>${j}</strong></span>
   <span slot="b"><em>${j + 1}</em></span>
+  suffix
 </repeat-slots>
 <script>
-  tape('HTML scripts are supported', function (t) {
+  tape('Slots are supported', function (t) {
     let el = document.querySelector('repeat-slots')
-    t.equals(el.innerText.trim(), '🔴0 🔴1 🔴2 🔴3 🔴4 🟩1 🟩2 🟩3 🟩4 🟩5 🔴 🟩 5 6', 'Slots rendered')
+    t.equals(el.innerText.trim(), '🔴0 🔴1 🔴2 🔴3 🔴4 🟩1 🟩2 🟩3 🟩4 🟩5 prefix 🔴 🟩 5 6 suffix', 'Slots rendered')
     t.equals(el.querySelectorAll('strong').length, 6, 'Child HTML element <strong> copied')
     t.equals(el.querySelectorAll('em').length, 6, 'Child HTML element <em> copied')
     t.end()
@@ -300,42 +312,53 @@ Anything inside it is rendered as a template. (Any HTML outside it is ignored.)
 
 
 <!--
-## Create re-usable blocks with `<script type="text/html" $block="...">`
+## Add re-usable blocks with `<script type="text/html" $block="...">`
 
-To re-use HTML later, add it into a `<script type="text/html" $block="blockname">...</script>`.
-
-In this example, `$block="wrap"` defines a `wrap()` function that renders the script contents.
+To re-use HTML later, add it into a `<script type="text/html" $block="blockname">...</script>`. For example:
 
 ```html
-<template $name="repeat-block" value="8" icon="★">
-  <script type="text/html" $block="wrap">
-    <span style="border: 1px solid ${color}"><%- icon.repeat(+value) %></span>
-  </script>
-  <% if (+value % 2 == 0) { %>
-    Even ▸ <%= wrap({ ...this.$data, color: 'red' }) %>
-  <% } else { %>
-    <%= wrap({ ...this.$data, color: 'blue' }) %> ◂ Odd
-  <% } %>
+<template $name="block-example" greeting="hello">
+  <script type="text/html" $block="one">one says ${greeting}.</script>
+  <script type="text/html" $block="two">two says ${greeting}.</script>
+
+  <%= one() %>
+  <%= two({ greeting: 'Ola' }) %>
 </template>
 ```
 
-When you add two versions of this page:
+When you add the component to your page:
 
 ```html
-<repeat-block value="2"></repeat-block>
-<repeat-block value="3"></repeat-block>
+<block-example></block-example>
 ```
 
 ... it renders this output:
 
-![Re-usable blocks rendered](docs/img/repeat-block.png)
+```text
+one says hello. two says Ola.
+```
 
 Note:
 
-- In the scripts, `this` is the [component instance](#access-component-as-this-inside-templates).
-  [All properties]((#access-properties-as-variables-inside-templates)) are available as variables.
+- You can use [`this`](#access-component-as-this-inside-templates) and
+  [all properties](#access-properties-as-variables-inside-templates) as variables.
 - If multiple `<script type="text/html">` have the same `$block` value, the last one is used
 -->
+<template $name="block-example" greeting="hello">
+  <script type="text/html" $block="one">one says ${greeting}.</script>
+  <script type="text/html" $block="two">two says ${greeting}.</script>
+
+  <%= one() %>
+  <%= two({ greeting: 'Ola' }) %>
+</template>
+<block-example></block-example>
+<script>
+  tape('Add re-usable blocks with `<script type="text/html" $block="...">``', function (t) {
+    let el = document.querySelector('block-example')
+    t.equals(el.innerText.trim(), 'one says hello. two says Ola.', '$block rendered')
+    t.end()
+  })
+</script>
 
 <template $name="repeat-block" value="8" icon="★">
   <!-- $block="wrap" defines a wrap() function that returns this HTML, rendered -->
@@ -389,16 +412,23 @@ Note:
 <!--
 ## Define properties using `<template attr="...">`
 
-Any attributes you add to `<template>` can be accessed via `element.attr`.
-For example, `<template $name="repeat-html" icon="★" value="30">` defines properties
-`.icon` and `.value`:
+Attributes added to `<template>` can be accessed as properties.
+For example, this defines 2 attributes, `icon=` and `value=`:
+
+```html
+<template $name="repeat-icon" icon="★" value="30">
+  ${icon.repeat(+value)}
+</template>
+```
+
+Now, you can use `el.icon` and `el.value` to get and set these attributes.
 
 ```html
 <script>
-let el = document.querySelector('repeat-html')  // Find first <repeat-html>
-console.log(el.icon)                            // Prints the value of icon=""
-console.log(el.value)                           // Prints the value of value=""
-el.value = 10                                   // Re-render with value=10
+let el = document.querySelector('repeat-icon')  // Find first <repeat-icon>
+console.log(el.icon)                            // Logs ★
+console.log(el.value)                           // Logs 30
+el.value = 10                                   // Renders ★★★★★★★★★
 </script>
 ```
 
@@ -483,15 +513,13 @@ Inside the template, the variable `value` has a value `"8"`.
 By default, properties are of type `string`. You can specify `number`, `boolean`, `array`,
 `object` or `js` like this:
 
-- `<template $name="..." num:number="30">` defines `.num` as a number `30`
-- `<template $name="..." bool:boolean="true">` defines `.bool` as a boolean `true`
-- `<template $name="..." arr:array="[3,4]">` defines `.arr` as an array `[3, 4]`
-- `<template $name="..." obj:object="{x:1}">` defines `.obj` as an object `{x: 1}`
-- `<template $name="..." expr:js="Math.ceil(2.2) + num">` defines `.expr` as a JS expression
-  evaluating to `3 + num`.
-    - You can use global variables like `Math.ceil`
-    - You can use other properties like `num`
-    - You can use use `data[property]` to access other properties, like `data["num"]` or `data.num`
+- `<template $name="..." num:number="30">`
+- `<template $name="..." bool:boolean="true">`
+- `<template $name="..." arr:array="[3,4]">`
+- `<template $name="..." obj:object="{x:1}">`
+- `<template $name="..." expr:js="Math.ceil(2.2) + num">`
+
+The value for `:js=` can include global variables as well as other properties defined just before this property.
 
 ```html
 <template $name="property-types" x="" str:string="" num:number="" bool:boolean=""
@@ -870,18 +898,16 @@ example, this component has 2 properties, `char` and `repeat-value`:
 <repeat-props char="★" repeat-value="10"></repeat-props>
 ```
 
-When you add this script to your page:
+After the element is rendered, run this code in your **JavaScript console**:
 
-```html
-<script>
-  document.querySelector('repeat-props').update({
-    char: '⚡',
-    'repeat-value': 8       // Note: use 'repeat-value', not repeatValue
-  })
-</script>
+```js
+document.querySelector('repeat-props').update({
+  char: '⚡',
+  'repeat-value': 8       // Note: use 'repeat-value', not repeatValue
+})
 ```
 
-... updates both `char` and `repeat-value` to generate this output:
+This updates both `char` and `repeat-value` to generate this output:
 
 ![update() changes multiple properties](docs/img/repeat-props.png)
 
@@ -965,25 +991,28 @@ When you add the component to your page:
 
 ![Style applied to repeat-style](docs/img/repeat-style.png)
 
-**You can override component style from the outside**. UIFactory just copies the `<style>` into the
-document -- no shadow DOM. Adding this `<style>` overrides the component color:
-
-```css
-repeat-style b { color: red; }
-```
-
-![Red overrides repeat-style's green](docs/img/repeat-style-red.png)
-
 **You can't pollute styles outside the component**. UIFactory adds the component name before every
 selector (if it's missing). For example:
 
-- `b { color: green}` becomes `repeat-style b { color:green; }`
 - `repeat-style.highlight {...}` stays as-is -- it already has `repeat-style`
-- `.highlight b {...}` becomes `repeat-style .highlight b {...}`. If you want `repeat-style.highlight b {...}` instead, explicitly use that
+- `.highlight b {...}` becomes `repeat-style .highlight b {...}`
+- `b { color: green}` becomes `repeat-style b { color:green; }`
 
-So any `<b>` outside the component does not turn green.
+So any `<b>` outside the component does not change color.
 
 **Note**: This isn't foolproof. It's simply to prevent accidental pollution.
+
+**You can override component styles from the outside**. UIFactory just copies the `<style>` into the
+document -- no shadow DOM. Adding this `<style>` overrides the component color:
+
+```html
+<style>
+/* Prefixing `body` to `repeat-stye b` for more specificity */
+body repeat-style b { color: red; }
+</style>
+
+![Red overrides repeat-style's green](docs/img/repeat-style-red.png)
+```
 -->
 <template $name="repeat-style" value:number="30">
   <style>
@@ -1000,7 +1029,7 @@ So any `<b>` outside the component does not turn green.
   <b>★</b>
 </repeat-style>
 <style>
-repeat-style.overridden b { color: red; }
+body repeat-style.overridden b { color: red; }
 </style>
 <repeat-style class="highlight overridden" value="8">
   <b>★</b>
@@ -1189,7 +1218,7 @@ When you add the component to your page:
 
 ![Click event demo](docs/img/count-items.gif)
 
-To add a `click` event listener **to a child**, use `<script $onclick $select="child-selector">...</script>`:
+To add a `click` event listener **to a child**, use `<script $onclick="child-selector">...</script>`:
 
 ```html
 <template $name="count-button" count:number="0" step:number="2">
@@ -1205,11 +1234,11 @@ Now, `<count-button></count-button>` renders:
 
 ![Click event on child demo](docs/img/count-button.gif)
 
-Listener functions can use these variables:
+Listeners can use these variables:
 
 - `e` is the [event object](https://developer.mozilla.org/en-US/docs/Web/API/Event)
-- `this` is the component instance
-- All properties, e.g. `count`, `step`
+- `this` is the [component instance](#access-component-as-this-inside-templates)
+- [Any property](#access-properties-as-variables-inside-templates), e.g. `count`, `step`
 
 To call the listener only once, add the `$once` attribute to `<script>`:
 
@@ -1312,16 +1341,17 @@ Now, `<count-once></count-once>` renders:
 </script>
 
 <!--
-## Use lifecycle events to render components using JavaScript
+## Lifecycle events are supported
 
 Components fire these events at different stages of their lifecycle:
 
-- `preconnect`: when the instance is created, but no properties are defined yet
-- `connect`: properties are defined, but external scripts may not be loaded
-- `prerender`: external scripts are loaded, but template not yet rendered
-- `render`: template is rendered
+- `preconnect`: before the instance is created and properties are defined
+- `connect`: after the instance is created and properties are defined
+- `prerender`: before the instance is rendered
+- `render`: after the instance is rendered
+- `disconnect`: after the element is disconnected from the DOM
 
-Add `<script onpreconnect>...</script>`, `<script onrender>...</script>`, etc to create listeners.
+Add `<script $onpreconnect>...</script>`, `<script $onrender>...</script>`, etc to create listeners.
 For example:
 
 ```html
@@ -1332,15 +1362,16 @@ For example:
 </template>
 ```
 
-Now, `<repeat-events icon="★" value="8"><repeat-html>` renders this output:
+Now, `<repeat-events icon="★" value="8"><repeat-events>` renders this output:
 
 ![8 stars](docs/img/repeat-8-star.png)
 
-Notes:
+NOTE:
 
-- You can add a listener to multiple events, like `<script onprerender onrender>`
-- You can add multiple listeners to an event, e.g. by repeating `<script onrender>...</script>`
-- You can add listeners using `this.addEventListener('render', ...)` too
+- `<script $onrender $once>` creates a listener that runs only once
+- `<script $onprerender $onrender>` runs the listener both on prerender **AND** render
+- Multiple `<script $onrender>...</script>` creates multiple listeners
+- `this.addEventListener('render', ...)` is exactly the same as `<script $onrender>`
 -->
 
 <template $name="repeat-events" icon="★" value:number="1">
@@ -1406,43 +1437,49 @@ Notes:
 
 
 <!--
-## Import components with `import="file.html"`
+## Load components from HTML files
 
-You can save one (or more) component `<template>`s in a HTML file.
-For example, `tag.html` could look like this:
+You can save components in a HTML file.
+For example, this `tag.html` defines 2 components: `<tag-a>` and `<tag-b>`.
 
 ```html
 <template $name="tag-a">This is tag-a</template>
 <template $name="tag-b">This is tag-b</template>
 ```
 
-To use `<tag-a>` and `<tag-b>` in your HTML file, import it like this:
+To use `<tag-a>` and `<tag-b>` in your HTML file, import it with `import=`:
 
 ```html
-<script src="node_modules/uifactory/dist/uifactory.min.js" import="tag.html"></script>
+<script src="//cdn.jsdelivr.net/npm/uifactory" import="tag.html"></script>
 ```
-
-This uses [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).
-The fetched files must be in the same domain or
-[CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
-
-**Multiple component files** are separated by comma and/or spaces. Relative and absolute URLs both work.
+Load multiple files separated by comma and/or spaces. Relative and absolute URLs both work.
 
 ```html
-<script src="node_modules/uifactory/dist/uifactory.min.js" import="
-  tag.html, tag2.html,
-  ../test/tag3.html
+<script src="//cdn.jsdelivr.net/npm/uifactory" import="
+  tag.html, tag2.html, ../test/tag3.html
   https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
 "></script>
 ```
 
-**Import additional files** via JavaScript if you already added `uifactory.min.js`:
+To import [pre-built components](#use-pre-built-components), use `import="@component-name"`:
+
+```html
+<script src="//cdn.jsdelivr.net/npm/uifactory" import="@svg-chart @md-text"></script>
+```
+
+Or, if you already loaded UIFactory, use:
 
 ```html
 <script>
 uifactory.register('tag5.html')
 </script>
 ```
+
+Note:
+
+- This uses [fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch).
+The fetched files must be in the same domain or
+[CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
 -->
 <tag-a></tag-a><tag-b></tag-b>
 <script src="../src/uifactory.js" import="tag.html"></script>
@@ -1466,55 +1503,19 @@ uifactory.register('tag5.html')
 uifactory.register('tag5.html')
 </script>
 
+<script src="../src/uifactory.js" import="@svg-chart @md-text"></script>
+<md-text>**Strong text** and *italics*</md-text>
+
 <script>
   tape('Import components from `import="file.html"`', function (t) {
     let tags = ['tag-a', 'tag-b', 'tag2-a', 'tag2-b', 'tag3-a', 'tag3-b', 'tag4-a', 'tag4-b', 'tag5-a', 'tag5-b']
     t.plan(tags.length)
     tags.forEach(tag => {
-      console.log(tag, document.querySelector(tag))
       document.querySelector(tag).$ready.then(function () {
         t.equals(document.querySelector(tag).innerHTML.trim(), `This is ${tag}`, `${tag} is imported`)
       })
     })
   })
-</script>
-
-
-<!--
-UIFactory has pre-defined HTML components that you can import, e.g. `<svg-chart>`. To import these,
-use `import="@component-name"`.
-
-You can import multiple component files separated by comma and/or spaces.
-
-For example, this imports the `<svg-chart>` and `<md-text>` components:
-
-```html
-<script src="node_modules/uifactory/src/uifactory.js" import="@svg-chart @md-text"></script>
-```
-
-This is the same as:
-
-```html
-<script src="node_modules/uifactory/src/uifactory.js" import="
-             node_modules/uifactory/src/svg-chart.html
-             node_modules/uifactory/src/md-text.html
-"></script>
-```
-
-When you add the component to your page:
-
-```html
-<md-text>**Strong text** and *italics*</md-text>
-```
-
-... it renders this output:
-
-**Strong text** and *italics*
--->
-
-<script src="../src/uifactory.js" import="@svg-chart @md-text"></script>
-<md-text>**Strong text** and *italics*</md-text>
-<script>
   tape('Import standard components with `import="@component-name"`', function (t) {
     let el = document.querySelector('md-text')
     t.equals(el.innerHTML.trim(), `<p><strong>Strong text</strong> and <em>italics</em></p>`, `md-text imported`)
@@ -1688,53 +1689,53 @@ Now, if you repeatedly use this component in a page:
 </script>
 
 <!--
-## Create components dynamically
+## Insert components dynamically
 
-You can dynamically add components at any time. For example:
+You can dynamically insert components into the page. For example:
 
 ```html
 <div id="parent1"></div>
+<template $name="navigator-property" value="onLine">${value} = ${navigator[value]}</template>
 <script>
-  document.querySelector('#parent1').innerHTML = '<repeat-html icon="★" value="8"><repeat-html>'
+  document.querySelector('#parent1').innerHTML = '<navigator-property><navigator-property>'
 </script>
 ```
 
-... adds `<repeat-html icon="★" value="8"><repeat-html>` to the body.
+... adds a `<navigator-property>` dynamically into the `<div id="parent1">`, and renders this output:
 
-![8 stars](docs/img/repeat-8-star.png)
+```html
+onLine = true
+```
 
 This code does the same thing:
 
 ```html
 <div id="parent2"></div>
 <script>
-  let el = document.createElement('repeat-html')
-  el.setAttribute('icon', '★')
-  el.setAttribute('value', '8')
+  let el = document.createElement('navigator-property')
+  el.setAttribute('value', 'onLine')  // optional
   document.querySelector('#parent2').appendChild(el)
 </script>
 ```
 -->
 
 <div id="parent1"></div>
+<template $name="navigator-property" value="onLine">${value} = ${navigator[value]}</template>
 <script>
-  document.querySelector('#parent1').innerHTML = '<repeat-html icon="★" value="8"><repeat-html>'
+  document.querySelector('#parent1').innerHTML = '<navigator-property><navigator-property>'
 </script>
 <div id="parent2"></div>
 <script>
-  (function () {
-    let el = document.createElement('repeat-html')
-    el.setAttribute('icon', '★')
-    el.setAttribute('value', '8')
+    let el = document.createElement('navigator-property')
+    el.setAttribute('value', 'onLine')  // optional
     document.querySelector('#parent2').appendChild(el)
-  })()
 </script>
 <script>
   tape('Create components dynamically', async function (t) {
-    let el1 = await document.querySelector('#parent1 repeat-html').$ready
-    let el2 = await document.querySelector('#parent2 repeat-html').$ready
-    t.equals(el1.innerHTML.trim(), '★★★★★★★★', 'create via .innerHTML')
-    t.equals(el2.innerHTML.trim(), '★★★★★★★★', 'create via .createElement')
+    let el1 = await document.querySelector('#parent1 navigator-property').$ready
+    let el2 = await document.querySelector('#parent2 navigator-property').$ready
+    t.equals(el1.innerHTML.trim(), 'onLine = true', 'create via .innerHTML')
+    t.equals(el2.innerHTML.trim(), 'onLine = true', 'create via .createElement')
   })
 </script>
 
@@ -2216,22 +2217,10 @@ Now, suppose you change the circle's color programmatically and then change the 
   })
 </script>
 
-<template $name="event-scripts" x="20">
-  <script onrender onpreconnect onprerender>
-    /* globals x */
-    if (typeof x != 'undefined')
-      this.innerHTML = x.repeat(20)
-  </script>
+<template $name="bind-attribute">
+  <input disabled:="true" readonly:="false">
 </template>
-
-<event-scripts x="ok">...</event-scripts>
-
-<template $name="style-scoped">
-  <style scoped>
-    h1 { color: red; }
-  </style>
-  <h1>In red</h1>
-</template>
+<bind-attribute></bind-attribute>
 
 
 <script src="works-even-with-missing-script">

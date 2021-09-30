@@ -1,7 +1,7 @@
 <template $name="vega-chart" $render:js="uifactory.vegaChart.draw" spec:urljson="">
   <script>
     uifactory.vegaChart = {
-      /* globals vega, vegaLite */
+      /* globals vega, vegaLite, _ */
       updateSignal: function (node) {
         let signalChange = false
         // For every attribute in <vega-chart>
