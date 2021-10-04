@@ -19,6 +19,7 @@
 
   "signals": [
     { "name": "data", "value": null },
+    { "name": "x", "value": null },
     {
       "name": "strokeOp", "value": 0,
       "bind": {"input": "range", "min": 0, "max": 1, "step": 1}
@@ -36,7 +37,7 @@
     {
       "name": "xscale",
       "type": "linear",
-      "domain": {"data": "table", "field": "value"},
+      "domain": {"data": "table", "field": {"signal": "x"}},
       "range": "width",
       "round": true,
       "zero": true,
@@ -97,7 +98,7 @@
             "enter": {
               "y": {"scale": "pos", "field": "position"},
               "height": {"scale": "pos", "band": 1},
-              "x": {"scale": "xscale", "field": "value"},
+              "x": {"scale": "xscale", "field": {"signal": "x"}},
               "x2": {"scale": "xscale", "value": 0},
               "fill": {"scale": "color", "field": "position"},
               "strokeOpacity":{"signal": "strokeOp"}
@@ -117,7 +118,7 @@
               ],
               "align": {"value": "right"},
               "baseline": {"value": "middle"},
-              "text": {"field": "datum.value"}
+              "text": {"field": "datum['sales']"}
             }
           }
         }
