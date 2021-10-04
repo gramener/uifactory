@@ -170,6 +170,124 @@ There are 3 kinds of template tags you can use:
 
 
 <!--
+## Add dynamic classes and styles with `:=`
+
+For dynamic classes, set the `class:=` attribute to a array, object, or string:
+
+- `class:="['x', 'y']"` becomes `class="x y"`
+- `class:="{x: true, y: false}"` becomes `class="x"`
+- `class:="['x', {y: true, z: false}]"` becomes `class="x y"`
+- `class:="${active ? 'yes' : 'no'}"` becomes `class="yes"` is active is true, else `class="no"`
+
+For dynamic styles, set the `style:=` attribute to an object or string:
+
+- ``style:="{'font-size': `${size}px`, color: 'red'}"`` becomes `style="font-size:20px;color:red"` (when size=20).
+- `style:="font-size="${size}px; color: red"` also becomes `style="font-size:20px;color:red"` (when size=20).
+
+For dynamic attributes, set the `<attr>:=` attribute to any string or boolean expression:
+
+- `disabled:="true"` becomes "disabled"
+- `disabled:="false"` does not add the disabled attribute
+- `digits:="isRoman ? 'text' : 'number'"`
+
+For example, this defines an `<add-class>` component:
+
+```html
+<template $name="custom-input" active:boolean="true">
+  <style>
+    .round { border-radius: 20px; }
+    .active { border: 1px solid red; }
+  </style>
+  <input
+    class:="['round', {active: active}]"
+    style:="{background-color: active ? 'lightblue' : 'white'}"
+    disabled:="!active">
+</template>
+```
+
+When you add this to your page:
+
+```html
+Active: <custom-input active="true"></custom-input>
+Inactive: <custom-input active="false"></custom-input>
+```
+
+... it renders:
+
+![Output of custom-input](docs/img/custom-input.png)
+-->
+
+<template $name="custom-input" active:boolean="true">
+  <style>
+    .round { border-radius: 20px; }
+    .active { border: 1px solid red; }
+  </style>
+  <input
+    class:="['round', {active: active}]"
+    style:="{'background-color': active ? 'lightblue' : 'white'}"
+    disabled:="!active">
+</template>
+Active: <custom-input active="true"></custom-input>
+Inactive: <custom-input active="false"></custom-input>
+<script>
+  tape('Add dynamic classes and styles with `:=`', function (t) {
+    let el = document.querySelector('custom-input[active="true"] input')
+    t.ok(el.classList.contains('round'), 'class:= list works')
+    t.ok(el.classList.contains('active'), 'class:= object works')
+    t.equals(el.style.backgroundColor, 'lightblue', 'style:= object works')
+    t.equals(el.disabled, false, 'disabled:= boolean works')
+    el = document.querySelector('custom-input[active="false"] input')
+    t.ok(el.classList.contains('round'), 'class:= list works')
+    t.not(el.classList.contains('active'), 'class:= object works')
+    t.equals(el.style.backgroundColor, 'white', 'style:= object works')
+    t.equals(el.disabled, true, 'disabled:= boolean works')
+    t.end()
+  })
+</script>
+
+<template $name="dynamic-attrs" bool:boolean="true" int:number="2" str:string="ok" val:string="a<b">
+  <div :="{
+      'class': ['a', int > 1 ? 'b' : '', {[str]: bool}],
+      style: {width: 0, color: int > 1 ? 'red' : null, border: '1px solid red'},
+      never: int < 0,
+      big: int >= 1,
+      val: val
+    }"
+  ></div>
+  <div class:="['a', int > 1 ? 'b' : '', {[str]: bool}]"
+    style:="{width: 0, color: int > 1 ? 'red' : null, border: '1px solid red'}"
+    never:="int < 0"
+    big:="int >= 1"
+    val:="val"></div>
+  <section class:="['a', 'b'].join(' ')" style:="`width:${int}px`"></section>
+</template>
+<dynamic-attrs int="2"></dynamic-attrs>
+<dynamic-attrs int="0"></dynamic-attrs>
+<script>
+  tape('Add dynamic classes and styles with `:=`', function (t) {
+    let el
+    for (el of document.querySelectorAll('dynamic-attrs[int="2"] div')) {
+      t.equals(el.getAttribute('class'), 'a b ok', 'int=2 class:=')
+      t.equals(el.getAttribute('style'), 'width:0;color:red;border:1px solid red', 'int=2 style:=')
+      t.equals(el.getAttribute('never'), null, 'int=2 never:=')
+      t.equals(el.getAttribute('big'), '', 'int=2 big:=')
+      t.equals(el.getAttribute('val'), 'a<b', 'int=2 val:=')
+    }
+    for (el of document.querySelectorAll('dynamic-attrs[int="0"] div')) {
+      t.equals(el.getAttribute('class'), 'a ok', 'int=0 class:=')
+      t.equals(el.getAttribute('style'), 'width:0;border:1px solid red', 'int=0 style:=')
+      t.equals(el.getAttribute('never'), null, 'int=0 never:=')
+      t.equals(el.getAttribute('big'), null, 'int=0 big:=')
+      t.equals(el.getAttribute('val'), 'a<b', 'int=0 val:=')
+    }
+    el = document.querySelector('dynamic-attrs[int="0"] section')
+    t.equals(el.getAttribute('class'), 'a b', 'int=0 string class:=')
+    t.equals(el.getAttribute('style'), 'width:0px', 'int=0 string style:=')
+    t.end()
+  })
+</script>
+
+<!--
 ## Use `<slot>` in templates
 
   Use [`<slot>` in `<template>`](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)

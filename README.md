@@ -242,6 +242,53 @@ For example, when you add this to your page:
 ```
 
 
+## Add dynamic classes and styles with `:=`
+
+For dynamic classes, set the `class:=` attribute to a array, object, or string:
+
+- `class:="['x', 'y']"` becomes `class="x y"`
+- `class:="{x: true, y: false}"` becomes `class="x"`
+- `class:="['x', {y: true, z: false}]"` becomes `class="x y"`
+- `class:="${active ? 'yes' : 'no'}"` becomes `class="yes"` is active is true, else `class="no"`
+
+For dynamic styles, set the `style:=` attribute to an object or string:
+
+- ``style:="{'font-size': `${size}px`, color: 'red'}"`` becomes `style="font-size:20px;color:red"` (when size=20).
+- `style:="font-size="${size}px; color: red"` also becomes `style="font-size:20px;color:red"` (when size=20).
+
+For dynamic attributes, set the `<attr>:=` attribute to any string or boolean expression:
+
+- `disabled:="true"` becomes "disabled"
+- `disabled:="false"` does not add the disabled attribute
+- `digits:="isRoman ? 'text' : 'number'"`
+
+For example, this defines an `<add-class>` component:
+
+```html
+<template $name="custom-input" active:boolean="true">
+  <style>
+    .round { border-radius: 20px; }
+    .active { border: 1px solid red; }
+  </style>
+  <input
+    class:="['round', {active: active}]"
+    style:="{background-color: active ? 'lightblue' : 'white'}"
+    disabled:="!active">
+</template>
+```
+
+When you add this to your page:
+
+```html
+Active: <custom-input active="true"></custom-input>
+Inactive: <custom-input active="false"></custom-input>
+```
+
+... it renders:
+
+![Output of custom-input](docs/img/custom-input.png)
+
+
 ## Use `<slot>` in templates
 
 [Slots](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
@@ -1266,6 +1313,8 @@ npm publish
 
 ## Change log
 
+- 1.21.0 (WIP):
+  - `<attr>:="..."` [dynamically sets attributes based on value](#add-dynamic-classes-and-styles-with-)
 - 1.20.0 (28 Sep 2021):
   - `<script type="text/html" $block="name">` adds a [re-usable template block](#add-re-usable-blocks-with-script-typetexthtml-block)
   - `this.$id` holds a [unique ID for each component](#thisid-hold-a-unique-id-for-each-component)

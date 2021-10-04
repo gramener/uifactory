@@ -81,6 +81,30 @@
       }
   })
 
+  let $attr = (name, value) => {
+    // If there's no name, e.g. :="{...}" then map all keys of the object to attrs recursively
+    if (!name)
+      return typeof value == 'object' ? Object.entries(value).map(([k, v]) => $attr(k, v)).join(' ') : ''
+    // Boolean, null, undefined are booleans. x:="true" ▶ x, x:="false|null" ▶ ""
+    if ((typeof value).match(/boolean|undefined/) || value === null)
+      return value ? name : ''
+    if ((typeof value) == 'object') {
+      if (name == 'style')
+        value = styleValue(value)
+      else if (name == 'class')
+        value = classValue(value)
+    }
+    return `${name}="${escape(value)}"`
+  }
+
+  let classValue = value =>
+    (value.constructor === Array ?
+      value.map(v => typeof v == 'object' ? classValue(v) : v) :
+      Object.entries(value).map(([k, v]) => v ? k : '')
+    ).filter(v => v).join(' ')
+
+  let styleValue = value => Object.entries(value).map(([k, v]) => (v || v === 0) ? `${k}:${v}` : '').filter(v => v).join(';')
+
   // Register a single component
   function registerComponent(config) {
     // The custom element is defined on this window. This need not be the global window.
@@ -320,16 +344,24 @@
       // Clone instance contents for future reference
       this.$contents = this.cloneNode(true)
 
-      // Replace <slot name=""></slot> in the template contents with <... slot="..."> contents.
+      // REPLACE SLOTS.
       // First, extract all slot="" attributes from the instance into a dict
       let slotContent = { '': this.$contents.innerHTML }
       for (let slot of this.$contents.querySelectorAll('[slot]'))
-        slotContent[slot.slot] = (slotContent[slot.slot] || '') + unescape(slot.innerHTML)
+        slotContent[slot.slot] = (slotContent[slot.slot] || '') + unescape(slot.outerHTML)
       // Next, replace all <slot> elements in the template.
       // Don't use DOMParser(). The slot contents may be invalid HTML (e.g. <% %> templates inside a table).
       // Parse as a regular expression. See https://regex101.com/r/lqnaz2/1
       let src = html.replace(/<slot\s*(name\s*=\s*['"]?(?<name>[^'">\s]*)['"]?)?\s*>(?<contents>[\s\S]*?)<\/slot\s*>/ig,
         (match, group, name, contents) => slotContent[name || ''] || contents)
+
+      // Replace name:="expr" with $attr(name, expr), which does the following:
+      //  disabled:="true" -> disabled
+      //  disabled:="false" ->
+      //  class:="['a', 'b']" -> class="a b",
+      src = src.replace(/(\S*):(?:js)?="([^"]*)?"/g, function(match, name, value) {
+        return `<%= $attr('${name}', ${value}) %>`
+      })
 
       // this.$compile($this.data) returns the compiled HTML to be rendered.
       this.$compile = compiler(src)
@@ -385,7 +417,7 @@
       this.dispatchEvent(new CustomEvent('prerender', { bubbles: true }))
 
       // Render the contents of the <template> as a microtemplate after substituting slots
-      let src = this.$compile.call(this, this.$data)
+      let src = this.$compile.call(this, {$attr, ...this.$data})
       this.$render(this, src)
 
       // Resolve the "$ready" Promise
