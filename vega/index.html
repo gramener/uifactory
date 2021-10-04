@@ -11,7 +11,8 @@
     <script src="../src/uifactory.js" import="@vega-chart"></script>
 
     <vega-chart
-     spec="grouped-bar-chart.json" 
+     spec="grouped-bar-chart.json"
+     data:urljson="grouped-bar-chart-data.json"
      bar-fill:string="blue"
      bar-stroke:string = "black"
      bar-stroke-width:number = "3"
@@ -27,7 +28,7 @@
      bar-tooltip:string="hello"
      bar-yc:number="4"
      group-fill:string="yellow"
-     group-stroke-opacity:number = "1"     
+     group-stroke-opacity:number = "1"
      >
     </vega-chart>
 
@@ -36,14 +37,13 @@
     pie-fill:string="orange"
     pie-stroke:string="white"
     pie-stroke-width:number = "3"
-    pie-inner-radius:number = "60"    
+    pie-inner-radius:number = "60"
     >
     </vega-chart>
-    
+
 </body>
 </html>
 
 <!-- Queries -->
-1. spec and data:url
 2. fill to group not rendering
 3. how to apply color on scales ( "range": {"scheme": "category20"})
