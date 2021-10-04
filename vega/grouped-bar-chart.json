@@ -6,8 +6,7 @@
   "padding": 5,
 
   "uifactoryConfig":[
-    { "type":"mark.rect", "prefix":"bar", "insert":"marks[0].marks[0].encode.enter"},
-    { "type":"mark.rect", "prefix":"group", "insert":"marks[0].encode.enter"}
+    { "type":"mark.rect", "prefix":"bar", "insert":"marks[0].marks[0].encode.enter"}
   ],
 
   "data": [
