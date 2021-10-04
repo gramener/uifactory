@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width= initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/lodash/lodash.js"></script>
+    <script src="../src/uifactory.js" import="@vega-chart"></script>
+
+    <vega-chart
+     spec="grouped-bar-chart.json" 
+     bar-fill:string="blue"
+     bar-stroke:string = "black"
+     bar-stroke-width:number = "3"
+     bar-fill-opacity:number = "0.5"
+     bar-stroke-opacity:number = "1"
+     bar-width:number = 90
+     bar-height:number = 50
+     bar-corner-radius:number="5"
+     bar-corner-radius-top-left:number="2"
+     bar-x:number="50"
+     bar-y:number="50"
+     bar-cursor:string="pointer"
+     bar-tooltip:string="hello"
+     bar-yc:number="4"
+     group-fill:string="yellow"
+     group-stroke-opacity:number = "1"     
+     >
+    </vega-chart>
+
+    <vega-chart spec="pie-chart.json"
+    pie-start-angle:number="12"
+    pie-fill:string="orange"
+    pie-stroke:string="white"
+    pie-stroke-width:number = "3"
+    pie-inner-radius:number = "60"    
+    >
+    </vega-chart>
+    
+</body>
+</html>
+
+<!-- Queries -->
+1. spec and data:url
+2. fill to group not rendering
+3. how to apply color on scales ( "range": {"scheme": "category20"})
