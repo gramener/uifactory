@@ -12,7 +12,7 @@ This is useful when creating force directed layouts like:
 Add this code anywhere in your HTML page:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/uifactory@1.20.0/dist/uifactory.min.js" import="@network-chart"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@1.21.0/dist/uifactory.min.js" import="@network-chart"></script>
 <script>
   /* exported nodes, links */
   var nodes = [
@@ -115,7 +115,7 @@ document.querySelector('network-chart').nodeFill = 'green'
   Loading network...
 </network-chart>
 
-<script src="https://cdn.jsdelivr.net/npm/uifactory@1.20.0/dist/uifactory.min.js" import="@network-chart"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@1.21.0/dist/uifactory.min.js" import="@network-chart"></script>
 <script>
   /* exported nodes, links */
   var nodes = [

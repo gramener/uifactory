@@ -23,7 +23,7 @@ a web component with UIFactory.
 You can use UIFactory directly from the CDN:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/uifactory@1.20.0/dist/uifactory.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@1.21.0/dist/uifactory.min.js"></script>
 ```
 
 Or you can use [npm](https://www.npmjs.com/get-npm) to install UIFactory locally:
@@ -260,7 +260,7 @@ For dynamic attributes, set the `<attr>:=` attribute to any string or boolean ex
 
 - `disabled:="true"` becomes "disabled"
 - `disabled:="false"` does not add the disabled attribute
-- `digits:="isRoman ? 'text' : 'number'"`
+- `type:="isNumeric ? 'number' : 'text'"` sets `type="number"` if isNumeric is truthy, else `type="text"`
 
 For example, this defines an `<add-class>` component:
 
@@ -1313,7 +1313,7 @@ npm publish
 
 ## Change log
 
-- 1.21.0 (WIP):
+- 1.21.0 (4 Oct 2021):
   - `<attr>:="..."` [dynamically sets attributes based on value](#add-dynamic-classes-and-styles-with-)
 - 1.20.0 (28 Sep 2021):
   - `<script type="text/html" $block="name">` adds a [re-usable template block](#add-re-usable-blocks-with-script-typetexthtml-block)
@@ -1337,7 +1337,7 @@ npm publish
 - 0.0.12 (25 Jun 2021): [`<slot>` support](#use-slot-in-templates)
 - 0.0.11 (17 Jun 2021): [`:urljson`](#fetch-urls-as-json-using-the-urljson-type) and
   [`:urltext`](#fetch-urls-as-text-using-the-urltext-type) types added.
-  [`"import=@component-name"` support](#import-standard-components-with-importcomponent-name)
+  [`"import=@component-name"` support](#load-components-from-html-files)
 - 0.0.10 (9 Jun 2021): `<svg-chart>` component added. `:js` allows properties as variables
 - 0.0.9 (2 Jun 2021): The `:url` attribute type [fetches data from a URL](#fetch-urls-using-the-url-type)
 - 0.0.8 (27 May 2021): Custom types' `.parse()` receives `this.data` as input

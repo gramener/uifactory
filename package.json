@@ -1,6 +1,6 @@
 {
   "name": "uifactory",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "description": "Simple HTML components",
   "main": "dist/uifactory.min.js",
   "jsdelivr": "dist/uifactory.min.js",

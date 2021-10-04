@@ -188,7 +188,7 @@ For dynamic attributes, set the `<attr>:=` attribute to any string or boolean ex
 
 - `disabled:="true"` becomes "disabled"
 - `disabled:="false"` does not add the disabled attribute
-- `digits:="isRoman ? 'text' : 'number'"`
+- `type:="isNumeric ? 'number' : 'text'"` sets `type="number"` if isNumeric is truthy, else `type="text"`
 
 For example, this defines an `<add-class>` component:
 
