@@ -207,7 +207,6 @@
       </select>
     <% } else if (type.match(/checkbox|radio/)) { %>
       <!-- TODO -- working on this -->
-      <% } %>
     <% } else { %>
       <input type="<%- type %>" id="${this.$id}-input" name="<%- name %>" placeholder="<%- placeholder %>" ${attrs} value="<%- obj.default %>"
         class="form-control <%- bs5Class %>" maxlength="<%- maxlength %>" aria-describedby="${this.$id}-help"
@@ -216,7 +215,9 @@
   </script>
   <% if (layout == 'horizontal') { %>
     <div class="row">
-      <label for="${this.$id}-input" class="col-sm-2 col-form-label">${label}</label>
+      <label for="${this.$id}-input" class="col-sm-2 col-form-label">
+        ${label}
+      </label>
       <div class="col-sm-10">
         <div class="input-group">
           <% if (prefix) { %><span class="input-group-text">${prefix}</span><% } %>
@@ -225,11 +226,13 @@
         </div>
       </div>
     </div>
+    <% if (help) { %><small id="${this.$id}-help" class="form-text text-muted">${help}</small><% } %>
   <% } else if (layout == 'floating') { %>
     <div class="form-floating">
       <%= inputTemplate() %>
       <label for="${this.$id}-input">${label}</label>
     </div>
+    <% if (help) { %><small id="${this.$id}-help" class="form-text text-muted">${help}</small><% } %>
   <% } else { %>
     <div>
       <label for="${this.$id}-input" class="form-label">${label}</label>
@@ -239,6 +242,6 @@
         <% if (suffix) { %><span class="input-group-text">${suffix}</span><% } %>
       </div>
     </div>
+    <% if (help) { %><small id="${this.$id}-help" class="form-text text-muted">${help}</small><% } %>
   <% } %>
-  <% if (help) { %><small id="${this.$id}-help" class="form-text text-muted">${help}</small><% } %>
 </template>
