@@ -2,7 +2,7 @@
 
 <!-- markdownlint-disable no-inline-html -->
 <!-- Generate Favicon from image using https://favicon.io/favicon-generator/ -->
-<p align="center"><a href="https://uifactory.gramener.com/"><img src="docs/img/uifactory.svg" alt="UIFactory Logo"></a></p>
+<p align="center"><a href="https://uifactory.gramener.com/"><img src="img/uifactory.svg" alt="UIFactory Logo"></a></p>
 
 [UIFactory](https://uifactory.gramener.com/) is a small, elegant web component framework.
 
@@ -20,14 +20,14 @@ It's [MIT licensed](https://github.com/gramener/uifactory/tree/master/LICENSE).
 ## Learn
 
 <div style="display:flex;text-align:center">
-  <a href="docs/quickstart/README.md" style="margin:1rem;max-width:15rem;border:1px solid #ccc;box-shadow:2px 2px 4px 2px rgba(0,0,0,0.5)">
+  <a href="quickstart/README.md" style="margin:1rem;max-width:15rem;border:1px solid #ccc;box-shadow:2px 2px 4px 2px rgba(0,0,0,0.5)">
     <h2>Quickstart tutorial</h2>
-    <p><img src="docs/img/quickstart.svg"></p>
+    <p><img src="img/quickstart.svg"></p>
     <p>A 15-minute tutorial that teaches how to build a web component with UIFactory.</p>
   </a>
-  <a href="docs/guide.md" style="margin:1rem;max-width:15rem;border:1px solid #ccc;box-shadow:2px 2px 4px 2px rgba(0,0,0,0.5)">
+  <a href="guide.md" style="margin:1rem;max-width:15rem;border:1px solid #ccc;box-shadow:2px 2px 4px 2px rgba(0,0,0,0.5)">
     <h2>Feature Guide</h2>
-    <p><img src="docs/img/guide.svg"></p>
+    <p><img src="img/guide.svg"></p>
     <p>Explains every feature of UIFactory. This is a guide and as a reference.</p>
   </a>
 </div>
@@ -36,11 +36,11 @@ It's [MIT licensed](https://github.com/gramener/uifactory/tree/master/LICENSE).
 
 UIFactory ships with these ready-to-use components:
 
-- [`<comic-gen>`](docs/comic-gen.md) renders comic characters from data
-- [`<md-text>`](docs/md-text.md) converts Markdown to HTML
-- [`<network-chart>`](docs/network-chart.md) renders network graphs
-- [`<svg-chart>`](docs/svg-chart.md) creates data-driven infographics from SVGs
-- [`<vega-chart>`](docs/vega-chart.md) renders charts using Vega
+- [`<comic-gen>`](comic-gen.md) renders comic characters from data
+- [`<md-text>`](md-text.md) converts Markdown to HTML
+- [`<network-chart>`](network-chart.md) renders network graphs
+- [`<svg-chart>`](svg-chart.md) creates data-driven infographics from SVGs
+- [`<vega-chart>`](vega-chart.md) renders charts using Vega
 
 ## Support
 

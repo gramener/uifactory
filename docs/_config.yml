@@ -1,0 +1,11 @@
+theme: jekyll-theme-slate
+
+title: UIFactory
+description: UIFactory is a small, elegant web component framework
+
+# Don't encourage users to download the docs. It's under active development
+show_downloads: false
+
+# Account: gramener.com > Property: UIFactory (289145327)
+# https://analytics.google.com/analytics/web/#/a42126862p289145327/admin
+google_analytics: G-R0RQFCLLBC
