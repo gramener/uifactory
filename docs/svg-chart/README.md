@@ -23,7 +23,7 @@ This is useful when creating:
 Add this code anywhere in your HTML page:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/uifactory@1.21.0/dist/uifactory.min.js" import="@svg-chart"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@1.22.0/dist/uifactory.min.js" import="@svg-chart"></script>
 
 <svg-chart src:urltext="https://cdn.glitch.com/00ca098e-1db3-4b35-aa48-6155f65df538%2Fphone.svg?v=1623937023597"
      data:js="{ phone: 'iPhone', hours: 2.3 }"

@@ -23,7 +23,7 @@
       // So we wait till the images are loaded. This is not a good approach.
       setTimeout(function() {
         t.equals(document.querySelector('#c1 img').src, 'https://gramener.com/comicgen/v1/comic?name=aryan&emotion=angry&ext=png')
-        t.equals(document.querySelector('#c2 svg').getAttribute('viewBox'), '0 0 500 600')
+        t.equals(document.querySelector('#c2 svg').getAttribute('width'), '500')
         t.end()
       }, 500)
     })

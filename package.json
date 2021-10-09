@@ -1,11 +1,12 @@
 {
   "name": "uifactory",
-  "version": "1.21.0",
-  "description": "Simple HTML components",
+  "version": "1.22.0",
+  "description": "UIFactory is a small, elegant web component framework",
   "main": "dist/uifactory.min.js",
   "jsdelivr": "dist/uifactory.min.js",
   "unpkg": "dist/uifactory.min.js",
   "repository": "git@github.com:gramener/uifactory.git",
+  "homepage": "https://uifactory.gramener.com/",
   "author": "S Anand <s.anand@gramener.com>",
   "contributors": [
     "Bhanu Kamapantula <bhanu.kamapantula@gramener.com>",
@@ -13,7 +14,7 @@
   ],
   "scripts": {
     "lint": "remark -q --no-stdout -u validate-links --silently-ignore --ignore-pattern node_modules **/*.md && eslint src/*.js src/*.html test/*.js test/*.html",
-    "build": "cat README.md | sed 's/docs\\///g' > docs/README.md && node build.js",
+    "build": "cat README.md | sed 's/docs\\///g' > docs/README.md && node build.js && gzip -c dist/uifactory.min.js | wc -c",
     "pretest": "npm run lint && browserify -s tape -r tape -o test/tape.js",
     "test": "node test/server.js",
     "start": "node test/server.js debug",

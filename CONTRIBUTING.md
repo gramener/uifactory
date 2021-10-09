@@ -32,10 +32,12 @@ This project follows the [`eslint:recommended`](https://eslint.org/docs/rules/) 
 
 To release a new version:
 
-- `npm run lint` to ensure no errors
-- Update `version` in all files and examples, and mainly in [package.json](package.json)
+- Update package version in [package.json](package.json) and all other files
+- Run `npm run build`
+- Run `npm run lint` and fix any errors
+- Run `npm test` and fix any errors
 
-Then run:
+Run:
 
 ```bash
 git commit . -m"BLD: Release x.x.x"
