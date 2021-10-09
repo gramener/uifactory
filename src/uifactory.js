@@ -178,9 +178,7 @@
             listener = [
               match[1],                   // type
               new Function('e', code),    // listener
-              {
-                once: el.hasAttribute('$once')
-              }
+              { once: el.hasAttribute('$once') }
             ]
             eventScripts.push(listener)
           }
@@ -357,14 +355,13 @@
 
       // Replace name:="expr" with $attr(name, expr), which does the following:
       //  disabled:="true" -> disabled
-      //  disabled:="false" ->
+      //  disabled:="false" -> ''
       //  class:="['a', 'b']" -> class="a b",
-      src = src.replace(/(\S*):(?:js)?="([^"]*)?"/g, function(match, name, value) {
-        return `<%= $attr('${name}', ${value}) %>`
-      })
+      src = src.replace(/(\S*):(?:js)?="([^"]*)?"/g, (match, name, value) => `<%= $attr('${name}', ${value}) %>`)
 
       // this.$compile($this.data) returns the compiled HTML to be rendered.
-      this.$compile = compiler(src)
+      // If the template is empty, use the instance contents as the template.
+      this.$compile = compiler(src.match(/\S/) ? src : this.innerHTML)
 
       // Update properties from template attributes
       for (let [propName, propInfo] of Object.entries(this.$properties)) {

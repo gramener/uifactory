@@ -60,6 +60,7 @@ NOTE:
 
 - You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
   [It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
+- If the `<template>` is empty, the instance's contents are used as the template.
 
 
 ## `<script import="file.html">` loads components from files
@@ -566,8 +567,8 @@ Now, `<repeat-events icon="★" value="8"><repeat-events>` renders this output:
 
 NOTE:
 
-- `<script $onrender $once>` creates a listener that runs only once
-- `<script $onprerender $onrender>` runs the listener both on prerender **AND** render
+- `<script $onrender $once>` creates a listener that runs only on the first render
+- `<script $onrender $onclick=".reload">` runs the listener both on render **AND** click of `class="reload"`
 - Multiple `<script $onrender>...</script>` creates multiple listeners
 - `this.addEventListener('render', ...)` is exactly the same as `<script $onrender>`
 

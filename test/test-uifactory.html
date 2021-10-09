@@ -60,17 +60,7 @@ To include it in your script, use
 
 
 <!--
-## Components are HTML templates
-
-For example, you can create a component like this:
-
-```html
-<repeat-html icon="★" value="8"></repeat-html>
-```
-
-... that repeats the star (★) 8 times, like this:
-
-![8 stars](docs/img/repeat-8-star.png)
+## `<template $name="...">` creates components as HTML templates
 
 To create this `<repeat-html>` component, add a `<template $name="repeat-html">` like this:
 
@@ -80,20 +70,24 @@ To create this `<repeat-html>` component, add a `<template $name="repeat-html">`
 </template>
 ```
 
-This uses [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals)
-inside the `<template>` to generate the HTML. Now,
+When you add the component to your page:
 
 ```html
 <repeat-html icon="★" value="8"></repeat-html>
 ```
 
-... renders this output:
+... it renders this output:
 
-![8 stars](docs/img/repeat-8-star.png)
+![8 stars](img/repeat-8-star.png)
 
-**NOTE**: You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
-[It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
+This uses [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals)
+inside the `<template>` to generate the HTML.
 
+NOTE:
+
+- You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
+  [It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
+- If the `<template>` is empty, the instance contents are used instead.
 -->
 <template $name="repeat-html" icon="X" value="30">
   ${icon.repeat(+value)}
@@ -114,6 +108,19 @@ inside the `<template>` to generate the HTML. Now,
     } catch(e) {
       t.equals(e.name, 'SyntaxError', 'Component name without hyphen disallowed')
     }
+    t.end()
+  })
+</script>
+<template $name="empty-component" value="">
+  <style>empty-component { color: red; }</style>
+  <script $onclick>console.log(this)</script>
+  <script>console.log('empty-component')</script>
+</template>
+<empty-component value="OK">${value}</empty-component>
+<script>
+  tape('If the `<template>` is empty, the instance contents are used instead.', function (t) {
+    let el = document.querySelector('empty-component')
+    t.equals(el.innerHTML, 'OK', 'instance content is a template')
     t.end()
   })
 </script>
@@ -1474,7 +1481,7 @@ Now, `<repeat-events icon="★" value="8"><repeat-events>` renders this output:
 NOTE:
 
 - `<script $onrender $once>` creates a listener that runs only once
-- `<script $onprerender $onrender>` runs the listener both on prerender **AND** render
+- `<script $onrender $onclick=".reload">` runs the listener both on render **AND** click of `class="reload"`
 - Multiple `<script $onrender>...</script>` creates multiple listeners
 - `this.addEventListener('render', ...)` is exactly the same as `<script $onrender>`
 -->
