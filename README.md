@@ -1,3 +1,8 @@
+---
+nav_order: 1
+permalink: docs//
+---
+
 # UIFactory
 
 <!-- markdownlint-disable no-inline-html -->
@@ -6,29 +11,27 @@
 
 [UIFactory](https://uifactory.gramener.com/) is a small, elegant web component framework.
 
-[Angular](https://angularjs.org/), [React](https://reactjs.org/), [Vue](https://vuejs.org/) and similar frameworks focus on building web applications.
+![UIFactory example](docs/img/uifactory.gif)
 
-**UIFactory builds re-usable web components**. These can be used in Angular, React, Vue, or even plain HTML.
+**UIFactory builds re-usable web components**. These can be used with plain HTML, Angular, React, Vue, or any other web application framework.
 
 - **It's small**. <4 KB compressed
-- **It's compliant** with the [Web Components](https://developer.mozilla.org/en-US/docs/Web/Web_Components) standard. Works on all modern browsers
+- **It's compliant** with the Web Components standard. Works on all modern browsers
 - **It's easy to learn**. Write any HTML, CSS and JS and wrap it in a `<template>` componentize it.
 - **No compilation**. No server. No hosting. Just save in a HTML file.
-
-It's [MIT licensed](https://github.com/gramener/uifactory/tree/master/LICENSE).
 
 ## Learn
 
 <div style="display:flex;text-align:center">
-  <a href="docs/quickstart/README.md" style="margin:1rem;max-width:15rem;border:1px solid #ccc;box-shadow:2px 2px 4px 2px rgba(0,0,0,0.5)">
+  <a href="docs/quickstart/" style="margin:1rem;width:15rem;border-radius:0.5rem;box-shadow:2px 2px 4px 2px rgba(0,0,0,0.5)">
     <h2>Quickstart tutorial</h2>
     <p><img src="docs/img/quickstart.svg"></p>
-    <p>A 15-minute tutorial that teaches how to build a web component with UIFactory.</p>
+    <p>Just 15 minutes</p>
   </a>
-  <a href="docs/guide.md" style="margin:1rem;max-width:15rem;border:1px solid #ccc;box-shadow:2px 2px 4px 2px rgba(0,0,0,0.5)">
+  <a href="docs/guide/" style="margin:1rem;width:15rem;border-radius:0.5rem;box-shadow:2px 2px 4px 2px rgba(0,0,0,0.5)">
     <h2>Feature Guide</h2>
     <p><img src="docs/img/guide.svg"></p>
-    <p>Explains every feature of UIFactory. This is a guide and as a reference.</p>
+    <p>Covers everything</p>
   </a>
 </div>
 
@@ -36,18 +39,28 @@ It's [MIT licensed](https://github.com/gramener/uifactory/tree/master/LICENSE).
 
 UIFactory ships with these ready-to-use components:
 
-- [`<comic-gen>`](docs/comic-gen.md) renders comic characters from data
-- [`<md-text>`](docs/md-text.md) converts Markdown to HTML
-- [`<network-chart>`](docs/network-chart.md) renders network graphs
-- [`<svg-chart>`](docs/svg-chart.md) creates data-driven infographics from SVGs
-- [`<vega-chart>`](docs/vega-chart.md) renders charts using Vega
+- [`<comic-gen>`](docs/comic-gen/) renders comic characters from data
+- [`<md-text>`](docs/md-text/) converts Markdown to HTML
+- [`<network-chart>`](docs/network-chart/) renders network graphs
+- [`<svg-chart>`](docs/svg-chart/) creates data-driven infographics from SVGs
+- [`<vega-chart>`](docs/vega-chart/) renders charts using Vega
+
+## Contributing
+
+Please read the [Contributing Guide](https://github.com/gramener/uifactory/tree/master/CONTRIBUTING.md) for how you could contribute.
+
+## Releases
+
+[See all UIFactory releases](https://github.com/gramener/uifactory/releases)
+
+## License
+
+Copyright © Gramener.
+
+Licensed under the [MIT license](https://github.com/gramener/uifactory/tree/master/LICENSE).
 
 ## Support
 
 UIFactory is tested in Chrome, Firefox, Edge, and Safari. IE is not supported.
 
 Please raise issues and feature requests at <https://github.com/gramener/uifactory/issues>.
-
--------
-
-© Gramener

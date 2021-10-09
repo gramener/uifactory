@@ -561,6 +561,7 @@ Notes:
 - Attributes with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* properties (e.g. `fontSize`).
 - Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<my-component extra="x">` does not define a `.extra`).
 - But [attributes with types (e.g. `extra:string="x"`) are available as properties](#add-properties-to-an-instance-using-types).
+- Properties that cannot be variable names (e.g. `default=""`) can be accessed via [`this.$data`]((#thisdataproperty-stores-all-properties)) (e.g. `this.$data['default']`).
 -->
 <template $name="attr-test" mixedCase="mc" font-size="fs" query-selector="qs"></template>
 <attr-test mixedCase="MC" font-size="FS" extra="E" query-selector="QS"></attr-test>
@@ -592,34 +593,14 @@ Notes:
   })
 </script>
 
-
-<!--
-## Access properties as variables
-
-Inside templates, properties are available as JavaScript variables.
-For example, `<template value:number="30">` defines the variable `value` as a number with a default of 30:
-
-```html
-<template $name="repeat-value" value:number="30">
-  <% for (var j=0; j < value; j++) { %>
-    <slot></slot>
-  <% } %>
+<template $name="repeat-value" value:number="30" default:number="20">
+  <%= value + this.$data['default'] %>
 </template>
-<repeat-value value="8"></repeat-value>
-```
-
-Inside the template, the variable `value` has a value `"8"`.
--->
-<template $name="repeat-value" value:number="30">
-  <% for (var j=0; j < value; j++) { %>
-    <slot></slot>
-  <% } %>
-</template>
-<repeat-value value="8">★</repeat-value>
+<repeat-value value="8" default="2">★</repeat-value>
 <script>
   tape('Access properties as variables', function (t) {
     let el = document.querySelector('repeat-value')
-    t.ok(el.innerHTML.trim().match(/^(★\s*){8}$/), 'properties are available as variables')
+    t.ok(el.innerHTML.trim().match(/^10$/), 'properties are available as variables')
     t.end()
   })
 </script>

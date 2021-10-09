@@ -1,4 +1,11 @@
+---
+parent: Components
+permalink: /network-chart/
+---
+
 # network-chart
+
+<!-- markdownlint-disable no-inline-html no-space-in-emphasis -->
 
 `<network-chart>` renders a network chart (a force-directed layout) with nodes connected by links.
 

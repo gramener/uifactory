@@ -1,3 +1,8 @@
+---
+nav_order: 2
+permalink: /quickstart/
+---
+
 # UIFactory Quickstart
 
 This is a 15-minute tutorial on building web components with UIFactory. You'll learn how to:

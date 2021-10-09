@@ -1,10 +1,12 @@
+# Generated files
+# npm run build creates dist/ to package uifactory.min.js and components
+dist/
+# npm test creates test/tape.js for automated testing
+test/tape.js
+
 # Locally tracked TODOs
 TODO
 notes.md
-
-# Generated files
-test/tape.js
-dist/
 
 # Temp WIP files
 wip/

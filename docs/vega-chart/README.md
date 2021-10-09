@@ -1,3 +1,8 @@
+---
+parent: Components
+permalink: /vega-chart/
+---
+
 # vega-chart
 
 Documentation in progress

@@ -12,8 +12,8 @@
     "Samarth Gulati <samarth.gulati@gramener.com>"
   ],
   "scripts": {
-    "lint": "remark -q --no-stdout -u validate-links README.md && eslint src/*.js src/*.html test/*.js test/*.html",
-    "build": "node build.js",
+    "lint": "remark -q --no-stdout -u validate-links --silently-ignore --ignore-pattern node_modules **/*.md && eslint src/*.js src/*.html test/*.js test/*.html",
+    "build": "cat README.md | sed 's/docs\\///g' > docs/README.md && node build.js",
     "pretest": "npm run lint && browserify -s tape -r tape -o test/tape.js",
     "test": "node test/server.js",
     "start": "node test/server.js debug",

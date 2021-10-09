@@ -1,3 +1,8 @@
+---
+parent: Components
+permalink: /md-text/
+---
+
 # md-text
 
 Documentation in progress

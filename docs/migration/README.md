@@ -1,6 +1,12 @@
-# Migration to UIFactory v1.0
+---
+nav_exclude: true
+---
 
-To migrate your component from UIFactory v0.x, make these changes in your component (where applicable):
+# Migration
+
+## UIFactory v1.0
+
+To migrate your component from UIFactory v0.x to v1.x, make these changes in your component (where applicable):
 
 1. Replace `<template component="...">` with `<template $name="...">`
 2. Replace `<template @render:js="...">` with `<template $render:js="...">`

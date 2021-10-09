@@ -1,3 +1,8 @@
+---
+parent: Components
+permalink: /svg-chart/
+---
+
 # svg-chart
 
 `<svg-chart>` renders an SVG, modifying parts of it based on data using rules.
@@ -39,17 +44,17 @@ This renders the following output:
 
 `<svg-chart>` has 3 properties:
 
-- `src`: [urltext](type-urltext.md) (**required**). The SVG file or URL to render. For example:
+- `src:urltext` (**required**). The SVG file or URL to render. For example:
   - `src="https://example.org/your.svg"` renders the SVG -- provided
     [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) is enabled.
   - `src:string="<svg><rect width='300' height='200' fill='red'></rect></svg>"` treats the
     attribute value as a string (instead of a URL) and renders it as SVG.
   - `src:js="myGlobalSvgString"` renders the SVG in the JavaScript global variable `myGlobalSvgString`
-- `rules`: [urljson](type-urljson.md) (optional). The [JSON rules](#rules) to map data to SVG attributes. For example:
+- `rules:urljson` (optional). The [JSON rules](#rules) to map data to SVG attributes. For example:
   - `rules="https://example.org/rules.json"` applies rules from the JSON file -- if
     [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) is enabled.
   - `rules:js="'.phone': { fill: data.phone == 'Android' ? 'pink' : 'yellow' }` defines a rule inline as a JavaScript object
-- `data`: [urljson](type-urljson.md) (optional). The data to modify the SVG file.
+- `data:urljson` (optional). The data to modify the SVG file.
   - `data="https://example.org/data.json"` loads data from the JSON file -- if
     [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) is enabled.
   - `data:js="{ phone: 'iPhone', hours: 2.3 }"` defines the data inline as a JavaScript object

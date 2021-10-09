@@ -1,6 +1,17 @@
+---
+nav_order: 3
+permalink: /guide/
+---
+
 # UIFactory Guide
 
-## Install
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+## Install from a CDN or npm
 
 You can use UIFactory directly from the CDN:
 
@@ -20,7 +31,7 @@ npm install uifactory
 <script src="node_modules/uifactory/dist/uifactory.min.js"></script>
 ```
 
-## Components are HTML templates
+## `<template $name="...">` creates components as HTML templates
 
 To create this `<repeat-html>` component, add a `<template $name="repeat-html">` like this:
 
@@ -49,7 +60,7 @@ NOTE:
   [It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
 
 
-## Load components from HTML files
+## `<script import="file.html">` loads components from files
 
 You can save components in a HTML file.
 For example, this `tag.html` defines 2 components: `<tag-a>` and `<tag-b>`.
@@ -67,13 +78,13 @@ To use `<tag-a>` and `<tag-b>` in your HTML file, import it with `import=`:
 Load multiple files separated by comma and/or spaces. Relative and absolute URLs both work.
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/uifactory" import="
+<script src="https://cdn.jsdelivr.net/npm/uifactory" import="
   tag.html, tag2.html, ../test/tag3.html
   https://cdn.jsdelivr.net/npm/uifactory/test/tag4.html
 "></script>
 ```
 
-To import [pre-built components](#use-pre-built-components), use `import="@component-name"`:
+To import [pre-built components](../components.md), use `import="@component-name"`:
 
 ```html
 <script src="//cdn.jsdelivr.net/npm/uifactory" import="@svg-chart @md-text"></script>
@@ -123,7 +134,7 @@ There are 3 kinds of template tags you can use:
 3. **`<%- ... %>` renders JavaScript, HTML-escaped**. e.g., ``<%- `<b>${2 + 3}</b>` %>`` renders `<b>5</b>` instead of a bold **5**
 
 
-## Define properties using `<template attr="...">`
+## `<template attr="...">` defines properties
 
 Attributes added to `<template>` can be accessed as properties.
 For example, this defines 2 attributes, `icon=` and `value=`:
@@ -152,35 +163,15 @@ So does `.setAttribute('value', ...)`.
 
 NOTE:
 
+- Inside templates, properties are available as JavaScript variables (e.g. `.icon` or `.value`)
 - Attributes with uppercase letters (e.g. `fontSize`) are converted to lowercase properties (e.g. `fontsize`)
 - Attributes with a dash/hyphen (e.g. `font-size`) are converted to *camelCase* properties (e.g. `fontSize`).
 - Attributes not in the template are **NOT** properties, even if you add them in the component (e.g. `<my-component extra="x">` does not define a `.extra`).
-- But [attributes with types (e.g. `extra:string="x"`) are available as properties](#add-properties-to-an-instance-using-types).
+- But [attributes with types (e.g. `extra:string="x"`) are available as properties](#template-attrtype-defines-property-types).
+- Properties that cannot be variable names (e.g. `default=""`) can be accessed via [`this.$data`](#thisdataproperty-stores-all-properties) (e.g. `this.$data['default']`).
 
 
-## Access properties as variables inside templates
-
-Inside templates, properties are available as JavaScript variables.
-For example, `<template value:number="30">` defines the variable `value` as a number with a default of 30:
-
-```html
-<template $name="repeat-value" value:number="30">
-  <% for (var j=0; j < value; j++) { %>
-    <slot></slot>
-  <% } %>
-</template>
-<repeat-value value="8"></repeat-value>
-```
-
-Inside the template, the variable `value` has a value `8`.
-
-NOTE:
-
-- If the attribute is a JavaScript keyword (e.g. `default=""`), you can't access it as a variable.
-  Use `this.$data['default']` instead. [`this.$data` stories all properties](#thisdataproperty-stores-all-properties).
-
-
-## Define property types using `<template attr:type="...">`
+## `<template attr:type="...">` defines property types
 
 By default, properties are of type `string`. You can specify `number`, `boolean`, `array`,
 `object` or `js` like this:
@@ -214,7 +205,13 @@ For example, when you add this to your page:
 ```
 
 
-## Add dynamic classes and styles with `:=`
+## `attr:=` adds dynamic attributes, classes and styles
+
+To set attribute values dynamically, use `:=` instead of `=` and assign any string or boolean expression:
+
+- `disabled:="true"` becomes "disabled"
+- `disabled:="false"` does not add the disabled attribute
+- `type:="isNumeric ? 'number' : 'text'"` sets `type="number"` if isNumeric is truthy, else `type="text"`
 
 For dynamic classes, set the `class:=` attribute to a array, object, or string:
 
@@ -227,12 +224,6 @@ For dynamic styles, set the `style:=` attribute to an object or string:
 
 - ``style:="{'font-size': `${size}px`, color: 'red'}"`` becomes `style="font-size:20px;color:red"` (when size=20).
 - `style:="font-size="${size}px; color: red"` also becomes `style="font-size:20px;color:red"` (when size=20).
-
-For dynamic attributes, set the `<attr>:=` attribute to any string or boolean expression:
-
-- `disabled:="true"` becomes "disabled"
-- `disabled:="false"` does not add the disabled attribute
-- `type:="isNumeric ? 'number' : 'text'"` sets `type="number"` if isNumeric is truthy, else `type="text"`
 
 For example, this defines an `<add-class>` component:
 
@@ -261,7 +252,7 @@ Inactive: <custom-input active="false"></custom-input>
 ![Output of custom-input](img/custom-input.png)
 
 
-## Use `<slot>` in templates
+## `<slot>` inserts contents from the instance
 
 [Slots](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
 let you create components in which component users can change content.
@@ -296,7 +287,7 @@ Slots can [contain variables](#lodash-templates-are-supported) like `${x}` or `<
 lets component users customize the component further.
 
 
-## Add re-usable blocks with `<script type="text/html" $block="...">`
+## `<script type="text/html" $block="...">` creates re-usable blocks
 
 To re-use HTML later, add it into a `<script type="text/html" $block="blockname">...</script>`. For example:
 
@@ -304,7 +295,6 @@ To re-use HTML later, add it into a `<script type="text/html" $block="blockname"
 <template $name="block-example" greeting="hello">
   <script type="text/html" $block="one">one says ${greeting}.</script>
   <script type="text/html" $block="two">two says ${greeting}.</script>
-
   <%= one() %>
   <%= two({ greeting: 'Ola' }) %>
 </template>
@@ -324,12 +314,12 @@ one says hello. two says Ola.
 
 Note:
 
-- You can use [`this`](#access-component-as-this-inside-templates) and
-  [all properties](#access-properties-as-variables-inside-templates) as variables.
+- You can use [`this`](#this-is-the-instance-dom-element) and
+  [all properties](#template-attr-defines-properties) as variables.
 - If multiple `<script type="text/html">` have the same `$block` value, the last one is used
 
 
-## Update multiple properties with `.update()`
+## `.update()` update or or more properties
 
 You can change multiple properties together using `.update({'attr-1': val, 'attr-2': val})`. For
 example, this component has 2 properties, `char` and `repeat-value`:
@@ -375,7 +365,7 @@ document.querySelector('repeat-props').update()
 ```
 
 
-## Access component as `this` inside templates
+## `this` is the instance DOM element
 
 Inside the [template](#lodash-templates-are-supported), `this` refers to the component itself.
 
@@ -403,35 +393,7 @@ When you add the component to your page:
 This lets you control not just the component, but parents, siblings, and any other elements on a page.
 
 
-## `this.$id` hold a unique ID for each component
-
-If you generate an `id=` attribute in your component, you need a unique identifier for each
-component. `this.$id` has a string that's unique for each component instance.
-
-For example, this creates a label-input combination with a unique ID for each input:
-
-```html
-<template $name="label-input" type="text" label="">
-  <div style="display: flex; gap: 10px">
-    <label for="${this.$id}-input">${label} <small>ID: ${this.$id}-input</small></label>
-    <input id="${this.$id}-input" type="${type}">
-  </div>
-</template>
-```
-
-Now, if you repeatedly use this component in a page:
-
-```html
-<label-input label="X"></label-input>
-<label-input label="Y"></label-input>
-```
-
-... it creates elements with different IDs:
-
-![this.$id generates unique IDs](img/label-input.png)
-
-
-## Style components with CSS
+## `<style>` components with CSS
 
 Use regular CSS in the `<style>` tag to style components. For example:
 
@@ -484,7 +446,7 @@ body repeat-style b { color: red; }
 
 ![Red overrides repeat-style's green](img/repeat-style-red.png)
 
-## Link to external stylesheets
+## `<link>` to external stylesheets
 
 You can link to external stylesheets. For example, this imports Bootstrap 4.6.
 
@@ -509,40 +471,7 @@ All `<style>`s and `<link rel="stylesheet">`s are copied from the `<template>` a
 They run only once (even if you use the component multiple times.)
 
 
-## Add behavior with JavaScript
-
-Use regular JavaScript to add logic and interactivity.
-
-```html
-<template $name="text-diff" x="" y="">
-  "${x}" is ${uifactory.textDiff.distance(x, y)} steps from "${y}"
-  <script src="https://cdn.jsdelivr.net/npm/levenshtein@1.0.5/lib/levenshtein.js"></script>
-  <script>
-    // By convention, we add any JS related to a component under uifactory.<componentName>
-    uifactory.textDiff = {
-      distance: (x, y) => (new Levenshtein(x, y)).distance
-    }
-  </script>
-</template>
-```
-
-When you add the component to your page:
-
-```html
-<text-diff x="back" y="book"></text-diff>
-```
-
-... it renders this output:
-
-```text
-"back" is 2 steps from "book"
-```
-
-All `<script>`s are copied from the `<template>` and appended to the document's BODY in order.
-They run only once (even if you use the component multiple times.)
-
-
-## Add events with `<script $on...>`
+## `<script $on...>` adds events
 
 To add an `click` event listener to your component, write the code inside a
 `<script $onclick>...</script>`, like this:
@@ -585,8 +514,8 @@ Now, `<count-button></count-button>` renders:
 Listeners can use these variables:
 
 - `e` is the [event object](https://developer.mozilla.org/en-US/docs/Web/API/Event)
-- `this` is the [component instance](#access-component-as-this-inside-templates)
-- [Any property](#access-properties-as-variables-inside-templates), e.g. `count`, `step`
+- `this` is the [component instance](#this-is-the-instance-dom-element)
+- [Any property](#template-attr-defines-properties), e.g. `count`, `step`
 
 To call the listener only once, add the `$once` attribute to `<script>`:
 
@@ -605,15 +534,15 @@ Now, `<count-once></count-once>` renders:
 ![$once demo](img/count-once.gif)
 
 
-## Lifecycle events are supported
+## `<script $onrender>` and other lifecycle events are supported
 
 Components fire these events at different stages of their lifecycle:
 
 - `preconnect`: before the instance is created and properties are defined
 - `connect`: after the instance is created and properties are defined
+- `disconnect`: after the element is disconnected from the DOM
 - `prerender`: before the instance is rendered
 - `render`: after the instance is rendered
-- `disconnect`: after the element is disconnected from the DOM
 
 Add `<script $onpreconnect>...</script>`, `<script $onrender>...</script>`, etc to create listeners.
 For example:
@@ -638,135 +567,12 @@ NOTE:
 - `this.addEventListener('render', ...)` is exactly the same as `<script $onrender>`
 
 
-## Fetch URLs as text using the `:urltext` type
-
-To fetch a URL as text, specify `:urltext` as the property type. For example, this `<fetch-text>`
-component displays "Loading..." until a URL is loaded, and then displays its text.
-
-```html
-<template $name="fetch-text" src:urltext="">
-  <% if (src === null) { %>
-    Loading...
-  <% } else { %>
-    <%= src %>
-  <% } %>
-</template>
-<fetch-text src="page.txt"></fetch-text>
-```
-
-... it renders the contents of [page.txt](test/page.txt) as text:
-
-```text
-Contents of page.txt
-```
-
-This component will be **rendered twice** (and fire two `prerender`/`render` events.)
-
-1. The first happens immediately, before loading the URL. `src` is `null`. This is useful to display a "Loading..." sign
-2. The second happens after loading the URL. `src` now has the contents as text
-
-To reload the URL and re-render, you can set `.src = 'page.pxt'` or `.update({src: 'page.txt'})`:
-
-```js
-document.querySelector('.fetch-text').src = 'page.txt'
-// OR
-document.querySelector('.fetch-text').update({ src: 'page.txt' })
-```
-
-You can set the property to another URL (which is fetched) or a non-string JS object (which is used as-is).
-For example:
-
-```js
-document.querySelector('.fetch-text').src = 'page2.txt'   // Loads page2.txt, re-renders
-document.querySelector('.fetch-text').src = null          // Sets src=null, re-renders
-```
-
-<!-- TODO: to set .src to a string, use .update({ src: 'result', { noparse: true } }) -->
-
-## Fetch URLs as JSON using the `:urljson` type
-
-To fetch a URL as JSON, specify `:urljson` as the property type. For example, this `<fetch-json>`
-component displays "Loading..." until a URL is loaded, and then displays its JSON.
-
-```html
-<template $name="fetch-json" src:urljson="">
-  <% if (src === null) { %>
-    Loading...
-  <% } else { %>
-    <%= JSON.stringify(src) %>
-  <% } %>
-</template>
-<fetch-url src="page.json"></fetch-url>
-```
-
-... it renders the contents of [page.json](test/page.json):
-
-```text
-{"text":"abc","number":10,"object":{"x":[1,2,3]}}
-```
-
-This component will be **rendered twice** (and fire two `prerender`/`render` events.)
-
-1. The first happens immediately, before loading the URL. `src` is `null`. This is useful to display a "Loading..." sign
-2. The second happens after loading the URL. `src` now has the contents as JSON
-
-To reload the URL and re-render, you can set `.src = 'page.json'` or `.update({src: 'page.json'})`:
-
-```js
-document.querySelector('.fetch-json').src = 'page.json'
-// OR
-document.querySelector('.fetch-json').update({ src: 'page.json' })
-```
-
-You can set the property to another URL (which is fetched) or a non-string JS object (which is used as-is).
-For example:
-
-```js
-document.querySelector('.fetch-json').src = 'page2.json'  // Loads page2.json, re-renders
-document.querySelector('.fetch-json').src = {x: 1}        // Sets src={x:1}, re-renders
-```
-
-
-## Fetch URLs using the `:url` type
-
-To fetch a URL as text, specify `:url` as the property type. For example, this `<fetch-page>`
-component displays "Loading..." until a URL is loaded, and then displays it.
-
-```html
-<template $name="fetch-page" src:url="">
-  <% if (src === null) { %>
-    Loading...
-  <% } else { %>
-    <%= src.text %>
-  <% } %>
-</template>
-<fetch-page src="page.txt"></fetch-page>
-```
-
-... it renders the contents of [page.txt](test/page.txt):
-
-```text
-Contents of page.txt
-```
-
-This component will be **rendered twice** (and fire two `prerender`/`render` events.)
-
-1. The first happens immediately, before loading the URL. `src` is `null`. This is useful to display a "Loading..." sign
-2. The second happens after loading the URL. `src` now has the contents as
-   a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object with these keys:
-   - `.headers`: response [headers](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)
-   - `.status`: HTTP status code
-   - `.statusText`: HTTP status message corresponding to the status code (e.g., OK for 200)
-   - `.ok`: `true` if the HTTP status is the range 200-299
-   - `.url`: The URL of the response -- after any redirections
-   - `.text`: Text from the loaded page. This is **not a Promise**, but the actual text
-
 -------------------------------------------------
 
 
 # Advanced options
 
-## Wrap tables in `<script type="text/html">`
+## `<script type="text/html">` supports tables and invalid HTML
 
 HTML doesn't allow `<% for ... %>` inside a `<tbody>`. (Only `<tr>` is allowed.) So this is invalid:
 
@@ -806,7 +612,75 @@ It renders this output:
 
 ![Valid table inside HTML script](img/table-valid.png)
 
-## Access component contents as `this.$contents`
+## `this.$data[property]` stores all properties
+
+All properties are stored in `this.$data` as an object. You can read and write these values.
+For example, this `<print-default>` component changes the default attribute before rendering:
+
+```html
+<template $name="print-default" default="old">
+  <script $onprerender>
+    console.log(this.$data)     // Prints { "default": "old" }
+    this.$data.default = 'new'  // Updates default value
+  </script>
+  <%= this.$data.default %>
+</template>
+```
+
+Normally, properties are ALSO accessible as `this.<attributeName>`.
+But if you define a `<template query-selector="xx">`, will `this.querySelector` be "xx" or the
+[this.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector) function?
+
+ANS: `this.querySelector` is the function. `this.$data.querySelector` holds "xx".
+
+This is be useful if you don't know whether a property is defined or not.
+For example, when you add this to your page:
+
+```html
+<template $name="obj-values" x:number="0" y:number="0">
+  Properties:
+    <% for (let key in this.$data) { %>
+      <%= key %>=<%= this.$data[key] %>
+    <% } %>
+  z=<%= 'z' in this.$data ? 'defined' : 'undefined' %>
+</template>
+<obj-values x="10" y="20"></obj-values>
+```
+
+... it renders this output:
+
+`Properties: x=10 y=20 z=undefined`
+
+
+## `this.$id` hold a unique ID for each component
+
+If you generate an `id=` attribute in your component, you need a unique identifier for each
+component. `this.$id` has a string that's unique for each component instance.
+
+For example, this creates a label-input combination with a unique ID for each input:
+
+```html
+<template $name="label-input" type="text" label="">
+  <div style="display: flex; gap: 10px">
+    <label for="${this.$id}-input">${label} <small>ID: ${this.$id}-input</small></label>
+    <input id="${this.$id}-input" type="${type}">
+  </div>
+</template>
+```
+
+Now, if you repeatedly use this component in a page:
+
+```html
+<label-input label="X"></label-input>
+<label-input label="Y"></label-input>
+```
+
+... it creates elements with different IDs:
+
+![this.$id generates unique IDs](img/label-input.png)
+
+
+## `this.$contents` has component's original DOM
 
 `this.$contents` is a cloned version of the custom element's original DOM. You can access what the
 user specified inside your component and use it.
@@ -831,6 +705,39 @@ For example, `<repeat-icons>` repeats everything under `class="x"` x times, and 
 ... it renders this output:
 
 🙂🙂🙂🙂🙂😡😡😡😡
+
+
+## `<script>` tags are moved to document's body
+
+Use regular JavaScript to add logic and interactivity.
+
+```html
+<template $name="text-diff" x="" y="">
+  "${x}" is ${uifactory.textDiff.distance(x, y)} steps from "${y}"
+  <script src="https://cdn.jsdelivr.net/npm/levenshtein@1.0.5/lib/levenshtein.js"></script>
+  <script>
+    // By convention, we add any JS related to a component under uifactory.<componentName>
+    uifactory.textDiff = {
+      distance: (x, y) => (new Levenshtein(x, y)).distance
+    }
+  </script>
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<text-diff x="back" y="book"></text-diff>
+```
+
+... it renders this output:
+
+```text
+"back" is 2 steps from "book"
+```
+
+All `<script>`s are copied from the `<template>` and appended to the document's BODY in order.
+They run only once (even if you use the component multiple times.)
 
 
 ## Insert components dynamically
@@ -863,9 +770,9 @@ This code does the same thing:
 ```
 
 
-## Add properties to an instance using types
+## `attr:type=` on an instance adds new properties
 
-You can [defining properties on templates](#define-properties-using-template-attr). But you can
+You can [defining properties on templates](#template-attr-defines-properties). But you can
 add properties on an instance too.
 
 For example, if you have a `<base-component>` with a `base` or `root` attributes like this:
@@ -915,7 +822,7 @@ This will render:
 Instance properties: base=3 src=5 child=20
 ```
 
-## Register component with options
+## `uifactory.register()` registers new components
 
 To register a component with full control over the options, use:
 
@@ -938,52 +845,12 @@ The object has these keys:
 
 - `name`: component name, e.g. `"g-repeat"`
 - `template`: component contents as a [template](#lodash-templates-are-supported)
-- `properties`: OPTIONAL: mapping of [properties](#define-properties-using-template-attr) as `name: {value, type}` property definitions
+- `properties`: OPTIONAL: mapping of [properties](#template-attr-defines-properties) as `name: {value, type}` property definitions
 - `window`: OPTIONAL: the [Window](https://developer.mozilla.org/en-US/docs/Web/API/Window) on which to register the component. Used to define components on other windows or IFrames
-- `compile`: OPTIONAL: the [template compiler](#use-any-compiler) function to use
+- `compile`: OPTIONAL: the [template compiler](#compile-supports-any-compiler) function to use
 
 
-## `this.$data[property]` stores all properties
-
-All properties are stored in `this.$data` as an object. You can read and write these values.
-For example, this `<print-default>` component changes the default attribute before rendering:
-
-```html
-<template $name="print-default" default="old">
-  <script $onprerender>
-    console.log(this.$data)     // Prints { "default": "old" }
-    this.$data.default = 'new'  // Updates default value
-  </script>
-  <%= this.$data.default %>
-</template>
-```
-
-Normally, properties are ALSO accessible as `this.<attributeName>`.
-But if you define a `<template query-selector="xx">`, will `this.querySelector` be "xx" or the
-[this.querySelector()](https://developer.mozilla.org/en-US/docs/Web/API/Element/querySelector) function?
-
-ANS: `this.querySelector` is the function. `this.$data.querySelector` holds "xx".
-
-This is be useful if you don't know whether a property is defined or not.
-For example, when you add this to your page:
-
-```html
-<template $name="obj-values" x:number="0" y:number="0">
-  Properties:
-    <% for (let key in this.$data) { %>
-      <%= key %>=<%= this.$data[key] %>
-    <% } %>
-  z=<%= 'z' in this.$data ? 'defined' : 'undefined' %>
-</template>
-<obj-values x="10" y="20"></obj-values>
-```
-
-... it renders this output:
-
-`Properties: x=10 y=20 z=undefined`
-
-
-## Add custom types
+## `uifactory.types` lets you add custom types
 
 We define property types on attributes like this: `attr:type="value"`. The default types are
 `string` (default), `number`, `boolean`, `array`, `object` or `js`.
@@ -996,6 +863,20 @@ uifactory.types.newtype = {
   stringify: value => ...       // Function to convert value to string
 }
 ```
+
+Each custom type needs a `parse` and `stringify` functions with the following signature:
+
+- `parse(string, name, data)`: Converts the attribute `name:type="string"` into the property `el.$data.name`
+  - `string`: string value of the attribute
+  - `name`: name of the attribute. (Property names are in camelCase. This is in kebab-case)
+  - `data`: all properties of the component, computed so far
+- `stringify(value, name, data)`: Converts the property `el.$data.name == value` into a attribute value string
+  - `value`: JavaScript object holding the property value
+  - `name`: name of the attribute. (Property names are in camelCase. This is in kebab-case)
+  - `data`: all properties of the component, computed so far
+
+It can be quite useful to have all properties available as `data`. This lets you parse attributes
+based on previous attributes.
 
 Let's add type called `:range`, which creates an array of values:
 
@@ -1034,25 +915,7 @@ When you add a component using this custom type to your page:
 
 `Values are [0,2,4,6,8]`
 
-
-## Custom types need a parse and stringify function
-
-Each [custom type](#add-custom-types) you add to `uifactory.types` needs a `parse` and `stringify`
-functions with the following signature:
-
-- `parse(string, name, data)`: Converts the attribute `name:type="string"` into the property `el.$data.name`
-  - `string`: string value of the attribute
-  - `name`: name of the attribute. (Property names are in camelCase. This is in kebab-case)
-  - `data`: all properties of the component, computed so far
-- `stringify(value, name, data)`: Converts the property `el.$data.name == value` into a attribute value string
-  - `value`: JavaScript object holding the property value
-  - `name`: name of the attribute. (Property names are in camelCase. This is in kebab-case)
-  - `data`: all properties of the component, computed so far
-
-It can be quite useful to have all properties available as `data`. This lets you parse attributes
-based on previous attributes.
-
-For example, let's create a `:formula` type that executes JavaScript. For example:
+Let's create a `:formula` type that executes JavaScript. For example:
 
 ```js
 uifactory.types.formula = {
@@ -1082,7 +945,7 @@ When you add a component using this custom type to your page:
 The `:formula` type evaluates values in the context of previous values.
 
 
-## Check if ready with `.$ready`
+## `.$ready.then()` when instance is first rendered
 
 You can check if a component is ready (i.e. rendered for the first time), using the
 `.$ready` Promise. For example, this component uses an external script. It may time to
@@ -1116,7 +979,7 @@ It turns the `<strong>` element red when it's ready:
 ![When ready, element is rendered](img/text-diff2.png)
 
 
-## Get registered components from `uifactory.components`
+## `uifactory.components` lists registered components
 
 If you register a `<ui-config>` component, `uifactory.components['ui-config']` has the component's
 configuration, i.e. its name, properties, template, and any other options used to register the
@@ -1160,7 +1023,7 @@ When you add the component to your page:
 ```
 
 
-## Use any renderer
+## `$render` supports any renderer
 
 Gramex renders the generated HTML into a node by setting `node.innerHTML = html`.
 This removes all existing DOM elements and creates new ones.
@@ -1218,7 +1081,7 @@ Now, suppose you change the circle's color programmatically and then change the 
 ... the circle is not redrawn. It stays blue. It smoothly moves to `x="200"`.
 
 
-## Use any compiler
+## `compile:` supports any compiler
 
 Instead of [templates](#lodash-templates-are-supported), you can use any function to compile templates.
 
@@ -1230,13 +1093,16 @@ For example, the `g-name` component below uses [Handlebars](https://handlebarsjs
 <script>
 uifactory.register({
   name: 'g-name',
+  properties: {first: 'string', last: 'string'},
   template: '{{ first }} <strong>{{ last }}</strong>',
   compile: Handlebars.compile
 })
 </script>
 ```
 
-![g-name component](img/g-name-walt-disney.png)
+This renders:
+
+Walt **Disney**
 
 `compile:` must be a function that accepts a string that returns a template function.
 When rendering, the template function is called with the properties object
@@ -1250,6 +1116,7 @@ For example, this is a "template" that replaces all words beginning with `$` by 
 <script>
 uifactory.register({
   name: 'g-name',
+  properties: {first: 'string', last: 'string'},
   template: '$first <strong>$last</strong>',
   compile: function (html) {
     // Returns template function
@@ -1264,4 +1131,76 @@ uifactory.register({
 </script>
 ```
 
-![g-name component](img/g-name-walt-disney.png)
+This renders:
+
+Walt **Disney**
+
+## Type reference
+
+### Basic types
+
+### `:urltext` fetches URLs as text
+
+To fetch a URL as text, specify `:urltext` as the property type. For example, this `<fetch-text>`
+component displays "Loading..." until a URL is loaded, and then displays its text.
+
+```html
+<template $name="fetch-text" src:urltext="">${src}</template>
+<fetch-text src="page.txt">Loading...</fetch-text>
+```
+
+... it renders the contents of `page.txt` as text:
+
+```text
+Contents of page.txt
+```
+
+- To reload the URL and re-render, set `.src` to a string, e.g. `el.src = 'page.txt'`:
+- To re-render with a pre-loaded string, set `el.update({src: 'string'}, {noparse: true})`
+
+### `:urljson` fetches URLs as JSON
+
+To fetch a URL as JSON, specify `:urljson` as the property type. For example, this `<fetch-json>`
+component displays "Loading..." until a URL is loaded, and then displays its JSON.
+
+```html
+<template $name="fetch-json" src:urljson="">${JSON.stringify(src)}</template>
+<fetch-url src="page.json">Loading...</fetch-url>
+```
+
+... it renders the contents of `page.json`:
+
+```text
+{"text":"abc","number":10,"object":{"x":[1,2,3]}}
+```
+
+- To reload the URL and re-render, set `.src` to a string, e.g. `el.src = 'page.json'`:
+- To re-render with a pre-loaded value, set `.src` to an object, e.g. `el.src = {x: 1}`
+
+### `:url` fetches URLs
+
+To fetch a URL as text, specify `:url` as the property type. For example, this `<fetch-page>`
+component displays "Loading..." until a URL is loaded, and then displays it.
+
+```html
+<template $name="fetch-page" src:url="">${src.text}</template>
+<fetch-page src="page.txt">Loading...</fetch-page>
+```
+
+... it renders the contents of `page.txt`:
+
+```text
+Contents of page.txt
+```
+
+- To reload the URL and re-render, set `.src` to a string, e.g. `el.src = 'page.txt'`:
+- To re-render with a pre-loaded value, set `.src` to an object, e.g. `el.src = {text: 'abc'}`
+
+`src` is a [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) object with these keys:
+
+- `.headers`: response [headers](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)
+- `.status`: HTTP status code
+- `.statusText`: HTTP status message corresponding to the status code (e.g., OK for 200)
+- `.ok`: `true` if the HTTP status is the range 200-299
+- `.url`: The URL of the response -- after any redirections
+- `.text`: Text from the loaded page. This is **not a Promise**, but the actual text

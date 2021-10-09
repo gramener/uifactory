@@ -17,21 +17,20 @@ module.exports = {
     "es6": true,        // Include ES6 features
   },
   "plugins": [
-    "html"
+    "html"              // Lint JS within HTML files
   ],
   "globals": {
-    "uifactory": true
+    "uifactory": true,  // Test cases use uifactory
   },
   "extends": "eslint:recommended",
   "rules": {
-    /* Override default rules */
+    // Override default rules
     "indent": [2, 2, {"VariableDeclarator": 2}],  // Force 2 space indentation
     "linebreak-style": ["error", "unix"],         // Force UNIX style line
     "semi": ["error", "never"],                   // Force no-semicolon style
-    "no-cond-assign": ["off", "always"],          // Allow this for loops
     "quotes": ["off", "double"]                   // We may go for a double-quotes style
   },
   "ignorePatterns": [
-    "test/tape.js"
+    "test/tape.js",             // Ignore generated file
   ]
 }

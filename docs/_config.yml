@@ -1,10 +1,27 @@
-theme: jekyll-theme-slate
+remote_theme: pmarsceill/just-the-docs
 
 title: UIFactory
 description: UIFactory is a small, elegant web component framework
+url: https://uifactory.gramener.com
 
-# Don't encourage users to download the docs. It's under active development
-show_downloads: false
+aux_links:
+  "UIFactory on GitHub":
+    - https://github.com/gramener/uifactory
+
+back_to_top: true
+back_to_top_text: Back to top
+
+footer_content: Copyright &copy; Gramener. <a href="https://github.com/gramener/uifactory/tree/master/LICENSE">MIT license</a>.
+
+last_edit_timestamp: true
+last_edit_time_format: "%e %b %Y at %I:%M %p" # https://ruby-doc.org/stdlib-2.7.0/libdoc/time/rdoc/Time.html
+
+gh_edit_link: true
+gh_edit_link_text: Edit this page on GitHub
+gh_edit_repository: https://github.com/gramener/uifactory
+gh_edit_branch: master
+gh_edit_source: docs      # the source that your files originate from
+gh_edit_view_mode: tree   # "tree" or "edit" if you want the user to jump into the editor immediately
 
 # Account: gramener.com > Property: UIFactory (289145327)
 # https://analytics.google.com/analytics/web/#/a42126862p289145327/admin
