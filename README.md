@@ -17,18 +17,18 @@
 
 ## Learn
 
-- [**Quickstart tutorial**](docs/quickstart/): Just 15 min
-- [**Feature guide**](docs/guide/): Covers everything
+- [**Quickstart tutorial**](https://uifactory.gramener.com/quickstart/): Just 15 min
+- [**Feature guide**](https://uifactory.gramener.com/guide/): Covers everything
 
 ## Use pre-built components
 
 UIFactory ships with these ready-to-use components:
 
-- [`<comic-gen>`](docs/comic-gen/) renders comic characters from data
-- [`<md-text>`](docs/md-text/) converts Markdown to HTML
-- [`<network-chart>`](docs/network-chart/) renders network graphs
-- [`<svg-chart>`](docs/svg-chart/) creates data-driven infographics from SVGs
-- [`<vega-chart>`](docs/vega-chart/) renders charts using Vega
+- [`<comic-gen>`](https://uifactory.gramener.com/comic-gen/) renders comic characters from data
+- [`<md-text>`](https://uifactory.gramener.com/md-text/) converts Markdown to HTML
+- [`<network-chart>`](https://uifactory.gramener.com/network-chart/) renders network graphs
+- [`<svg-chart>`](https://uifactory.gramener.com/svg-chart/) creates data-driven infographics from SVGs
+- [`<vega-chart>`](https://uifactory.gramener.com/vega-chart/) renders charts using Vega
 
 ## Contributing
 

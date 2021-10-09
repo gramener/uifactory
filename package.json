@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "lint": "remark -q --no-stdout -u validate-links --silently-ignore --ignore-pattern node_modules **/*.md && eslint src/*.js src/*.html test/*.js test/*.html",
-    "build": "node build.js && gzip -c dist/uifactory.min.js | wc -c",
+    "build": "html-minifier-terser --remove-comments --minify-js 9 --collapse-whitespace --decode-entities --input-dir src --output-dir dist --file-ext html && node build.js && gzip -c dist/uifactory.min.js | wc -c",
     "pretest": "npm run lint && browserify -s tape -r tape -o test/tape.js",
     "test": "node test/server.js",
     "start": "node test/server.js debug",
@@ -28,6 +28,7 @@
     "eslint": "7",
     "eslint-plugin-html": "6",
     "express": "4",
+    "html-minifier-terser": "6",
     "marked": "3",
     "puppeteer": "8",
     "remark-cli": "9",

@@ -1139,9 +1139,7 @@ This renders:
 
 Walt **Disney**
 
-## Type reference
-
-### Basic types
+## Types
 
 ### `:urltext` fetches URLs as text
 
