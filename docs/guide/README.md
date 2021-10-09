@@ -5,6 +5,8 @@ permalink: /guide/
 
 # UIFactory Guide
 
+<!-- markdownlint-disable blanks-around-headings -->
+
 ## Table of contents
 {: .no_toc .text-delta }
 
@@ -189,7 +191,7 @@ For example, when you add this to your page:
 ```html
 <template $name="property-types" x="" str:string="" num:number="" bool:boolean=""
   arr:array="" obj:object="" expr:js="" rules:js="">
-  <%= JSON.stringify({x, str, num, bool, arr, obj, expr, rules}) %>
+  ${JSON.stringify({x, str, num, bool, arr, obj, expr, rules})}
 </template>
 <script>
   var rules = {r: 1}
@@ -283,8 +285,11 @@ Good = *bon*. Bad = **mauvais**.
 - `<slot name="bad">` is replaced with all `slot="bad"` elements.
 - `<slot>` (without `name=`) is replaced with the whole `<slot-translate>` contents.
 
-Slots can [contain variables](#lodash-templates-are-supported) like `${x}` or `<%= this %>`. This
+Slots can [contain variables](#lodash-templates-are-supported) like `${x}`. This
 lets component users customize the component further.
+
+Slot contents are also available as `this.$slot[slotName]`. `${this.$slot.good}` is just like
+`<slot name="good"></slot>`.
 
 
 ## `<script type="text/html" $block="...">` creates re-usable blocks
@@ -453,7 +458,7 @@ You can link to external stylesheets. For example, this imports Bootstrap 4.6.
 ```html
 <template $name="bootstrap-button" type="primary">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
-  <button class="btn btn-<%= type %> m-3"><slot></slot></button>
+  <button class="btn btn-${type} m-3"><slot></slot></button>
 </template>
 ```
 
@@ -581,7 +586,7 @@ HTML doesn't allow `<% for ... %>` inside a `<tbody>`. (Only `<tr>` is allowed.)
   <table>
     <tbody>
       <% for (let i=0; i < +rows; i++) { %>
-        <tr><td>Row <%= i %></td></tr>
+        <tr><td>Row ${i}</td></tr>
       <% } %>
     </tbody>
   </table>
@@ -598,7 +603,7 @@ Anything inside it is rendered as a template. (Any HTML outside it is ignored.)
     <table>
       <tbody>
         <% for (let i=0; i < +rows; i++) { %>
-          <tr><td>Row <%= i %></td></tr>
+          <tr><td>Row ${i}</td></tr>
         <% } %>
       </tbody>
     </table>
@@ -623,7 +628,7 @@ For example, this `<print-default>` component changes the default attribute befo
     console.log(this.$data)     // Prints { "default": "old" }
     this.$data.default = 'new'  // Updates default value
   </script>
-  <%= this.$data.default %>
+  ${this.$data.default}
 </template>
 ```
 
@@ -640,9 +645,9 @@ For example, when you add this to your page:
 <template $name="obj-values" x:number="0" y:number="0">
   Properties:
     <% for (let key in this.$data) { %>
-      <%= key %>=<%= this.$data[key] %>
+      ${key}=${this.$data[key]}
     <% } %>
-  z=<%= 'z' in this.$data ? 'defined' : 'undefined' %>
+  z=${'z' in this.$data ? 'defined' : 'undefined'}
 </template>
 <obj-values x="10" y="20"></obj-values>
 ```
@@ -690,8 +695,8 @@ For example, `<repeat-icons>` repeats everything under `class="x"` x times, and 
 
 ```html
 <template $name="repeat-icons" x:number="3" y:number="2">
-  <%= this.$contents.querySelector('.x').innerHTML.repeat(x) %>
-  <%= this.$contents.querySelector('.y').innerHTML.repeat(y) %>
+  ${this.$contents.querySelector('.x').innerHTML.repeat(x)}
+  ${this.$contents.querySelector('.y').innerHTML.repeat(y)}
 </template>
 ```
 
@@ -781,7 +786,7 @@ For example, if you have a `<base-component>` with a `base` or `root` attributes
 <template $name="base-component" base:number="10" root="">
   Instance properties:
   <% for (let key in this.$data) { %>
-    <%= key %>=<%= this.$data[key] %>
+    ${key}=${this.$data[key]}
   <% } %>
 </template>
 ```
@@ -906,7 +911,7 @@ When you add a component using this custom type to your page:
 
 ```html
 <template $name="custom-range" series:range="">
-  Values are <%= JSON.stringify(series) %>
+  Values are ${JSON.stringify(series)}
 </template>
 <custom-range series="0,10,2"></custom-range>
 ```
@@ -932,9 +937,7 @@ uifactory.types.formula = {
 When you add a component using this custom type to your page:
 
 ```html
-<template $name="custom-formula" x:number="0">
-  x=<%= x %>, y=<%= y %>, z=<%= z %>
-</template>
+<template $name="custom-formula" x:number="0">x=${x}, y=${y}, z=${z}</template>
 <custom-formula x="10" y:formula="x * x" z:formula="2 * y + x"></custom-formula>
 ```
 
@@ -989,7 +992,7 @@ For example, this component renders its own configuration.
 
 ```html
 <template $name="ui-config" str="x" arr:array="[3,4]" expr:js="3 + 2">
-  <%= JSON.stringify(uifactory.components['ui-config']) %>
+  ${JSON.stringify(uifactory.components['ui-config'])}
 </template>
 ```
 
@@ -1018,7 +1021,7 @@ When you add the component to your page:
       "value": "3 + 2"
     }
   },
-  "template": "\n <%= JSON.stringify(uifactory.components['ui-config']) %>\n"
+  "template": "\n ${JSON.stringify(uifactory.components['ui-config'])}\n"
 }
 ```
 
@@ -1045,7 +1048,7 @@ For example, here's an SVG component that smoothly animates when an attribute ch
 ```html
 <template $name="move-circle" x="0" $render:js="uifactory.moveCircle">
   <svg width="400" height="100" fill="#eee">
-    <circle cx="<%= x %>" cy="50" r="30" fill="red"></circle>
+    <circle cx="${x}" cy="50" r="30" fill="red"></circle>
   </svg>
   <style>
     move-circle circle {

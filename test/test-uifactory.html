@@ -288,10 +288,12 @@ Inactive: <custom-input active="false"></custom-input>
 </script>
 
 <!--
-## Use `<slot>` in templates
+## `<slot>` inserts contents from the instance
 
-  Use [`<slot>` in `<template>`](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
-to replace content. For example, this defines a component with 2 slots:
+[Slots](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_templates_and_slots)
+let you create components in which component users can change content.
+
+For example, this defines a component with 2 slots:
 
 ```html
 <template $name="slot-translate">
@@ -317,8 +319,11 @@ Good = *bon*. Bad = **mauvais**.
 - `<slot name="bad">` is replaced with all `slot="bad"` elements.
 - `<slot>` (without `name=`) is replaced with the whole `<slot-translate>` contents.
 
-Slots can [contain variables](#lodash-templates-are-supported) like `${x}` or `<%= this %>`. This
+Slots can [contain variables](#lodash-templates-are-supported) like `${x}`. This
 lets component users customize the component further.
+
+Slot contents are also available as `this.$slot[slotName]`. `${this.$slot.good}` is the same as
+`<slot name="good"></slot>`
 -->
 <template $name="slot-translate">
    Good = <slot name="good">...</slot>.
@@ -347,6 +352,7 @@ lets component users customize the component further.
     <slot name="b">B</slot>
   <% } %>
   <slot></slot>
+  ${this.$slot.a} ${this.$slot.b} ${this.$slot['']}
 </template>
 <repeat-slots a="5" b="5">
   prefix
@@ -359,9 +365,9 @@ lets component users customize the component further.
 <script>
   tape('Slots are supported', function (t) {
     let el = document.querySelector('repeat-slots')
-    t.equals(el.innerText.trim(), '🔴0 🔴1 🔴2 🔴3 🔴4 🟩1 🟩2 🟩3 🟩4 🟩5 prefix 🔴 🟩 5 6 suffix', 'Slots rendered')
-    t.equals(el.querySelectorAll('strong').length, 6, 'Child HTML element <strong> copied')
-    t.equals(el.querySelectorAll('em').length, 6, 'Child HTML element <em> copied')
+    t.equals(el.innerText.trim(), '🔴0 🔴1 🔴2 🔴3 🔴4 🟩1 🟩2 🟩3 🟩4 🟩5 prefix 🔴 🟩 5 6 suffix 🔴${j} 🟩${j + 1} prefix 🔴 🟩 ${j} ${j + 1} suffix', 'Slots rendered')
+    t.equals(el.querySelectorAll('strong').length, 8, 'Child HTML element <strong> copied')
+    t.equals(el.querySelectorAll('em').length, 8, 'Child HTML element <em> copied')
     t.end()
   })
 </script>

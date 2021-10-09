@@ -346,14 +346,14 @@
 
       // REPLACE SLOTS.
       // First, extract all slot="" attributes from the instance into a dict
-      let slotContent = { '': this.$contents.innerHTML }
+      this.$slot = { '': this.$contents.innerHTML }
       for (let slot of this.$contents.querySelectorAll('[slot]'))
-        slotContent[slot.slot] = (slotContent[slot.slot] || '') + unescape(slot.outerHTML)
+        this.$slot[slot.slot] = (this.$slot[slot.slot] || '') + unescape(slot.outerHTML)
       // Next, replace all <slot> elements in the template.
       // Don't use DOMParser(). The slot contents may be invalid HTML (e.g. <% %> templates inside a table).
       // Parse as a regular expression. See https://regex101.com/r/lqnaz2/1
       let src = html.replace(/<slot\s*(name\s*=\s*['"]?(?<name>[^'">\s]*)['"]?)?\s*>(?<contents>[\s\S]*?)<\/slot\s*>/ig,
-        (match, group, name, contents) => slotContent[name || ''] || contents)
+        (match, group, name, contents) => this.$slot[name || ''] || contents)
 
       // Replace name:="expr" with $attr(name, expr), which does the following:
       //  disabled:="true" -> disabled
