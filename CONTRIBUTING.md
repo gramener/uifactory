@@ -46,4 +46,4 @@ git push --follow-tags
 npm publish
 ```
 
-- Add the [release on Github](https://github.com/gramener/uifactory/releases)
+- Add the [release notes on Github](https://github.com/gramener/uifactory/releases/new)

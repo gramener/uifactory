@@ -26,7 +26,7 @@ We'll build a simple dashboard showing KPI cards that looks like this:
 Add this line to your HTML file. This links directly to UIFactory from the CDN. No need to install anything.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/uifactory@1.22.0/dist/uifactory.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@1.22.1/dist/uifactory.min.js"></script>
 ```
 
 [See on CodePen](https://codepen.io/sanand0/pen/QWgaXmg?editors=1000)
@@ -345,7 +345,7 @@ convention. This component is saved at [`kpi-dashboard.html`](kpi-dashboard.html
 To use it in your application, add:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/uifactory@1.22.0/dist/uifactory.min.js" import="kpi-dashboard.html"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@1.22.1/dist/uifactory.min.js" import="kpi-dashboard.html"></script>
 ```
 
 Note the `import="kpi-dashboard.html"` in the 2nd line. That makes `<kpi-dashboard>` available to

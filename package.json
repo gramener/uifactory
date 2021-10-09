@@ -1,6 +1,6 @@
 {
   "name": "uifactory",
-  "version": "1.22.0",
+  "version": "1.22.1",
   "description": "UIFactory is a small, elegant web component framework",
   "main": "dist/uifactory.min.js",
   "jsdelivr": "dist/uifactory.min.js",
@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "lint": "remark -q --no-stdout -u validate-links --silently-ignore --ignore-pattern node_modules **/*.md && eslint src/*.js src/*.html test/*.js test/*.html",
-    "build": "cat README.md | sed 's/docs\\///g' > docs/README.md && node build.js && gzip -c dist/uifactory.min.js | wc -c",
+    "build": "node build.js && gzip -c dist/uifactory.min.js | wc -c",
     "pretest": "npm run lint && browserify -s tape -r tape -o test/tape.js",
     "test": "node test/server.js",
     "start": "node test/server.js debug",

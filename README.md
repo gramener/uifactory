@@ -1,8 +1,3 @@
----
-nav_order: 1
-permalink: docs//
----
-
 # UIFactory
 
 <!-- markdownlint-disable no-inline-html -->
@@ -22,18 +17,8 @@ permalink: docs//
 
 ## Learn
 
-<div style="display:flex;text-align:center">
-  <a href="docs/quickstart/" style="margin:1rem;width:15rem;border-radius:0.5rem;box-shadow:2px 2px 4px 2px rgba(0,0,0,0.5)">
-    <h2>Quickstart tutorial</h2>
-    <p><img src="docs/img/quickstart.svg"></p>
-    <p>Just 15 minutes</p>
-  </a>
-  <a href="docs/guide/" style="margin:1rem;width:15rem;border-radius:0.5rem;box-shadow:2px 2px 4px 2px rgba(0,0,0,0.5)">
-    <h2>Feature Guide</h2>
-    <p><img src="docs/img/guide.svg"></p>
-    <p>Covers everything</p>
-  </a>
-</div>
+- [**Quickstart tutorial**](docs/quickstart/): Just 15 min
+- [**Feature guide**](docs/guide/): Covers everything
 
 ## Use pre-built components
 

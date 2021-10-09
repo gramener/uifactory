@@ -1,6 +1,7 @@
 ---
 nav_order: 1
 permalink: /
+# Keep this in sync with ../README.md
 ---
 
 # UIFactory
