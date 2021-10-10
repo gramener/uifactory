@@ -53,7 +53,7 @@ When you add the component to your page:
 
 ![8 stars](img/repeat-8-star.png)
 
-This uses [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals)
+You can use [template literals](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals)
 inside the `<template>` to generate the HTML.
 
 NOTE:
@@ -61,6 +61,7 @@ NOTE:
 - You **MUST** have a dash (hyphen) in the component name (e.g. `repeat-html`).
   [It's a standard](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_custom_elements).
 - If the `<template>` is empty, the instance's contents are used as the template.
+- You cannot use `}` inside the template literal expression. `${ {x: 1} }` is invalid. Keep template literals simple
 
 
 ## `<script import="file.html">` loads components from files
@@ -108,6 +109,32 @@ The fetched files must be in the same domain or
 [CORS-enabled](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS).
 
 
+## `<script $inline>` runs scripts while rendering
+
+To add logic to your component, add any JavaScript inside `<script $inline>`. This runs when the component is rendered.
+
+```html
+<template $name="repeat-script" icon="X" value="30">
+  <script $inline>
+    let count = +value
+    let result = isNaN(count) ? 'error' : icon.repeat(count)
+  </script>
+  ${result}
+</template>
+```
+
+When you add the component to your page:
+
+```html
+<repeat-script icon="★" value="8"></repeat-html>
+<repeat-script icon="★" value="a"></repeat-html>
+```
+
+... it renders this output:
+
+★★★★★★★★ error
+
+
 ## Lodash templates are supported
 
 For better control, you can use [Lodash templates](https://lodash.com/docs/#template) like this:
@@ -132,8 +159,8 @@ When you add the component to your page:
 
 There are 3 kinds of template tags you can use:
 
-1. **`<% ... %>` evaluates JavaScript**. e.g., `<% console.log('ok') %>` logs `ok`
-2. **`<%= ... %>` renders JavaScript**. e.g., ``<%= `<b>${2 + 3}</b>` %>`` renders **5** in bold
+1. **`<% ... %>` evaluates JavaScript**. e.g., `<% console.log('ok') %>` logs `ok`. This is like `<script $inline>` but more compact
+2. **`<%= ... %>` renders JavaScript**. e.g., ``<%= `<b>${2 + 3}</b>` %>`` renders **5** in bold. This is like `${...}` but allows `}` inside it
 3. **`<%- ... %>` renders JavaScript, HTML-escaped**. e.g., ``<%- `<b>${2 + 3}</b>` %>`` renders `<b>5</b>` instead of a bold **5**
 
 

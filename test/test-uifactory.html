@@ -2329,10 +2329,73 @@ Now, suppose you change the circle's color programmatically and then change the 
   })
 </script>
 
-<template $name="bind-attribute">
-  <input disabled:="true" readonly:="false">
+
+<!--
+## `<script $inline>` runs scripts while rendering
+
+To add logic to your component, add any JavaScript inside `<script $inline>`. This runs when the component is rendered.
+
+```html
+<template $name="repeat-script" icon="X" value="30">
+  <script $inline>
+    let count = +value
+    let result = isNaN(count) ? 'error' : icon.repeat(count)
+  </script>
+  ${result}
 </template>
-<bind-attribute></bind-attribute>
+```
+
+When you add the component to your page:
+
+```html
+<repeat-script icon="★" value="8"></repeat-html>
+<repeat-script icon="★" value="a"></repeat-html>
+```
+
+... it renders this output:
+
+★★★★★★★★ error
+-->
+<template $name="repeat-script" icon="X" value="30">
+  <script $inline>
+    /* exported result */
+    let count = +value
+    let result = isNaN(count) ? 'error' : icon.repeat(count)
+  </script>
+  ${result}
+</template>
+<repeat-script icon="★" value="8"></repeat-script>
+<repeat-script icon="★" value="a"></repeat-script>
+<script>
+  tape('`<script $inline>` runs scripts while rendering', function(t) {
+    let els = document.querySelectorAll('repeat-script')
+    t.equals(els[0].innerHTML.trim(), '★★★★★★★★', 'script $inline works')
+    t.equals(els[1].innerHTML.trim(), 'error', 'script $inline works')
+    t.end()
+  })
+</script>
+
+<template $name="inline-script" z:number="0">
+  <script $inline $onrender>
+    /* exported x, y */
+    let x = 30
+    let y = 20
+    window.testInlineScript = 1 + (window.testInlineScript || 0)
+  </script>
+  ${x + y + z}
+</template>
+<inline-script></inline-script>
+<script>
+  tape('$inline works with $render', function (t) {
+    let el = document.querySelector('inline-script')
+    t.equals(el.innerHTML.trim(), '50', '$inline executed')
+    t.equals(window.testInlineScript, 2, '$render executed')
+    el.setAttribute('z', '10')
+    t.equals(el.innerHTML.trim(), '60', '$inline executed')
+    t.equals(window.testInlineScript, 4, '$render executed')
+    t.end()
+  })
+</script>
 
 
 <script src="works-even-with-missing-script">

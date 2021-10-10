@@ -1,5 +1,10 @@
 # Design decisions
 
+## 2.0 migration
+
+- `<script $inline>` will become `<script>`. This is the default mode
+- `<script $global>` (?) will be added to the `<head>`
+- `<script onrender>` will not work without `$`, i.e. `<script $onrender>`
 
 ## `attr:=` assigns dynamic attributes
 

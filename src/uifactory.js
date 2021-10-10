@@ -164,9 +164,9 @@
         }
 
         // <script $onclick="selector"> is converted into an click event listener for selector
-        let listener
+        let listener, scriptProcessed
         for (let attr of el.attributes) {
-          // If it's a <script onrender> or <script onpreconnect> etc, it's an event script.
+          // If it's a <script $onrender> or <script $onpreconnect> etc, it's an event script.
           // Compile it and don't add it to <head>
           // DEP-2.0: Deprecate use without $ in 2.0
           let match = attr.name.match(/^\$?on(.*)/)
@@ -181,9 +181,15 @@
               { once: el.hasAttribute('$once') }
             ]
             eventScripts.push(listener)
+            scriptProcessed = true
+          }
+          // If it's <script $inline>, convert into lodash equivalent
+          if (attr.name == '$inline') {
+            el.replaceWith(`<% ${el.innerHTML} %>`)
+            scriptProcessed = true
           }
         }
-        if (listener)
+        if (scriptProcessed)
           continue
 
         // <script> and <script src=""> are copied into the target document with attributes.
