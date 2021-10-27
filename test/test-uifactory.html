@@ -628,20 +628,22 @@ By default, properties are of type `string`. You can specify `number`, `boolean`
 - `<template $name="..." num:number="30">`
 - `<template $name="..." bool:boolean="true">`
 - `<template $name="..." arr:array="[3,4]">`
-- `<template $name="..." obj:object="{x:1}">`
+- `<template $name="..." obj:object='{"x":1}'>`
 - `<template $name="..." expr:js="Math.ceil(2.2) + num">`
 
 The value for `:js=` can include global variables as well as other properties defined just before this property.
 
+For example, when you add this to your page:
+
 ```html
 <template $name="property-types" x="" str:string="" num:number="" bool:boolean=""
   arr:array="" obj:object="" expr:js="" rules:js="">
-  <%= JSON.stringify({x, str, num, bool, arr, obj, expr, rules}) %>
+  ${JSON.stringify({x, str, num, bool, arr, obj, expr, rules})}
 </template>
 <script>
   var rules = {r: 1}
 </script>
-<property-types x="x" str="y" num="30" bool="true" arr="[3,4]" obj="{x:1}"
+<property-types x="x" str="y" num="30" bool="true" arr="[3,4]" obj='{"x":1}'
   expr="Math.ceil(2.2) + num + data.num" rules="rules"></property-types>
 ```
 
@@ -660,13 +662,20 @@ The value for `:js=` can include global variables as well as other properties de
   /* exported rules */
   var rules = {r: 1}
 </script>
-<property-types x="x" str="y" num="30" bool="true" arr="[3,4]" obj="{x:1}"
+<property-types x="x" str="y" num="30" bool="true" arr="[3,4]" obj='{"x":1}'
   expr="Math.ceil(2.2) + num + data.num" rules="rules"></property-types>
 <property-types></property-types>
 <script>
   tape('Define property types using `<template attr:js="...">`', function (t) {
     let el = document.querySelectorAll('property-types')
-    t.equals(el[0].innerHTML.trim(), '{"x":"x","str":"y","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}')
+    t.equals(el[0].innerHTML.trim(), '{"x":"x","str":"y","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}', 'property types are parsed correctly')
+
+    el[0].setAttribute('obj', '{x:2}')
+    t.equals(el[0].innerHTML.trim(), '{"x":"x","str":"y","num":30,"bool":true,"arr":[3,4],"obj":{"x":1},"expr":63,"rules":{"r":1}}', ':object does not accept invalid JSON')
+
+    el[0].setAttribute('obj', '{"x":2}')
+    t.equals(el[0].innerHTML.trim(), '{"x":"x","str":"y","num":30,"bool":true,"arr":[3,4],"obj":{"x":2},"expr":63,"rules":{"r":1}}', ':object can be updated with valid JSON')
+
     // NOTE: Currently, the default value is an empty string. In the future, this may change.
     // e.g. we may want num: 0, bool: false, arr: [], obj: {}.
     t.equals(el[1].innerHTML.trim(), '{"x":"","str":"","num":"","bool":"","arr":"","obj":"","expr":"","rules":""}')

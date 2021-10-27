@@ -134,6 +134,11 @@ When you add the component to your page:
 
 ★★★★★★★★ error
 
+Note:
+
+- Add `return` anywhere in the script to stop rendering a component.
+  (Set [`{parserOptions: {ecmaFeatures: {globalReturn: true}}`](https://eslint.org/docs/2.0.0/user-guide/configuring)
+  to avoid ESLint errors.)
 
 ## Lodash templates are supported
 
@@ -209,7 +214,7 @@ By default, properties are of type `string`. You can specify `number`, `boolean`
 - `<template $name="..." num:number="30">`
 - `<template $name="..." bool:boolean="true">`
 - `<template $name="..." arr:array="[3,4]">`
-- `<template $name="..." obj:object="{x:1}">`
+- `<template $name="..." obj:object='{"x":1}'>`
 - `<template $name="..." expr:js="Math.ceil(2.2) + num">`
 
 The value for `:js=` can include global variables as well as other properties defined just before this property.
@@ -224,7 +229,7 @@ For example, when you add this to your page:
 <script>
   var rules = {r: 1}
 </script>
-<property-types x="x" str="y" num="30" bool="true" arr="[3,4]" obj="{x:1}"
+<property-types x="x" str="y" num="30" bool="true" arr="[3,4]" obj='{"x":1}'
   expr="Math.ceil(2.2) + num + data.num" rules="rules"></property-types>
 ```
 
@@ -377,7 +382,7 @@ This updates both `char` and `repeat-value` to generate this output:
 
 ![update() changes multiple properties](img/repeat-props.png)
 
-`.update()` also updates the attributes and re-renders the component. `.update()` takes a second dict with options:
+`.update()` also updates the attributes and re-renders the component. `.update()` takes a second object as options:
 
 - `attr: false` does not update the attribute. Default: `true`
 - `render: false` does not re-render the component. Default: `true`
@@ -1166,6 +1171,10 @@ This renders:
 
 Walt **Disney**
 
+
+
+# Reference
+
 ## Types
 
 ### `:urltext` fetches URLs as text
@@ -1233,3 +1242,31 @@ Contents of page.txt
 - `.ok`: `true` if the HTTP status is the range 200-299
 - `.url`: The URL of the response -- after any redirections
 - `.text`: Text from the loaded page. This is **not a Promise**, but the actual text
+
+
+## Special attributes
+
+All UIFactory elements have some predefined properties. For an element defined as
+
+```html
+<template $name="special-attrs" icon="X" value="30">
+  ${icon.repeat(+value)}
+</template>
+```
+
+- `this.$contents`: a DOM element with the [instance's original contents](#thiscontents-has-components-original-dom)
+- `this.$data`: an object with [all properties and values](#thisdataproperty-stores-all-properties), e.g. `{icon: 'X', value: '30'}`
+- `this.$id`: a [unique ID for each instance](#thisid-hold-a-unique-id-for-each-component)
+- `this.$properties`: an object with component properties and their info, e.g. `{icon: {type: "string", value: "X"}, value: {...}}`
+- `this.$ready`: a Promise that's resolved when [instance is first rendered](#readythen-when-instance-is-first-rendered)
+- `this.$render`: a `function(element, html)` that inserts the HTML into the element. [`<template $render="">`](#render-supports-any-renderer) replaces this
+- `this.$slot`: an object with the instance's [slot names as keys and slot contents as values](#slot-inserts-contents-from-the-instance)
+
+<!--
+Reserved attributes:
+
+- `this.$compile`: an internal `function(data)` that's called as `this.$compile.call(this, {...this.$data})` that renders
+- `this.$name`: name of this custom element (e.g. `special-attrs`)
+- `this.$template`: string contents of the template that's rendered
+- `this.$window`: the window object where this element is defined
+-->

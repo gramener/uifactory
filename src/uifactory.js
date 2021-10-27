@@ -23,7 +23,13 @@
     parse: v => v,
     stringify: s => s
   }
-  types.number = types.boolean = types.array = types.object = types.json = types.js = {
+  // Basic types are parsed as JSON
+  types.number = types.boolean = types.array = types.object = types.json = {
+    parse: value => JSON.parse(value || '""'),
+    stringify: JSON.stringify
+  }
+  // type :js is evaluated as JavaScript
+  types.js = {
     // Parse value as a JavaScript expression
     parse: (value, name, data) => {
       let fn = new Function('data', `with (data) { return (${value || '""'}) }`)
@@ -241,20 +247,20 @@
         this.$render = config.render
           ? (typeof config.render == 'function' ? config.render : renderers[config.render])
           : renderers.replace
-        // this.$template is the contents of the HTML
-        this.$template = unescape(tmpl.innerHTML)
+        // this.$template is the contents of the template that's rendered
+        this.$template = html
         // this.$id is the unique ID of this element, even if it's disconnected & reconnected
         this.$id = `ui${uifactory.count++}`
 
         // RESERVED variables -- may be exposed in the future
         // this.$name is the component name
         // this.$name = config.name
-        // this.$window is the window object where this custom element is defined
+        // this.$window: the window object where this custom element is defined
         // this.window = _window
 
         // PUBLIC variables -- created by the component
         // this.$ready is a promise that's resolved when the element is rendered
-        this.$ready = new Promise(resolve => this.$resolve = resolve)
+        this.$ready = new Promise(resolve => this.$_ready = resolve)
         // this.$data has all variables available to a template
         this.$data = {}
         // this.$data has all non-empty blockScripts compiled, bound to this element and its data
@@ -264,8 +270,8 @@
         // this.$contents has the original instance DOM element, cloned for future reference
 
         // INTERNAL variables -- not guaranteed to remain
-        // this.$resolve is a resolve promise. Called when component is ready
-        // this.$updating: Is the component currently being updated?
+        // this.$_ready is a resolve promise. Called when component is ready
+        // this.$_updating: Is the component currently being updated?
       }
 
       // Called when element is connected to the parent. "this" is the HTMLElement.
@@ -283,9 +289,9 @@
       // Set attributes (converting kebab-case to camelCase) unless options.attr = false
       // Re-render unless options.render = false
       update(props = {}, options = {}) {
-        if (this.$updating)
+        if (this.$_updating)
           return
-        this.$updating = true
+        this.$_updating = true
         try {
           // By default, .update() sets attributes and renders
           options = { attr: true, render: true, ...options }
@@ -322,7 +328,7 @@
             }
           }
         } finally {
-          this.$updating = false
+          this.$_updating = false
         }
       }
 
@@ -349,8 +355,9 @@
       this.$contents = this.cloneNode(true)
 
       // REPLACE SLOTS.
-      // First, extract all slot="" attributes from the instance into a dict
+      // this.$slot['slotname'] has the contents of the slot
       this.$slot = { '': this.$contents.innerHTML }
+      // Extract all slot="" attributes from the instance into a dict
       for (let slot of this.$contents.querySelectorAll('[slot]'))
         this.$slot[slot.slot] = (this.$slot[slot.slot] || '') + unescape(slot.outerHTML)
       // Next, replace all <slot> elements in the template.
@@ -424,7 +431,7 @@
       this.$render(this, src)
 
       // Resolve the "$ready" Promise
-      this.$resolve(this)
+      this.$_ready(this)
       // Fire a render event. At this point, $data has attributes, external scripts are loaded,
       // and contents are rendered.
       this.dispatchEvent(new CustomEvent('render', { bubbles: true }))
