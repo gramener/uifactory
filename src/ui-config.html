@@ -1,4 +1,4 @@
-<template $name="ui-config" for="" width="300">
+<template $name="ui-config" for="" config:js="" width="300">
   <style>
     ui-config {
       display: block;
@@ -14,14 +14,19 @@
     /* globals width */
     this.style.width = `${width}px`
     let selector = this.$data['for']
-    let el = this.$for = document.querySelector(selector)
+    let config = this.$data['config']
+    // If for= is specified, use it and configure that selector
+    let el = this.$for = document.querySelector(selector || null)
+    // If not, use config= as the configuration. Don't change the selector
 
     // If the element is missing, report it.
-    if (!el)
+    if (!el && !config)
       return `Error: missing for="${selector}"`
 
     // If element is not connected, re-render this when it's connected
-    if (!el.$properties || !el.$slot)
+    let properties = el ? el.$properties : config.properties
+    let slots = el ? el.$slot : {}
+    if (!properties || !slots)
       return el.addEventListener('connect', () => this.update(), { once: true })
 
     let attrs = {}
@@ -30,7 +35,7 @@
   </script>
   <form>
     <!-- TODO: Allow changing types dynamically -->
-    <% for (let [key, info] of Object.entries(el.$properties)) { %>
+    <% for (let [key, info] of Object.entries(properties)) { %>
       <% let value = attrs[key] || info.value || '' %>
       <label for="${this.$id}-${key}">${key}</label>
       <% if (info.type == 'boolean') { %>
@@ -43,7 +48,7 @@
         <input data-attr name="${key}" id="${this.$id}-${key}" type="text" value="${value}">
       <% } %>
     <% } %>
-    <% for (let [key, value] of Object.entries(el.$slot)) { %>
+    <% for (let [key, value] of Object.entries(slots)) { %>
       <label for="${this.$id}-${key}">${key || 'contents'}</label>
       <textarea data-slot id="${this.$id}-${key}" name="${key}" rows="3">${value}</textarea>
     <% } %>
