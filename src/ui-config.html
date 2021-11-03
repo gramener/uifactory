@@ -1,0 +1,69 @@
+<template $name="ui-config" for="" width="300">
+  <style>
+    ui-config {
+      display: block;
+      overflow: auto;
+    }
+    ui-config form {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-gap: 1px 0.5rem;
+    }
+  </style>
+  <script $inline>
+    /* globals width */
+    this.style.width = `${width}px`
+    let selector = this.$data['for']
+    let el = this.$for = document.querySelector(selector)
+
+    // If the element is missing, report it.
+    if (!el)
+      return `Error: missing for="${selector}"`
+
+    // If element is not connected, re-render this when it's connected
+    if (!el.$properties || !el.$slot)
+      return el.addEventListener('connect', () => this.update(), { once: true })
+
+    let attrs = {}
+    for (let attr of el.attributes)
+      attrs[attr.name.split(':')[0]] = attr.value
+  </script>
+  <form>
+    <!-- TODO: Allow changing types dynamically -->
+    <% for (let [key, info] of Object.entries(el.$properties)) { %>
+      <% let value = attrs[key] || info.value || '' %>
+      <label for="${this.$id}-${key}">${key}</label>
+      <% if (info.type == 'boolean') { %>
+        <input data-attr name="${key}" id="${this.$id}-${key}" type="checkbox" checked:="JSON.parse(value)">
+      <% } else if (info.type == 'number') { %>
+        <input data-attr name="${key}" id="${this.$id}-${key}" type="number" value="${value}">
+      <% } else if (info.type.match(/^(array|object|js|json)$/)) { %>
+        <textarea data-attr id="${this.$id}-${key}" name="${key}" rows="3">${value}</textarea>
+      <% } else { %>
+        <input data-attr name="${key}" id="${this.$id}-${key}" type="text" value="${value}">
+      <% } %>
+    <% } %>
+    <% for (let [key, value] of Object.entries(el.$slot)) { %>
+      <label for="${this.$id}-${key}">${key || 'contents'}</label>
+      <textarea data-slot id="${this.$id}-${key}" name="${key}" rows="3">${value}</textarea>
+    <% } %>
+  </form>
+  <script $onchange $oninput>
+    /* globals e */
+    try {
+      if (e.target.matches('[data-attr]')) {
+        if (e.target.type == 'checkbox')
+          this.$for.update({[e.target.name]: e.target.checked})
+        else
+          this.$for.update({[e.target.name]: e.target.value})
+      } else {
+        this.$for.$slot[e.target.name] = e.target.value
+        this.$for.update()
+      }
+      e.target.setCustomValidity('')
+    } catch(error) {
+      e.target.setCustomValidity(error)
+      e.target.reportValidity()
+    }
+  </script>
+</template>
