@@ -41,7 +41,7 @@
     })
   </script>
 
-  <md-text id="external" src="../README.md" base-url="../">
+  <md-text id="external" src="md-text-external.md">
     # Heading
     Content
   </md-text>
@@ -52,7 +52,7 @@
         let events = renderEvents['external']
         if (!events || events.length < 1)
           return setTimeout(check, 100)
-        t.equals(el.querySelector('h1').innerHTML.trim(), 'UIFactory')
+        t.equals(el.querySelector('h1').innerHTML.trim(), 'External')
         t.end()
       }
       check()

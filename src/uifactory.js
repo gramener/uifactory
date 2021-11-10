@@ -32,7 +32,7 @@
   types.js = {
     // Parse value as a JavaScript expression
     parse: (value, name, data) => {
-      let fn = new Function('data', `with (data) { return (${value || '""'}) }`)
+      let fn = Function('data', `with (data) { return (${value || '""'}) }`)
       // If we use <my-comp rules:js="rules">, we want "rules" to be window.rules,
       // not the default value of <template $name="my-comp" rules="">.
       // So replace "rules" (the name of the attribute) with window["rules"].
@@ -182,8 +182,8 @@
             if (attr.value)
               code = `if (e.target.matches("${attr.value}")) { ${code} }`
             listener = [
-              match[1],                   // type
-              new Function('e', code),    // listener
+              match[1],               // type
+              Function('e', code),    // listener
               { once: el.hasAttribute('$once') }
             ]
             eventScripts.push(listener)
