@@ -33,6 +33,7 @@ This project follows the [`eslint:recommended`](https://eslint.org/docs/rules/) 
 To release a new version:
 
 - Update package version in [package.json](package.json) and all other files
+- Run `npm update && npm upgrade`
 - Run `npm run build`
 - Run `npm run lint` and fix any errors
 - Run `npm test` and fix any errors

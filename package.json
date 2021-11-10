@@ -1,6 +1,6 @@
 {
   "name": "uifactory",
-  "version": "1.22.1",
+  "version": "1.23.0",
   "description": "UIFactory is a small, elegant web component framework",
   "main": "dist/uifactory.min.js",
   "jsdelivr": "dist/uifactory.min.js",
@@ -29,7 +29,7 @@
     "eslint-plugin-html": "6",
     "express": "4",
     "html-minifier-terser": "6",
-    "marked": "3",
+    "marked": "^3.0.8",
     "puppeteer": "8",
     "remark-cli": "9",
     "remark-validate-links": "10",
