@@ -1,73 +1,83 @@
-<template $name="vega-chart" $render:js="uifactory.vegaChart.draw" spec:urljson="">
+<template $name="vega-chart" $render="none" spec:urljson="">
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4"></script>
+  <script $onrender>
+    /* globals vega, vegaLite, _ */
+    let node = this
+    // If there's no spec, treat it as empty spec and process it from
+    if (!spec || !spec.$schema)
+      return
+
+    // Deep clone the spec to avoid changing original when we update it.
+    let newSpec = node.$vegaChartSpec = JSON.parse(JSON.stringify(spec))
+
+    // If we've already created the chart, only update the signals. Never re-render
+    // unless the spec has changed
+    if (node.$vegaChartView) {
+      // If any signal has been changed, re-render the chart and exit
+      if (updateSignal(node))
+        node.$vegaChartView.runAsync()
+      return
+    }
+
+    // Evaluate all scripts inside <template><script>... in the context of spec.
+    // "this" becomes the node. "spec" is also available as a variable.
+    for (let tmpl of node.querySelectorAll('template')) {
+      for (let script of tmpl.content.querySelectorAll('script')) {
+        let update_spec = new Function('spec', script.innerHTML)
+        update_spec.call(node, newSpec)
+      }
+    }
+
+    // If the spec is vega-lite, convert it to Vega.
+    // Vega-lite $schema is "https://vega.github.io/schema/vega-lite/v5.json".
+    if (newSpec.$schema && newSpec.$schema.match(/vega-lite/))
+      newSpec = vegaLite.compile(newSpec).spec
+
+    // Add signals
+    if (newSpec.uifactoryConfig) {
+      let signals = newSpec.signals = newSpec.signals || []
+      newSpec.uifactoryConfig.forEach(config => {
+        // TODO: Avoid lodash
+        let insertion = _.get(newSpec, config.insert)
+        let signalMap = uifactory.vegaChart.types[config.type] || []
+        signalMap.forEach(row => {
+          let name = config.prefix + row.name.charAt(0).toUpperCase() + row.name.substr(1)
+          let value = row.name in insertion ? insertion[row.name] : row.value
+          if (typeof value == 'object' && value && 'value' in value)
+            value = value.value
+          signals.push({ name, value, type: row.type })
+          insertion[row.name] = { signal: name }
+        })
+      })
+    }
+
+    // Render the chart. Store the view in the node's .ui object
+    node.$vegaChartView = new vega.View(vega.parse(newSpec), { renderer: 'svg', container: node })
+    // Update with signals
+    updateSignal(node)
+    node.$vegaChartView.runAsync()
+
+    function updateSignal(node) {
+      let signalChange = false
+      // For every attribute in <vega-chart>
+      for (let [key, value] of Object.entries(node.$data)) {
+        // Check all signals in the spec
+        (node.$vegaChartSpec.signals || []).some(signal => {
+          // ... to find a signal with the same name, but different value
+          if (signal.name == key && node.$vegaChartView.signal(key) != value) {
+            // Update that signal value
+            node.$vegaChartView.signal(key, value)
+            return signalChange = true
+          }
+        })
+      }
+      return signalChange
+    }
+  </script>
   <script>
     uifactory.vegaChart = {
-      /* globals vega, vegaLite, _ */
-      updateSignal: function (node) {
-        let signalChange = false
-        // For every attribute in <vega-chart>
-        for (let [key, value] of Object.entries(node.data)) {
-          // Check all signals in the spec
-          (node.$.spec.signals || []).some(signal => {
-            // ... to find a signal with the same name, but different value
-            if (signal.name == key && node.$.view.signal(key) != value) {
-              // Update that signal value
-              node.$.view.signal(key, value)
-              return signalChange = true
-            }
-          })
-        }
-        return signalChange
-      },
-      draw: node => {
-        // If we've already created the chart, only update the signals. Never re-render
-        // unless the spec has changed
-        if (node.$.view) {
-          // If any signal has been changed, re-render the chart and exit
-          if (uifactory.vegaChart.updateSignal(node))
-            node.$.view.runAsync()
-          return
-        }
-
-        // If there's no spec, treat it as empty spec and process it from
-        // Deep clone the spec to avoid changing original when we update it.
-        let spec = node.$.spec = node.data.spec ? JSON.parse(JSON.stringify(node.data.spec)) : {}
-        // Evaluate all scripts inside <template><script>... in the context of spec.
-        // "this" becomes the node. "spec" is also available as a variable.
-        for (let tmpl of node.querySelectorAll('template')) {
-          for (let script of tmpl.content.querySelectorAll('script')) {
-            let update_spec = new Function('spec', script.innerHTML)
-            update_spec.call(node, spec)
-          }
-        }
-
-        // If the spec is vega-lite, convert it to Vega.
-        // Vega-lite $schema is "https://vega.github.io/schema/vega-lite/v5.json".
-        if (spec.$schema && spec.$schema.match(/vega-lite/))
-          spec = vegaLite.compile(spec).spec
-
-        // Add signals
-        if (spec.uifactoryConfig) {
-          let signals = spec.signals = spec.signals || []
-          spec.uifactoryConfig.forEach(config => {
-            // TODO: Avoid lodash
-            let insertion = _.get(spec, config.insert)
-            uifactory.vegaChart.types[config.type].forEach(row => {
-              let name = config.prefix + row.name.charAt(0).toUpperCase() + row.name.substr(1)
-              let value = row.name in insertion ? insertion[row.name] : row.value
-              if (typeof value == 'object' && value && 'value' in value)
-                value = value.value
-              signals.push({ name, value, type: row.type })
-              insertion[row.name] = { signal: name }
-            })
-          })
-        }
-
-        // Render the chart. Store the view in the node's .ui object
-        node.$.view = new vega.View(vega.parse(spec), { renderer: 'svg', container: node })
-        // Update with signals
-        uifactory.vegaChart.updateSignal(node)
-        node.ui.view.runAsync()
-      },
       types: {
         "axis": [
           // { "name": "scale", "value": null, "type": null },
@@ -186,8 +196,4 @@
       }
     }
   </script>
-  <!-- script src="https://cdn.jsdelivr.net/npm/vega@5"></script -->
-  <!-- script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script -->
-  <script src="vega.js"></script>
-  <script src="vega-lite.js"></script>
 </template>
