@@ -200,23 +200,26 @@ For dynamic attributes, set the `<attr>:=` attribute to any string or boolean ex
 For example, this defines an `<add-class>` component:
 
 ```html
-<template $name="custom-input" active:boolean="true">
+<template $name="custom-input" disabled:boolean="true" type:string="text" min:number="0">
   <style>
     .round { border-radius: 20px; }
     .active { border: 1px solid red; }
   </style>
   <input
-    class:="['round', {active: active}]"
-    style:="{background-color: active ? 'lightblue' : 'white'}"
-    disabled:="!active">
+    disabled:="disabled"
+    type:="type"
+    min:="min"
+    class:="['round', {active: !disabled}]"
+    style:="{'background-color': disabled ? 'white' : 'lightblue'}"
+  >
 </template>
 ```
 
 When you add this to your page:
 
 ```html
-Active: <custom-input active="true"></custom-input>
-Inactive: <custom-input active="false"></custom-input>
+Active: <custom-input disabled="false" type="number" min="0"></custom-input>
+Inactive: <custom-input disabled="true"></custom-input>
 ```
 
 ... it renders:
@@ -224,30 +227,41 @@ Inactive: <custom-input active="false"></custom-input>
 ![Output of custom-input](docs/img/custom-input.png)
 -->
 
-<template $name="custom-input" active:boolean="true">
+<template $name="custom-input" disabled:boolean="true" type:string="text" min:number="0">
   <style>
     .round { border-radius: 20px; }
     .active { border: 1px solid red; }
   </style>
   <input
-    class:="['round', {active: active}]"
-    style:="{'background-color': active ? 'lightblue' : 'white'}"
-    disabled:="!active">
+    disabled:="disabled"
+    type:="type"
+    min:="min"
+    class:="['round', {active: !disabled}]"
+    style:="{'background-color': disabled ? 'white' : 'lightblue'}"
+  >
 </template>
-Active: <custom-input active="true"></custom-input>
-Inactive: <custom-input active="false"></custom-input>
+Active: <custom-input disabled="false" type="number" min="0"></custom-input>
+Inactive: <custom-input disabled="true"></custom-input>
+<custom-input disabled:js="null"></custom-input>
+<custom-input disabled:js="undefined"></custom-input>
 <script>
   tape('Add dynamic classes and styles with `:=`', function (t) {
-    let el = document.querySelector('custom-input[active="true"] input')
-    t.ok(el.classList.contains('round'), 'class:= list works')
-    t.ok(el.classList.contains('active'), 'class:= object works')
-    t.equals(el.style.backgroundColor, 'lightblue', 'style:= object works')
-    t.equals(el.disabled, false, 'disabled:= boolean works')
-    el = document.querySelector('custom-input[active="false"] input')
-    t.ok(el.classList.contains('round'), 'class:= list works')
-    t.not(el.classList.contains('active'), 'class:= object works')
-    t.equals(el.style.backgroundColor, 'white', 'style:= object works')
-    t.equals(el.disabled, true, 'disabled:= boolean works')
+    let els = document.querySelectorAll('custom-input input')
+    t.ok(els[0].classList.contains('round'), 'class:= list works')
+    t.ok(els[0].classList.contains('active'), 'class:= object works')
+    t.equals(els[0].style.backgroundColor, 'lightblue', 'style:= object works')
+    t.equals(els[0].disabled, false, 'disabled:= boolean works')
+    t.equals(els[0].type, 'number', 'type:= works')
+    t.equals(els[0].min, '0', 'min:= number works -- zero is not false')
+
+    t.ok(els[1].classList.contains('round'), 'class:= list works')
+    t.not(els[1].classList.contains('active'), 'class:= object works')
+    t.equals(els[1].style.backgroundColor, 'white', 'style:= object works')
+    t.equals(els[1].disabled, true, 'disabled:= boolean works')
+
+    t.equals(els[2].getAttribute('disabled'), null, 'disabled:= null works')
+    t.equals(els[3].getAttribute('disabled'), null, 'disabled:= undefined works')
+
     t.end()
   })
 </script>

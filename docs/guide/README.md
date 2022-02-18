@@ -263,23 +263,26 @@ For dynamic styles, set the `style:=` attribute to an object or string:
 For example, this defines an `<add-class>` component:
 
 ```html
-<template $name="custom-input" active:boolean="true">
+<template $name="custom-input" disabled:boolean="true" type:string="text" min:number="0">
   <style>
     .round { border-radius: 20px; }
     .active { border: 1px solid red; }
   </style>
   <input
-    class:="['round', {active: active}]"
-    style:="{background-color: active ? 'lightblue' : 'white'}"
-    disabled:="!active">
+    disabled:="disabled"
+    type:="type"
+    min:="min"
+    class:="['round', {active: !disabled}]"
+    style:="{'background-color': disabled ? 'white' : 'lightblue'}"
+  >
 </template>
 ```
 
 When you add this to your page:
 
 ```html
-Active: <custom-input active="true"></custom-input>
-Inactive: <custom-input active="false"></custom-input>
+Active: <custom-input disabled="false" type="number" min="0"></custom-input>
+Inactive: <custom-input disabled="true"></custom-input>
 ```
 
 ... it renders:

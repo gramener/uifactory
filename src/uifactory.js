@@ -94,6 +94,10 @@
     // Boolean, null, undefined are booleans. x:="true" ▶ x, x:="false|null" ▶ ""
     if ((typeof value).match(/boolean|undefined/) || value === null)
       return value ? name : ''
+    // Numbers are returned as-is
+    if (typeof value == 'number')
+      return `${name}="${value}"`
+    // Objects attributes for styles and classes are parsed further
     if ((typeof value) == 'object') {
       if (name == 'style')
         value = styleValue(value)
