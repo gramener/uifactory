@@ -32,6 +32,7 @@
 -->
 
 <template $name="network-chart"
+  $render="none"
   data:js="{}"
   type="node-link"
   width:number="500"
@@ -43,22 +44,42 @@
   node-stroke:string="#fff"
   node-stroke-width:number="1"
   node-charge:number="30"
+  node-hover-fill:string=""
+  node-hover-opacity:number=""
+  node-hover-stroke:string=""
+  node-hover-stroke-width:number=""
+  node-hover-size:number=""
+  node-hover-charge:number=""
   link:boolean="true"
   link-id:string=""
   link-stroke:string="#999"
   link-stroke-width:number="1"
+  link-stroke-dash:string=""
   link-opacity:number="0.6"
   link-distance:number="30"
+  tooltip:string=""
   label:boolean="true"
   label-text:string=""
-  label-text-anchor:string="middle"
-  label-dominant-baseline:string="middle"
-  label-font-family:string="sans-serif"
+  label-align:string="middle"
+  label-baseline:string="middle"
+  label-font:string="sans-serif"
   label-font-size:number="12"
   label-font-weight:string="bold"
   label-fill:string="black"
+  label-opacity:string="1"
   label-dx:number="0"
   label-dy:number="0"
+  linklabel:boolean="true"
+  linklabel-text:string=""
+  linklabel-align:string="middle"
+  linklabel-baseline:string="middle"
+  linklabel-font:string="sans-serif"
+  linklabel-font-size:number="10"
+  linklabel-font-weight:string="normal"
+  linklabel-fill:string="black"
+  linklabel-opacity:string="1"
+  linklabel-dx:number="0"
+  linklabel-dy:number="0"
   collide:boolean="false"
   drag-action:string="pin"
   >
@@ -92,6 +113,7 @@
 
     let ui = this.networkChart
     if (!ui) {
+      this.innerHTML = this.$contents.innerHTML
       ui = this.networkChart = {}
       ui.simulation = d3.forceSimulation()
         .force('charge', d3.forceManyBody())
@@ -103,7 +125,7 @@
         ui.simulation
           .force('collide', d3.forceCollide(
             typeof this.collide == 'function' ? this.collide :
-              typeof this.collide == 'number' ? (d => this.nodeSize(d) + this.collide) : this.nodeSize))
+              typeof this.collide == 'number' ? (d => evaluateAttr(this.nodeSize, d) + this.collide) : this.nodeSize))
       let svg = ui.svg = d3.create('svg')
         .attr('viewBox', [0, 0, this.width, this.height])
         .attr('width', this.width)
@@ -136,9 +158,18 @@
         ui.label
           .attr('x', d => d.x)
           .attr('y', d => d.y)
+        ui.linkLabel
+          .attr('x', d => (d.target.x + d.source.x) / 2)
+          .attr('y', d => (d.target.y + d.source.y) / 2)
       })
       this.replaceChildren(svg.node())
     }
+    const evaluateAttr = (attribute, data) => typeof attribute === 'function' ? attribute(data) : attribute
+
+    // TODO: Anand to review
+    const tooltip = d3.select('body').append('div')
+      .classed('gramex-tooltip', true)
+      .style('position', 'absolute')
 
     ui.simulation
       .nodes(nodes.filter(d => !d.hide))
@@ -149,23 +180,69 @@
     ui.simulation.force('link', forceLinks)
     ui.simulation.force('charge')
       .strength(this.nodeCharge)
+
+    // Links
     ui.link = ui.svg.select('g.link')
       .selectAll('line')
       .data(links.filter(d => !d.source.hide && !d.target.hide))
       .join('line')
       .attr('stroke', this.linkStroke)
       .attr('stroke-opacity', this.linkOpacity)
+      .attr('stroke-dasharray', this.linkStrokeDash)
       .attr('stroke-width', this.linkStrokeWidth)
+
+    // Link Label
+    ui.linkLabel = ui.svg.select('g.link')
+      .selectAll('text')
+      .data(links, d => d)
+      .join('text')
+      .attr('fill', this.linklabelFill)
+      .attr('opacity', this.linklabelOpacity)
+      .attr('font-weight', this.linklabelFontWeight)
+      .attr('font-size', this.linklabelFontSize)
+      .attr('font-family', this.linklabelFont)
+      .attr('text-anchor', this.linklabelAlign)
+      .attr('dominant-baseline', this.linklabelBaseline)
+      .text(this.linklabelText)
+
+    // Nodes
     ui.node = ui.svg.selectAll('g.node')
       .selectAll('circle')
-      .data(nodes.filter(d => !d.hide))
+      .data(nodes.filter(d => !d.hide), d => d)
       .join('circle')
       .attr('stroke', this.nodeStroke)
       .attr('stroke-width', this.nodeStrokeWidth)
       .attr('r', this.nodeSize)
       .attr('fill', this.nodeFill)
       .attr('opacity', this.nodeOpacity)
+      .on('mouseover', (e, d) => {
+        d.highlight = true
+        let el = d3.select(e.target)
+        this.nodeHoverFill ? el.attr('fill', evaluateAttr(this.nodeHoverFill, d)) : ''
+        this.nodeHoverStroke ? el.attr('stroke', evaluateAttr(this.nodeHoverStroke, d)) : ''
+        this.nodeHoverStrokeWidth ? el.attr('stroke-width', evaluateAttr(this.nodeHoverStrokeWidth, d)) : ''
+        this.nodeHoverSize ? el.attr('r', evaluateAttr(this.nodeHoverSize, d)) : ''
+        this.nodeHoverOpacity ? el.attr('opacity', evaluateAttr(this.nodeHoverOpacity, d)) : ''
+        // TODO: Anand to review
+        tooltip.style('left', `${e.clientX - 10}px`)
+          .style('top', `${e.clientY - 20}px`)
+          .style('display', 'block')
+          .html(() => evaluateAttr(this.tooltip, d))
+      })
+      .on('mouseout', (e, d) => {
+        d.highlight = false
+        d3.select(e.target)
+          .attr('fill', evaluateAttr(this.nodeFill, d))
+          .attr('stroke', evaluateAttr(this.nodeStroke, d))
+          .attr('stroke-width', evaluateAttr(this.nodeStrokeWidth, d))
+          .attr('r', evaluateAttr(this.nodeSize, d))
+          .attr('opacity', evaluateAttr(this.nodeOpacity, d))
+        // TODO: Anand to review
+        tooltip.style('display', 'none')
+      })
       .call(drag(ui.simulation))
+
+    // Labels
     ui.label = ui.svg.select('g.label')
       .selectAll('text')
       .data(nodes.filter(d => !d.hide))
@@ -174,11 +251,12 @@
       .style('user-select', 'none')
       .text(this.labelText)
       .attr('fill', this.labelFill)
+      .attr('opacity', this.labelOpacity)
       .attr('font-weight', this.labelFontWeight)
       .attr('font-size', this.labelFontSize)
-      .attr('font-family', this.labelFontFamily)
-      .attr('text-anchor', this.labelTextAnchor)
-      .attr('dominant-baseline', this.labelDominantBaseline)
+      .attr('font-family', this.labelFont)
+      .attr('text-anchor', this.labelAlign)
+      .attr('dominant-baseline', this.labelBaseline)
       .attr('dx', this.labelDx)
       .attr('dy', this.labelDy)
     ui.simulation.alpha(0.3).restart()
