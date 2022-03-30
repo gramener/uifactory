@@ -1,193 +1,645 @@
-<template $name="vega-chart" $render:js="uifactory.vegaChart.draw" spec:urljson="">
+<template $name="vega-chart" $render="none" spec:urljson="">
+  <script src="https://cdn.jsdelivr.net/npm/vega@5/build/vega.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-tooltip@0.27/build/vega-tooltip.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js"></script>
+  <script $onrender>
+    /* globals vega, vegaLite, vegaTooltip, spec, _ */
+    // TODO: Avoid lodash
+    let node = this
+
+    // Spec can be updated by
+    //  - spec attribute (dynamic) - disallow this
+    //  - template.script tag (onconnect)
+    //  - redraw attribute changes (dynamic)
+
+    // If we've already created the chart, only update the signals (redrawing if required)
+    if (node.$vegaChartView) {
+      let { signalChange, inserts } = updateSignal(node)
+      if (Object.keys(inserts).length) {
+        for (let [insert, value] of Object.entries(inserts)) {
+          _.set(node.$vegaChartSpecUsed, insert, value)
+        }
+        drawChart(node.$vegaChartSpecUsed)
+      }
+      // If any signal has been changed, re-render the chart and exit
+      else if (signalChange)
+        node.$vegaChartView.runAsync()
+      return
+    }
+
+    // If there's no spec, treat it as empty spec and process it from
+    if (!spec || !spec.$schema)
+      return
+
+    // Deep clone the spec to avoid changing original when we update it.
+    // TODO: If spec changes, we need to recompile
+    let newSpec = JSON.parse(JSON.stringify(spec))
+
+    // Update spec with script in <template><script>.
+    // The component can update the spec, like `this.width = 300` or `spec.width = 300`.
+    for (let tmpl of node.querySelectorAll('template')) {
+      for (let script of tmpl.content.querySelectorAll('script')) {
+        let update_spec = new Function('spec', script.innerHTML)
+        update_spec.call(node, newSpec)
+      }
+    }
+
+    // Store the developer-specified spec as a copy
+    node.$vegaChartSpec = JSON.parse(JSON.stringify(newSpec))
+
+    // Convert vega-lite spec to Vega.
+    // Vega-lite $schema is "https://vega.github.io/schema/vega-lite/v5.json".
+    if (newSpec.$schema && newSpec.$schema.match(/vega-lite/))
+      newSpec = vegaLite.compile(newSpec).spec
+
+    // Insert standard signals from "uifactoryConfig"
+    if (newSpec.uifactoryConfig) {
+      let signals = newSpec.signals = newSpec.signals || []
+      // Add default signals
+      uifactory.vegaChart.types['chart'].forEach(entry => {
+        signals.push({ name: entry.name, value: entry.value === null ? newSpec[entry.name] : entry.value, type: entry })
+      })
+
+      newSpec.uifactoryConfig.forEach(config => {
+        let inserts = Array.isArray(config.insert) ? config.insert : [config.insert]
+        // TODO: Deprecate custom config types. Just add these signals directly
+        if (config.type == 'custom') {
+          inserts.forEach(insert => {
+            _.set(newSpec, insert, node.$data[config.attr])
+          })
+        }
+        else if (config.type in uifactory.vegaChart.types) {
+          inserts.forEach(insert => {
+            // uiConfig[].insert specifies the JSONPath at which we use signal, e.g. "axes[0]""
+            let insertion = _.get(newSpec, insert)
+            // For each uiConfig entry, add a signal at the insertion point
+            uifactory.vegaChart.types[config.type].forEach(entry => {
+              // The signal name will be like `${prefix}GridDash`
+              let name = config.prefix + entry.name.charAt(0).toUpperCase() + entry.name.substr(1)
+              // If the insertion point already specifies a value, use it.
+              // Else pick up the value from the vegaChart[].value
+              // e.g. if axes[0].titleColor: "red" is specified, use "red" as default.
+              let value = entry.name in insertion ? insertion[entry.name] : entry.value
+              // If the value is specified in the insertion as {value: "red"}, use the .value.
+              // If the value is specified as a signal already, or a scale, don't override it.
+              if (value && typeof value == 'object') {
+                if ('value' in value)
+                  value = value.value
+                else if (Array.isArray(value) || 'signal' in value || 'scale' in value || 'field' in value) {
+                  console.error('Cannot create signal for', name, value)
+                  // TODO: Mark the signal as unused or overridden
+                  return
+                }
+              }
+              // If the signal already exists, don't add it
+              if (!signals.find(s => s.name == name)) {
+                // entry.type indicates the UI display type and type conversion required for the value.
+                let signal = { name, value, type: entry.type }
+                signals.push(signal)
+                // entry.redraw marks entries requiring a redraw (e.g. "axes[].grid", "axes[].domain").
+                // We then set the signal.insert to specify where to insert the revised value.
+                if (entry.redraw)
+                  signal.insert = `${insert}.${entry.name}`
+                // If redraw is required, replace the spec with the value (or default).
+                // If no redraw is required, replace the spec with the signal.
+                if (entry.redraw)
+                  insertion[entry.name] = name in node.$data ? node.$data[name] : value
+                else
+                  insertion[entry.name] = { signal: name }
+              } else {
+                console.warn(`vega-chart: duplicate signal ${name}`)
+              }
+            })
+
+          })
+        }
+      })
+    }
+
+    // Render the chart. Store the view in the node's .ui object
+    drawChart(newSpec)
+
+    function drawChart(spec) {
+      // Render the chart. Store the view and the spec in the node
+      node.$vegaChartSpecUsed = spec
+      node.dispatchEvent(new CustomEvent('draw.vega-chart', { bubbles: true }))
+      node.$vegaChartView = new vega.View(vega.parse(node.$vegaChartSpecUsed), {
+        renderer: 'svg',
+        container: node,
+        hover: true})
+      node.$vegaChartView.runAsync()
+        .then(() => {
+          vegaTooltip.default(node.$vegaChartView)
+          updateSignal(node)
+          node.$vegaChartView.runAsync().then(() => {
+            node.dispatchEvent(new CustomEvent('drawn.vega-chart', { bubbles: true }))
+          })
+        })
+    }
+
+    function updateSignal(node) {
+      let signalChange = false
+      let inserts = {}
+      // For every attribute in <vega-chart>
+      for (let [key, value] of Object.entries(node.$data)) {
+        // Check default signals
+        if (key.match(/^(width|height|padding|autosize|background)$/) && node.$vegaChartView.signal(key) != value) {
+          // Set value to default value if there is no input
+          if (value === '' || value === null) {
+            value = node.$vegaChartSpecUsed[key]
+          }
+          // If width is specified as a %, watch the changes in parent element width
+          if (key == 'width') {
+            if (typeof value == 'string' && value.match(/%$/)) {
+              uifactory.vegaChart.widthObserver.observe(node.parentElement)
+              value = uifactory.vegaChart.getWidth(node)
+            } else {
+              uifactory.vegaChart.widthObserver.unobserve(node.parentElement)
+            }
+          }
+          if (key.match(/height|padding/) && typeof value == 'string')
+            value = +value
+          node.$vegaChartView.signal(key, value)
+          signalChange = true
+          continue
+        }
+        // Check all signals in the spec
+        (node.$vegaChartSpecUsed.signals || []).some(signal => {
+          // ... to find a signal with the same name
+          if (signal.name == key) {
+            // Convert the signal to the correct type. Empty strings are treated as null (default value).
+            if (typeof value == 'string')
+              value = value === '' ? ('value' in signal ? signal.value : null) :
+                signal.type == 'number' ? parseFloat(value) :
+                  signal.type == 'boolean' ? (value.match(/^(t|y|[1-9])/i) ? true : value.match(/^(f|n|0$)/i) ? false : null) :
+                    value
+            if (node.$vegaChartView.signal(key) !== value) {
+              node.$vegaChartView.signal(key, value)
+              // If this requires a redraw, trigger the redraw with an insertion
+              if (signal.insert)
+                inserts[signal.insert] = value
+              return signalChange = true
+            }
+          }
+        })
+
+      }
+      return { signalChange, inserts }
+    }
+  </script>
   <script>
     uifactory.vegaChart = {
-      /* globals vega, vegaLite, _ */
-      updateSignal: function (node) {
-        let signalChange = false
-        // For every attribute in <vega-chart>
-        for (let [key, value] of Object.entries(node.data)) {
-          // Check all signals in the spec
-          (node.$.spec.signals || []).some(signal => {
-            // ... to find a signal with the same name, but different value
-            if (signal.name == key && node.$.view.signal(key) != value) {
-              // Update that signal value
-              node.$.view.signal(key, value)
-              return signalChange = true
+      types: {
+        "chart": [
+          { "section": "Size", "label": "Width", "name": "width", "value": null, "type": "number", "min": 0, "description": "The width in pixels of the data rectangle, or a percentage (%) of the parent container's width." },
+          { "section": "Size", "label": "Height", "name": "height", "value": null, "type": "number", "min": 0, "description": " The height in pixels of the data rectangle" },
+          { "section": "Size", "label": "Padding", "name": "padding", "value": null, "type": "number", "min": 0, "description": "The padding in pixels to add around the visualization. If a number, specifies padding for all sides. If an object, the value should have the format `{\"left\": 5, \"top\": 5, \"right\": 5, \"bottom\": 5}`. Padding is applied _after_ autosize layout completes." },
+          { "section": "Size", "label": "Auto-size", "name": "autosize", "value": null, "type": "select", "options": ["pad", "fit", "fit-x", "fit-y"], "description": "The total size of a Vega visualization may be determined by multiple factors: specified _width_, _height_, and _padding_ values, as well as content such as axes, legends, and titles. The support different use cases, Vega provides different _autosize_ types for determining the final size of a visualization view: \n\n- `none`: No automatic sizing is performed. The total visualization size is determined solely by the provided width, height and padding values. For example, by default the total width is calculated as `width + padding.left + padding.right`. Any content lying outside this region will be clipped. If _autosize.contains_ is set to `\"padding\"`, the total width is instead simply _width_.\n- `pad`: Automatically increase the size of the view such that all visualization content is visible. This is the default _autosize_ setting, and ensures that axes, legends and other items outside the normal width and height are included. The total size will often exceed the specified width, height, and padding.\n- `fit`: Automatically adjust the layout in an attempt to force the total visualization size to fit within the given width, height and padding values. This setting causes the plotting region to be made smaller in order to accommodate axes, legends and titles. As a result, the value of the _width_ and _height_ signals may be changed to modify the layout. Though effective for many plots, the `fit` method can not always ensure that all content remains visible. For example, if the axes and legends alone require more space than the specified width and height, some of the content will be clipped. Similar to `none`, by default the total width will be `width + padding.left + padding.right`, relative to the original, unmodified _width_ value. If _autosize.contains_ is set to `\"padding\"`, the total width will instead be the original _width_.\n- `fit-x`: Similar to `fit`, except that only the width (x-axis) is adjusted to fit the given dimensions. The view height is automatically sized as if set to `pad`.\n- `fit-y`: Similar to `fit`, except that only the height (y-axis) is adjusted to fit the given dimensions. The view width is automatically sized as if set to `pad`." },
+          { "section": "Format", "label": "Background", "name": "background", "value": "#ffffff", "type": "color", "description": "The background color of the entire view (defaults to white)." }
+        ],
+        "axis": [
+          // { "name": "scale", "value": null, "type": null },
+          { "section": "Base", "label": "Orientation", "name": "orient", "value": null, "type": "select", "options": ["left", "right", "top", "bottom"], "description": "The orientation of the axis.\n\n- `left`: Place a y-axis along the left edge of the chart.\n- `right`: Place a y-axis along the right edge of the chart.\n- `top`: Place an x-axis along the top edge of the chart.\n- `bottom`: Place an x-axis along the bottom edge of the chart." },
+          { "section": "Base", "label": "Band Position", "name": "bandPosition", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "An interpolation fraction indicating where, for `band` scales, axis ticks should be positioned. A value of `0` places ticks at the left edge of their bands. A value of `0.5` places ticks in the middle of their bands." },
+          { "section": "Base", "label": "Z Index", "name": "zindex", "value": 0, "type": "number", "description": "The integer z-index indicating the layering of the axis group relative to other axis, mark, and legend groups. The default value is `0` and axes and grid lines are drawn _behind_ any marks defined in the same specification level. Higher values (`1`) will cause axes and grid lines to be drawn on top of marks." },
+          { "section": "Domain", "label": "Enable", "name": "domain", "value": null, "type": "boolean", "redraw": true, "description": "Boolean flag indicating if axis domain line should be included by default." },
+          { "section": "Domain", "label": "Cap", "name": "domainCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for the axis domain line. One of `\"butt\"` (default), `\"round\"` or `\"square\"`." },
+          { "section": "Domain", "label": "Color", "name": "domainColor", "value": "#000000", "type": "color", "description": "Color of axis domain line." },
+          { "section": "Domain", "label": "Dash", "name": "domainDash", "value": null, "type": "text", "description": "Stroke dash of axis domain lines (e.g. `3,6` for 3 pixel stroke and 6 pixel gap)." },
+          { "section": "Domain", "label": "Dash Offset", "name": "domainDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the domain dash array." },
+          { "section": "Domain", "label": "Opacity", "name": "domainOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "Opacity of axis domain line." },
+          { "section": "Domain", "label": "Width", "name": "domainWidth", "value": null, "type": "number", "min": 0, "description": "Stroke width of axis domain line." },
+          // { "name": "encode", "value": null, "type": null },
+          { "section": "Format", "label": "Specification", "name": "format", "value": null, "type": null, "description": "The format specifier pattern for axis labels. For numerical values, must be a legal [d3-format](https://github.com/d3/d3-format#locale_format) specifier. For date-time values, must be a legal [d3-time-format](https://github.com/d3/d3-time-format#locale_format) specifier or a [TimeMultiFormat object](https://vega.github.io/vega/docs/types/#TimeMultiFormat)" },
+          { "section": "Format", "label": "Type", "name": "formatType", "value": null, "type": "select", "options": ["number", "time", "utc"], "description": "Specifies the type of format to use (`\"number\"`, `\"time\"`, `\"utc\"`) for scales that do not have a strict domain data type. This property is useful for formatting date-time values for band or point scales. If specified, the *format* property must have a valid specifier pattern for the given type." },
+          { "section": "Grid", "label": "Enable", "name": "grid", "value": null, "type": "boolean", "redraw": true, "description": "Boolean flag indicating if axis grid lines should be included by default." },
+          { "section": "Grid", "label": "Cap", "name": "gridCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for axis grid lines. One of `\"butt\"` (default), `\"round\"` or `\"square\"`." },
+          { "section": "Grid", "label": "Color", "name": "gridColor", "value": "#000000", "type": "color", "description": "Color of axis grid lines." },
+          { "section": "Grid", "label": "Dash", "name": "gridDash", "value": null, "type": null, "description": "Stroke dash of axis grid lines (e.g. `3,6` for 3 pixel stroke and 6 pixel gap)." },
+          { "section": "Grid", "label": "Dash Offset", "name": "gridDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the grid dash array." },
+          { "section": "Grid", "label": "Opacity", "name": "gridOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "Opacity of axis grid lines." },
+          // TODO: gridScale is the name of a scale. Default is same as scale
+          // { "name": "gridScale", "value": null, "type": null },
+          { "section": "Grid", "label": "Width", "name": "gridWidth", "value": null, "type": "number", "min": 0, "description": "Stroke width of axis grid lines." },
+          { "section": "Label", "label": "Enable", "name": "labels", "value": true, "type": "boolean", "redraw": true, "description": "Boolean flag indicating if axis tick labels should be included by default." },
+          { "section": "Label", "label": "Align", "name": "labelAlign", "value": null, "type": "select", "options": ["left", "center", "right"], "description": "Horizontal text alignment of axis tick labels, overriding the default setting for the axis orientation." },
+          { "section": "Label", "label": "Angle", "name": "labelAngle", "value": null, "type": "number", "description": "Angle in degrees of axis tick labels." },
+          { "section": "Label", "label": "Baseline", "name": "labelBaseline", "value": "top", "type": "select", "options": ["alphabetic", "top", "middle", "bottom", "line-top", "line-bottom"], "description": "Vertical text baseline of axis tick labels, overriding the default setting for the axis orientation." },
+          { "section": "Label", "label": "Bound", "name": "labelBound", "value": false, "type": "number", "description": "Boolean flag or pixel tolerance value for removal of labels that exceed the axis range." },
+          { "section": "Label", "label": "Color", "name": "labelColor", "value": "#000000", "type": "color", "description": "Text color of axis tick labels." },
+          { "section": "Label", "label": "Flush", "name": "labelFlush", "value": null, "type": "number", "description": "Boolean flag or pixel distance threshold value for performing a \"flush\" layout of axis labels. For an x-axis, flush alignment will left-align the left-most labels (if within the distance threshold from the axis start) and similarly right-align the right-most labels. If `true`, a pixel tolerance of 1 is used." },
+          { "section": "Label", "label": "Flush Offset", "name": "labelFlushOffset", "value": null, "type": "number", "description": "Offset in pixels for flush-adjusted labels (default `0`)." },
+          { "section": "Label", "label": "Font Family", "name": "labelFont", "value": null, "type": "text", "description": "Font name for axis tick labels." },
+          { "section": "Label", "label": "Font Size", "name": "labelFontSize", "value": null, "type": "number", "min": 0, "description": "Font size of axis tick labels." },
+          { "section": "Label", "label": "Font Style", "name": "labelFontStyle", "value": null, "type": "select", "options": ["normal", "italic"], "description": "Font style of axis tick labels (e.g., `normal` or `italic`)." },
+          { "section": "Label", "label": "Font Weight", "name": "labelFontWeight", "value": null, "type": "select", "options": {"Thin": 100, "Extra Light": 200, "Light": 300, "Normal": 400, "Medium": 500, "Semi Bold": 600, "Bold": 700, "Extra Bold": 800, "Black (Heavy)": 900}, "description": "Font weight of axis tick labels." },
+          { "section": "Label", "label": "Limit", "name": "labelLimit", "value": null, "type": "number", "min": 0, "description": "The maximum allowed length in pixels of axis tick labels." },
+          { "section": "Label", "label": "Line Height", "name": "labelLineHeight", "value": null, "type": "number", "min": 0, "description": "Line height in pixels for multi-line label text." },
+          { "section": "Label", "label": "Offset", "name": "labelOffset", "value": null, "type": "number", "description": "Position offset in pixels to apply to labels, in addition to *tickOffset*." },
+          { "section": "Label", "label": "Opacity", "name": "labelOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "Opacity of axis tick labels." },
+          { "section": "Label", "label": "Overlap", "name": "labelOverlap", "value": null, "type": null, "description": "The strategy to use for resolving overlap of axis labels. If `false`, no overlap reduction is attempted. If `true` or `\"parity\"`, a strategy of removing every other label is used (this works well for standard linear axes). If `\"greedy\"`, a linear scan of the labels is performed, removing any labels that overlaps with the last visible label (this often works better for log-scaled axes).|" },
+          { "section": "Label", "label": "Padding", "name": "labelPadding", "value": 2, "type": "number", "min": 0, "description": "The minimum separation that must be between label bounding boxes for them to be considered non-overlapping (default `0`). This property is ignored if *labelOverlap* resolution is not enabled." },
+          { "section": "Label", "label": "Separation", "name": "labelSeparation", "value": null, "type": "number", "description": "Padding in pixels between axis ticks and tick labels." },
+          { "name": "minExtent", "value": null, "type": "number", "description": "The maximum extent in pixels that axis ticks and labels should use. This determines a maximum offset value for axis titles." },
+          { "name": "maxExtent", "value": null, "type": "number", "description": "The minimum extent in pixels that axis ticks and labels should use. This determines a minimum offset value for axis titles." },
+          // { "name": "offset", "value": null, "type": "number" },
+          // { "name": "position", "value": null, "type": "number" },
+          { "section": "Ticks", "label": "Enabled", "name": "ticks", "value": null, "type": "boolean", "redraw": true, "description": "Boolean flag indicating if axis tick marks should be included by default." },
+          { "section": "Ticks", "label": "Band", "name": "tickBand", "value": null, "type": "select", "options": ["center", "extent"], "description": "Indicates the type of tick style to use in conjunction with band scales. One of `\"center\"` (default) to center ticks in the middle of the band interval, or `\"extent\"` to place ticks at band extents (interval boundaries). If specified, this property may override the settings of `bandPosition`, `tickExtra`, and `tickOffset`." },
+          { "section": "Ticks", "label": "Cap", "name": "tickCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for axis tick marks. One of `\"butt\"` (default), `\"round\"` or `\"square\"`." },
+          { "section": "Ticks", "label": "Color", "name": "tickColor", "value": "#000000", "type": "color", "description": "Color of axis ticks." },
+          { "section": "Ticks", "label": "Count", "name": "tickCount", "value": null, "type": "number", "min": 0, "description": "A desired number of ticks, for axes visualizing quantitative scales. The resulting number may be different so that values are \"nice\" (multiples of 2, 5, 10) and lie within the underlying scale's range. For scales of type `time` or `utc`, the tick count can instead be a time interval specifier. Legal string values are `\"millisecond\"`, `\"second\"`, `\"minute\"`, `\"hour\"`, `\"day\"`, `\"week\"`, `\"month\"`, and `\"year\"`. Alternatively, an object-valued interval specifier of the form `{\"interval\": \"month\", \"step\": 3}` includes a desired number of interval steps. Here, ticks are generated for each quarter (Jan, Apr, Jul, Oct) boundary." },
+          { "section": "Ticks", "label": "Dash", "name": "tickDash", "value": null, "type": null, "description": "Stroke dash of axis tick marks (e.g. `3,6` for 3 pixel stroke and 6 pixel gap)." },
+          { "section": "Ticks", "label": "Dash Offset", "name": "tickDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the tick mark dash array." },
+          { "section": "Ticks", "label": "Min Step", "name": "tickMinStep", "value": null, "type": "number", "min": 0, "description": "The minimum desired step between axis ticks, in terms of scale domain values. For example, a value of `1` indicates that ticks should not be less than 1 unit apart. If `tickMinStep` is specified, the `tickCount` value will be adjusted, if necessary, to enforce the minimum step value." },
+          { "section": "Ticks", "label": "Extra", "name": "tickExtra", "value": null, "type": "boolean", "description": "Boolean flag indicating if an extra axis tick should be added for the initial position of the axis. This flag is useful for styling axes for `band` scales such that ticks are placed on band boundaries rather in the middle of a band. Use in conjunction with `\"bandPosition\": 1` and an axis `\"padding\"` value of `0`." },
+          { "section": "Ticks", "label": "Offset", "name": "tickOffset", "value": null, "type": "number", "description": "Position offset in pixels to apply to ticks, labels, and gridlines." },
+          { "section": "Ticks", "label": "Opacity", "name": "tickOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "Opacity of axis ticks." },
+          { "section": "Ticks", "label": "Round", "name": "tickRound", "value": null, "type": "boolean", "description": "Boolean flag indicating if pixel position values should be rounded to the nearest integer." },
+          { "section": "Ticks", "label": "Size", "name": "tickSize", "value": 5, "type": "number", "min": 0, "description": "Size, or length, in pixels of axis ticks." },
+          { "section": "Ticks", "label": "Width", "name": "tickWidth", "value": null, "type": "number", "min": 0, "description": "Width in pixels of axis ticks." },
+          { "section": "Title", "label": "Text", "name": "title", "value": null, "type": "text", "description": "A title for the axis (none by default). A string array specifies a title with multiple lines of text." },
+          { "section": "Title", "label": "Align", "name": "titleAlign", "value": "right", "type": "select", "options": ["left", "center", "right"], "description": "Horizontal text alignment of axis titles. One of `\"left\"`, `\"center\"`, or `\"right\"`. If specified, this value overrides automatic alignment based on the *titleAnchor* value." },
+          { "section": "Title", "label": "Anchor", "name": "titleAnchor", "value": "end", "type": "select", "options": ["start", "middle", "end"], "description": "The anchor position for placing axis titles. One of `\"start\"`, `\"middle\"`, `\"end\"`, or `null` (default, for automatic determination). For example, with an *orient* of `\"bottom\"` these anchor positions map to a left-, center-, or right-aligned title. The anchor point is determined relative to the axis scale range." },
+          { "section": "Title", "label": "Angle", "name": "titleAngle", "value": null, "type": "number", "description": "Angle in degrees of axis titles." },
+          { "section": "Title", "label": "Baseline", "name": "titleBaseline", "value": "bottom", "type": "select", "options": ["alphabetic", "top", "middle", "bottom", "line-top", "line-bottom"], "description": "Vertical text baseline for axis titles." },
+          { "section": "Title", "label": "Color", "name": "titleColor", "value": "#000000", "type": "color", "description": "Text color of axis titles." },
+          { "section": "Title", "label": "Font Family", "name": "titleFont", "value": null, "type": "text", "description": "Font name for axis titles." },
+          { "section": "Title", "label": "Font Size", "name": "titleFontSize", "value": null, "type": "number", "min": 0, "description": "Font size of axis titles." },
+          { "section": "Title", "label": "Font Style", "name": "titleFontStyle", "value": null, "type": "select", "options": ["normal", "italic"], "description": "Font style of axis titles (e.g., `normal` or `italic`)." },
+          { "section": "Title", "label": "Font Weight", "name": "titleFontWeight", "value": null, "type": "select", "options": {"Thin": 100, "Extra Light": 200, "Light": 300, "Normal": 400, "Medium": 500, "Semi Bold": 600, "Bold": 700, "Extra Bold": 800, "Black (Heavy)": 900}, "description": "Font weight of axis titles." },
+          { "section": "Title", "label": "Limit", "name": "titleLimit", "value": null, "type": "number", "min": 0, "description": "The maximum allowed length in pixels of axis titles." },
+          { "section": "Title", "label": "Line Height", "name": "titleLineHeight", "value": null, "type": "number", "min": 0, "description": "Line height in pixels for multi-line title text." },
+          { "section": "Title", "label": "Opacity", "name": "titleOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "Opacity of axis titles." },
+          { "section": "Title", "label": "Padding", "name": "titlePadding", "value": null, "type": "number", "min": 0, "description": "Padding in pixels between axis tick labels and titles." },
+          // TODO: Setting titleX, titleY overrides positioning
+          // { "section": "Title", "label": "X", "name": "titleX", "value": null, "type": "number", "description": "X-coordinate of the axis title relative to the axis group." },
+          // { "section": "Title", "label": "Y", "name": "titleY", "value": null, "type": "number", "description": "Y-coordinate of the axis title relative to the axis group." , , "description": "Coordinate space translation offset for axis layout. By default, axes are translated by a 0.5 pixel offset for both the x and y coordinates, in order to align stroked lines with the pixel grid. However, for vector graphics output these pixel-specific adjustments may be undesirable, in which case `translate` can be changed (for example, to zero)."},
+          { "name": "translate", "value": null, "type": "number", "description": "Coordinate space translation offset for axis layout. By default, axes are translated by a 0.5 pixel offset for both the x and y coordinates, in order to align stroked lines with the pixel grid. However, for vector graphics output these pixel-specific adjustments may be undesirable, in which case `translate` can be changed (for example, to zero)." },
+          { "name": "values", "value": null, "type": null }
+        ],
+
+        "mark.arc": [
+          { "section": "Arc", "name": "startAngle", "value": null, "type": "number", "description": "The start angle in radians. A value of `0` indicates up or \"north\", increasing values proceed clockwise." },
+          { "section": "Arc", "name": "endAngle", "value": null, "type": "number", "description": "The end angle in radians. A value of `0` indicates up or \"north\", increasing values proceed clockwise." },
+          { "section": "Arc", "name": "padAngle", "value": null, "type": "number", "description": "The angular padding applied to sides of the arc, in radians." },
+          { "section": "Arc", "name": "innerRadius", "value": null, "type": "number", "description": "The inner radius in pixels." },
+          { "section": "Arc", "name": "outerRadius", "value": null, "type": "number", "description": "The outer radius in pixels." },
+          { "section": "Arc", "name": "cornerRadius", "value": null, "type": "number", "description": "The radius in pixels of rounded arc corners (default `0`)." },
+          { "section": "Base", "label": "Opacity", "name": "opacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The mark opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Base", "label": "Blend", "name": "blend", "value": null, "type": "select", "options": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity", "initial", "inherit", "revert", "unset"], "description": "The color blend mode for drawing an item on its current background. Any valid [CSS mix-blend-mode](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) value except for `\"normal\"` can be used. The default value `null` maps to blend values of [normal](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) for SVG and [source-over](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation) for Canvas." },
+          { "section": "Base", "label": "Cursor", "name": "cursor", "value": null, "type": "select", "options": ["auto", "default", "none", "context-menu", "help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move", "no-drop", "not-allowed", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in", "zoom-out", "grab", "grabbing"], "description": "The mouse cursor used over the mark. Any valid [CSS cursor type](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#Values) can be used." },
+          { "section": "Base", "label": "Link", "name": "href", "value": null, "type": "text", "description": "A URL to load upon mouse click. If defined, the mark acts as a hyperlink." },
+          { "section": "Base", "label": "Tooltip", "name": "tooltip", "value": null, "type": "text", "description": "The tooltip text to show upon mouse hover. If the value is an object (other than a Date or an array), then all key-value pairs in the object will be shown in the tooltip, one per line (e.g., `\"key1: value1\nkey2: value2\"`). Array values will be shown in brackets `[value1, value2, ...]`.  Other values will be coerced to strings. Nested object values will _not_ be recursively printed." },
+          { "section": "Base", "label": "Z Index", "name": "zindex", "value": 0, "type": "number", "description": "An integer z-index indicating the layering order of sibling mark items. The default value is `0`. Higher values (`1`) will cause marks to be drawn on top of those with lower z-index values. Setting the z-index as an encoding property only affects ordering among sibling mark items; it will not change the layering relative to other mark definitions. Unlike the mark-level _sort_ property, _zindex_ changes the rendering order only; it does not otherwise change mark item order (such as line or area point order). The most common use of _zindex_ is to ensure that a mark is drawn over its siblings when selected, such as by mouse hover." },
+          { "section": "Fill", "label": "Color", "name": "fill", "value": null, "type": "color", "description": "The fill color." },
+          { "section": "Fill", "label": "Opacity", "name": "fillOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The fill opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Color", "name": "stroke", "value": null, "type": "color", "description": "The stroke color." },
+          { "section": "Stroke", "label": "Opacity", "name": "strokeOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The stroke opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Width", "name": "strokeWidth", "value": null, "type": "number", "min": 0, "description": "The stroke width in pixels." },
+          { "section": "Stroke", "label": "Cap", "name": "strokeCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for line ending style. One of `butt` (default), `round` or `square`." },
+          { "section": "Stroke", "label": "Dash", "name": "strokeDash", "value": null, "type": null, "description": "An array of [stroke, space] lengths for creating dashed or dotted lines." },
+          { "section": "Stroke", "label": "Dash Offset", "name": "strokeDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the stroke dash array." },
+          { "section": "Stroke", "label": "Join", "name": "strokeJoin", "value": null, "type": "select", "options": ["miter", "round", "bevel"], "description": "The stroke line join method. One of `miter` (default), `round` or `bevel`." },
+          { "section": "Stroke", "label": "Miter Limit", "name": "strokeMiterLimit", "value": null, "type": "number", "min": 1, "description": "The miter limit at which to bevel a line join." },
+          // { "section": "Position", "label": "X start", "name": "x", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X end", "name": "x2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X center", "name": "xc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y start", "name": "y", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y end", "name": "y2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y center", "name": "yc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Width", "name": "width", "value": null, "type": "number", "min": 0 },
+          // { "section": "Position", "label": "Height", "name": "height", "value": null, "type": "number", "min": 0 },
+        ],
+        "mark.area": [
+          { "section": "Area", "label": "Orientation", "name": "orient", "value": null, "type": "select", "options": ["horizontal", "vertical"], "description": "The orientation of the area mark. One of `horizontal` or `vertical` (the default). With a vertical orientation, an area mark is defined by the `x`, `y`, and (`y2` or `height`) properties; with a horizontal orientation, the `y`, `x` and (`x2` or `width`) properties must be specified instead." },
+          { "section": "Area", "label": "Interpolation", "name": "interpolate", "value": null, "type": "select", "options": ["basis", "cardinal", "catmull-rom", "linear", "monotone", "natural", "step", "step-after", "step-before"], "description": "The interpolation method to use. One of `basis`, `bundle`, `cardinal`, `catmull-rom`, `linear`, `monotone`, `natural`, `step`, `step-after`, `step-before`. The default is `linear`. You can find explanations for these line interpolators in the [d3-shape documentation](https://github.com/d3/d3-shape/blob/master/README.md#curves)" },
+          { "section": "Area", "label": "Tension", "name": "tension", "value": null, "type": "number", "min": 0, "max": 1, "step": 0.1, "description": "The tension value in the range [0, 1] to parameterize `bundle` (default 0.8), `cardinal` (default 0) or `catmull-rom` (default 0.5) interpolation." },
+          { "section": "Area", "label": "Smooth Missing", "name": "defined", "value": null, "type": "boolean", "description": "A boolean flag indicating if the current data point is defined. If `false`, the corresponding line segment will be omitted, creating a \"break\"." },
+          { "section": "Base", "label": "Opacity", "name": "opacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The mark opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Base", "label": "Blend", "name": "blend", "value": null, "type": "select", "options": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity", "initial", "inherit", "revert", "unset"], "description": "The color blend mode for drawing an item on its current background. Any valid [CSS mix-blend-mode](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) value except for `\"normal\"` can be used. The default value `null` maps to blend values of [normal](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) for SVG and [source-over](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation) for Canvas." },
+          { "section": "Base", "label": "Cursor", "name": "cursor", "value": null, "type": "select", "options": ["auto", "default", "none", "context-menu", "help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move", "no-drop", "not-allowed", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in", "zoom-out", "grab", "grabbing"], "description": "The mouse cursor used over the mark. Any valid [CSS cursor type](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#Values) can be used." },
+          { "section": "Base", "label": "Link", "name": "href", "value": null, "type": "text", "description": "A URL to load upon mouse click. If defined, the mark acts as a hyperlink." },
+          { "section": "Base", "label": "Tooltip", "name": "tooltip", "value": null, "type": "text", "description": "The tooltip text to show upon mouse hover. If the value is an object (other than a Date or an array), then all key-value pairs in the object will be shown in the tooltip, one per line (e.g., `\"key1: value1\nkey2: value2\"`). Array values will be shown in brackets `[value1, value2, ...]`.  Other values will be coerced to strings. Nested object values will _not_ be recursively printed." },
+          { "section": "Base", "label": "Z Index", "name": "zindex", "value": 0, "type": "number", "description": "An integer z-index indicating the layering order of sibling mark items. The default value is `0`. Higher values (`1`) will cause marks to be drawn on top of those with lower z-index values. Setting the z-index as an encoding property only affects ordering among sibling mark items; it will not change the layering relative to other mark definitions. Unlike the mark-level _sort_ property, _zindex_ changes the rendering order only; it does not otherwise change mark item order (such as line or area point order). The most common use of _zindex_ is to ensure that a mark is drawn over its siblings when selected, such as by mouse hover." },
+          { "section": "Fill", "label": "Color", "name": "fill", "value": null, "type": "color", "description": "The fill color." },
+          { "section": "Fill", "label": "Opacity", "name": "fillOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The fill opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Color", "name": "stroke", "value": null, "type": "color", "description": "The stroke color." },
+          { "section": "Stroke", "label": "Opacity", "name": "strokeOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The stroke opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Width", "name": "strokeWidth", "value": null, "type": "number", "min": 0, "description": "The stroke width in pixels." },
+          { "section": "Stroke", "label": "Cap", "name": "strokeCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for line ending style. One of `butt` (default), `round` or `square`." },
+          { "section": "Stroke", "label": "Dash", "name": "strokeDash", "value": null, "type": null, "description": "An array of [stroke, space] lengths for creating dashed or dotted lines." },
+          { "section": "Stroke", "label": "Dash Offset", "name": "strokeDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the stroke dash array." },
+          { "section": "Stroke", "label": "Join", "name": "strokeJoin", "value": null, "type": "select", "options": ["miter", "round", "bevel"], "description": "The stroke line join method. One of `miter` (default), `round` or `bevel`." },
+          { "section": "Stroke", "label": "Miter Limit", "name": "strokeMiterLimit", "value": null, "type": "number", "min": 1, "description": "The miter limit at which to bevel a line join." },
+          // { "section": "Position", "label": "X start", "name": "x", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X end", "name": "x2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X center", "name": "xc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y start", "name": "y", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y end", "name": "y2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y center", "name": "yc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Width", "name": "width", "value": null, "type": "number", "min": 0 },
+          // { "section": "Position", "label": "Height", "name": "height", "value": null, "type": "number", "min": 0 },
+        ],
+        "mark.line": [
+          { "section": "Line", "label": "Interpolation", "name": "interpolate", "value": null, "type": "select", "options": ["basis", "cardinal", "catmull-rom", "linear", "monotone", "natural", "step", "step-after", "step-before"], "description": "The interpolation method to use. One of `basis`, `bundle`, `cardinal`, `catmull-rom`, `linear`, `monotone`, `natural`, `step`, `step-after`, `step-before`. The default is `linear`. You can find explanations for these line interpolators in the [d3-shape documentation](https://github.com/d3/d3-shape/blob/master/README.md#curves)" },
+          { "section": "Line", "label": "Tension", "name": "tension", "value": null, "type": "number", "min": 0, "max": 1, "step": 0.1, "description": "The tension value in the range [0, 1] to parameterize `bundle` (default 0.8), `cardinal` (default 0) or `catmull-rom` (default 0.5) interpolation." },
+          { "section": "Line", "label": "Smooth Missing", "name": "defined", "value": null, "type": "boolean", "description": "A boolean flag indicating if the current data point is defined. If `false`, the corresponding line segment will be omitted, creating a \"break\"." },
+          { "section": "Base", "label": "Opacity", "name": "opacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The mark opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Base", "label": "Blend", "name": "blend", "value": null, "type": "select", "options": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity", "initial", "inherit", "revert", "unset"], "description": "The color blend mode for drawing an item on its current background. Any valid [CSS mix-blend-mode](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) value except for `\"normal\"` can be used. The default value `null` maps to blend values of [normal](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) for SVG and [source-over](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation) for Canvas." },
+          { "section": "Base", "label": "Cursor", "name": "cursor", "value": null, "type": "select", "options": ["auto", "default", "none", "context-menu", "help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move", "no-drop", "not-allowed", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in", "zoom-out", "grab", "grabbing"], "description": "The mouse cursor used over the mark. Any valid [CSS cursor type](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#Values) can be used." },
+          { "section": "Base", "label": "Link", "name": "href", "value": null, "type": "text", "description": "A URL to load upon mouse click. If defined, the mark acts as a hyperlink." },
+          { "section": "Base", "label": "Tooltip", "name": "tooltip", "value": null, "type": "text", "description": "The tooltip text to show upon mouse hover. If the value is an object (other than a Date or an array), then all key-value pairs in the object will be shown in the tooltip, one per line (e.g., `\"key1: value1\nkey2: value2\"`). Array values will be shown in brackets `[value1, value2, ...]`.  Other values will be coerced to strings. Nested object values will _not_ be recursively printed." },
+          { "section": "Base", "label": "Z Index", "name": "zindex", "value": 0, "type": "number", "description": "An integer z-index indicating the layering order of sibling mark items. The default value is `0`. Higher values (`1`) will cause marks to be drawn on top of those with lower z-index values. Setting the z-index as an encoding property only affects ordering among sibling mark items; it will not change the layering relative to other mark definitions. Unlike the mark-level _sort_ property, _zindex_ changes the rendering order only; it does not otherwise change mark item order (such as line or area point order). The most common use of _zindex_ is to ensure that a mark is drawn over its siblings when selected, such as by mouse hover." },
+          { "section": "Fill", "label": "Color", "name": "fill", "value": null, "type": "color", "description": "The fill color." },
+          { "section": "Fill", "label": "Opacity", "name": "fillOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The fill opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Color", "name": "stroke", "value": null, "type": "color", "description": "The stroke color." },
+          { "section": "Stroke", "label": "Opacity", "name": "strokeOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The stroke opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Width", "name": "strokeWidth", "value": null, "type": "number", "min": 0, "description": "The stroke width in pixels." },
+          { "section": "Stroke", "label": "Cap", "name": "strokeCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for line ending style. One of `butt` (default), `round` or `square`." },
+          { "section": "Stroke", "label": "Dash", "name": "strokeDash", "value": null, "type": null, "description": "An array of [stroke, space] lengths for creating dashed or dotted lines." },
+          { "section": "Stroke", "label": "Dash Offset", "name": "strokeDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the stroke dash array." },
+          { "section": "Stroke", "label": "Join", "name": "strokeJoin", "value": null, "type": "select", "options": ["miter", "round", "bevel"], "description": "The stroke line join method. One of `miter` (default), `round` or `bevel`." },
+          { "section": "Stroke", "label": "Miter Limit", "name": "strokeMiterLimit", "value": null, "type": "number", "min": 1, "description": "The miter limit at which to bevel a line join." },
+          // { "section": "Position", "label": "X start", "name": "x", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X end", "name": "x2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X center", "name": "xc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y start", "name": "y", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y end", "name": "y2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y center", "name": "yc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Width", "name": "width", "value": null, "type": "number", "min": 0 },
+          // { "section": "Position", "label": "Height", "name": "height", "value": null, "type": "number", "min": 0 },
+        ],
+        "mark.path": [
+          { "section": "Path", "label": "Path String", "name": "path", "value": null, "type": "text", "description": "An [SVG path string](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths) describing the geometry of the path." },
+          { "section": "Path", "label": "Angle", "name": "angle", "value": null, "type": "number", "description": "The angle (in degrees) by which to rotate the path (default `0`)." },
+          { "section": "Path", "label": "X Scale", "name": "scaleX", "value": null, "type": "number", "description": "The scale factor by which to scale the path horizontally, prior to any rotation (default `1`)." },
+          { "section": "Path", "label": "Y Scale", "name": "scaleY", "value": null, "type": "number", "description": "The scale factor by which to scale the path vertically, prior to any rotation (default `1`)." },
+          { "section": "Base", "label": "Opacity", "name": "opacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The mark opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Base", "label": "Blend", "name": "blend", "value": null, "type": "select", "options": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity", "initial", "inherit", "revert", "unset"], "description": "The color blend mode for drawing an item on its current background. Any valid [CSS mix-blend-mode](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) value except for `\"normal\"` can be used. The default value `null` maps to blend values of [normal](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) for SVG and [source-over](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation) for Canvas." },
+          { "section": "Base", "label": "Cursor", "name": "cursor", "value": null, "type": "select", "options": ["auto", "default", "none", "context-menu", "help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move", "no-drop", "not-allowed", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in", "zoom-out", "grab", "grabbing"], "description": "The mouse cursor used over the mark. Any valid [CSS cursor type](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#Values) can be used." },
+          { "section": "Base", "label": "Link", "name": "href", "value": null, "type": "text", "description": "A URL to load upon mouse click. If defined, the mark acts as a hyperlink." },
+          { "section": "Base", "label": "Tooltip", "name": "tooltip", "value": null, "type": "text", "description": "The tooltip text to show upon mouse hover. If the value is an object (other than a Date or an array), then all key-value pairs in the object will be shown in the tooltip, one per line (e.g., `\"key1: value1\nkey2: value2\"`). Array values will be shown in brackets `[value1, value2, ...]`.  Other values will be coerced to strings. Nested object values will _not_ be recursively printed." },
+          { "section": "Base", "label": "Z Index", "name": "zindex", "value": 0, "type": "number", "description": "An integer z-index indicating the layering order of sibling mark items. The default value is `0`. Higher values (`1`) will cause marks to be drawn on top of those with lower z-index values. Setting the z-index as an encoding property only affects ordering among sibling mark items; it will not change the layering relative to other mark definitions. Unlike the mark-level _sort_ property, _zindex_ changes the rendering order only; it does not otherwise change mark item order (such as line or area point order). The most common use of _zindex_ is to ensure that a mark is drawn over its siblings when selected, such as by mouse hover." },
+          { "section": "Fill", "label": "Color", "name": "fill", "value": null, "type": "color", "description": "The fill color." },
+          { "section": "Fill", "label": "Opacity", "name": "fillOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The fill opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Color", "name": "stroke", "value": null, "type": "color", "description": "The stroke color." },
+          { "section": "Stroke", "label": "Opacity", "name": "strokeOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The stroke opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Width", "name": "strokeWidth", "value": null, "type": "number", "min": 0, "description": "The stroke width in pixels." },
+          { "section": "Stroke", "label": "Cap", "name": "strokeCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for line ending style. One of `butt` (default), `round` or `square`." },
+          { "section": "Stroke", "label": "Dash", "name": "strokeDash", "value": null, "type": null, "description": "An array of [stroke, space] lengths for creating dashed or dotted lines." },
+          { "section": "Stroke", "label": "Dash Offset", "name": "strokeDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the stroke dash array." },
+          { "section": "Stroke", "label": "Join", "name": "strokeJoin", "value": null, "type": "select", "options": ["miter", "round", "bevel"], "description": "The stroke line join method. One of `miter` (default), `round` or `bevel`." },
+          { "section": "Stroke", "label": "Miter Limit", "name": "strokeMiterLimit", "value": null, "type": "number", "min": 1, "description": "The miter limit at which to bevel a line join." },
+          // { "section": "Position", "label": "X start", "name": "x", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X end", "name": "x2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X center", "name": "xc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y start", "name": "y", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y end", "name": "y2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y center", "name": "yc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Width", "name": "width", "value": null, "type": "number", "min": 0 },
+          // { "section": "Position", "label": "Height", "name": "height", "value": null, "type": "number", "min": 0 },
+        ],
+        "mark.rect": [
+          { "section": "Round corners", "label": "Radius", "name": "cornerRadius", "value": null, "type": "number", "min": 0, "description": "The radius in pixels of rounded rectangle corners for all four corners (default `0`)." },
+          { "section": "Round corners", "label": "RadiusTopLeft", "name": "cornerRadiusTopLeft", "value": null, "type": "number", "min": 0, "description": "The radius in pixels of a rounded rectangle corner for the top left corner. If specified, this property takes precedence over the _cornerRadius_ property." },
+          { "section": "Round corners", "label": "RadiusTopRight", "name": "cornerRadiusTopRight", "value": null, "type": "number", "min": 0, "description": "The radius in pixels of a rounded rectangle corner for the top right corner. If specified, this property takes precedence over the _cornerRadius_ property." },
+          { "section": "Round corners", "label": "RadiusBottomLeft", "name": "cornerRadiusBottomLeft", "value": null, "type": "number", "min": 0, "description": "The radius in pixels of a rounded rectangle corner for the bottom left corner. If specified, this property takes precedence over the _cornerRadius_ property." },
+          { "section": "Round corners", "label": "RadiusBottomRight", "name": "cornerRadiusBottomRight", "value": null, "type": "number", "min": 0, "description": "The radius in pixels of a rounded rectangle corner for the bottom right corner. If specified, this property takes precedence over the _cornerRadius_ property." },
+          { "section": "Base", "label": "Opacity", "name": "opacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The mark opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Base", "label": "Blend", "name": "blend", "value": null, "type": "select", "options": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity", "initial", "inherit", "revert", "unset"], "description": "The color blend mode for drawing an item on its current background. Any valid [CSS mix-blend-mode](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) value except for `\"normal\"` can be used. The default value `null` maps to blend values of [normal](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) for SVG and [source-over](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation) for Canvas." },
+          { "section": "Base", "label": "Cursor", "name": "cursor", "value": null, "type": "select", "options": ["auto", "default", "none", "context-menu", "help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move", "no-drop", "not-allowed", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in", "zoom-out", "grab", "grabbing"], "description": "The mouse cursor used over the mark. Any valid [CSS cursor type](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#Values) can be used." },
+          { "section": "Base", "label": "Link", "name": "href", "value": null, "type": "text", "description": "A URL to load upon mouse click. If defined, the mark acts as a hyperlink." },
+          { "section": "Base", "label": "Tooltip", "name": "tooltip", "value": null, "type": "text", "description": "The tooltip text to show upon mouse hover. If the value is an object (other than a Date or an array), then all key-value pairs in the object will be shown in the tooltip, one per line (e.g., `\"key1: value1\nkey2: value2\"`). Array values will be shown in brackets `[value1, value2, ...]`.  Other values will be coerced to strings. Nested object values will _not_ be recursively printed." },
+          { "section": "Base", "label": "Z Index", "name": "zindex", "value": 0, "type": "number", "description": "An integer z-index indicating the layering order of sibling mark items. The default value is `0`. Higher values (`1`) will cause marks to be drawn on top of those with lower z-index values. Setting the z-index as an encoding property only affects ordering among sibling mark items; it will not change the layering relative to other mark definitions. Unlike the mark-level _sort_ property, _zindex_ changes the rendering order only; it does not otherwise change mark item order (such as line or area point order). The most common use of _zindex_ is to ensure that a mark is drawn over its siblings when selected, such as by mouse hover." },
+          { "section": "Fill", "label": "Color", "name": "fill", "value": null, "type": "color", "description": "The fill color." },
+          { "section": "Fill", "label": "Opacity", "name": "fillOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The fill opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Color", "name": "stroke", "value": null, "type": "color", "description": "The stroke color." },
+          { "section": "Stroke", "label": "Opacity", "name": "strokeOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The stroke opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Width", "name": "strokeWidth", "value": null, "type": "number", "min": 0, "description": "The stroke width in pixels." },
+          { "section": "Stroke", "label": "Cap", "name": "strokeCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for line ending style. One of `butt` (default), `round` or `square`." },
+          { "section": "Stroke", "label": "Dash", "name": "strokeDash", "value": null, "type": null, "description": "An array of [stroke, space] lengths for creating dashed or dotted lines." },
+          { "section": "Stroke", "label": "Dash Offset", "name": "strokeDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the stroke dash array." },
+          { "section": "Stroke", "label": "Join", "name": "strokeJoin", "value": null, "type": "select", "options": ["miter", "round", "bevel"], "description": "The stroke line join method. One of `miter` (default), `round` or `bevel`." },
+          { "section": "Stroke", "label": "Miter Limit", "name": "strokeMiterLimit", "value": null, "type": "number", "min": 1, "description": "The miter limit at which to bevel a line join." },
+          // { "section": "Position", "label": "X start", "name": "x", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X end", "name": "x2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X center", "name": "xc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y start", "name": "y", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y end", "name": "y2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y center", "name": "yc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Width", "name": "width", "value": null, "type": "number", "min": 0 },
+          // { "section": "Position", "label": "Height", "name": "height", "value": null, "type": "number", "min": 0 },
+        ],
+        "mark.rule": [
+          { "section": "Base", "label": "Opacity", "name": "opacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The mark opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Base", "label": "Blend", "name": "blend", "value": null, "type": "select", "options": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity", "initial", "inherit", "revert", "unset"], "description": "The color blend mode for drawing an item on its current background. Any valid [CSS mix-blend-mode](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) value except for `\"normal\"` can be used. The default value `null` maps to blend values of [normal](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) for SVG and [source-over](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation) for Canvas." },
+          { "section": "Base", "label": "Cursor", "name": "cursor", "value": null, "type": "select", "options": ["auto", "default", "none", "context-menu", "help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move", "no-drop", "not-allowed", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in", "zoom-out", "grab", "grabbing"], "description": "The mouse cursor used over the mark. Any valid [CSS cursor type](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#Values) can be used." },
+          { "section": "Base", "label": "Link", "name": "href", "value": null, "type": "text", "description": "A URL to load upon mouse click. If defined, the mark acts as a hyperlink." },
+          { "section": "Base", "label": "Tooltip", "name": "tooltip", "value": null, "type": "text", "description": "The tooltip text to show upon mouse hover. If the value is an object (other than a Date or an array), then all key-value pairs in the object will be shown in the tooltip, one per line (e.g., `\"key1: value1\nkey2: value2\"`). Array values will be shown in brackets `[value1, value2, ...]`.  Other values will be coerced to strings. Nested object values will _not_ be recursively printed." },
+          { "section": "Base", "label": "Z Index", "name": "zindex", "value": 0, "type": "number", "description": "An integer z-index indicating the layering order of sibling mark items. The default value is `0`. Higher values (`1`) will cause marks to be drawn on top of those with lower z-index values. Setting the z-index as an encoding property only affects ordering among sibling mark items; it will not change the layering relative to other mark definitions. Unlike the mark-level _sort_ property, _zindex_ changes the rendering order only; it does not otherwise change mark item order (such as line or area point order). The most common use of _zindex_ is to ensure that a mark is drawn over its siblings when selected, such as by mouse hover." },
+          { "section": "Fill", "label": "Color", "name": "fill", "value": null, "type": "color", "description": "The fill color." },
+          { "section": "Fill", "label": "Opacity", "name": "fillOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The fill opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Color", "name": "stroke", "value": "#000000", "type": "color", "description": "The stroke color." },
+          { "section": "Stroke", "label": "Opacity", "name": "strokeOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The stroke opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Width", "name": "strokeWidth", "value": null, "type": "number", "min": 0, "description": "The stroke width in pixels." },
+          { "section": "Stroke", "label": "Cap", "name": "strokeCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for line ending style. One of `butt` (default), `round` or `square`." },
+          { "section": "Stroke", "label": "Dash", "name": "strokeDash", "value": null, "type": null, "description": "An array of [stroke, space] lengths for creating dashed or dotted lines." },
+          { "section": "Stroke", "label": "Dash Offset", "name": "strokeDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the stroke dash array." },
+          { "section": "Stroke", "label": "Join", "name": "strokeJoin", "value": null, "type": "select", "options": ["miter", "round", "bevel"], "description": "The stroke line join method. One of `miter` (default), `round` or `bevel`." },
+          { "section": "Stroke", "label": "Miter Limit", "name": "strokeMiterLimit", "value": null, "type": "number", "min": 1, "description": "The miter limit at which to bevel a line join." },
+          // { "section": "Position", "label": "X start", "name": "x", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X end", "name": "x2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X center", "name": "xc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y start", "name": "y", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y end", "name": "y2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y center", "name": "yc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Width", "name": "width", "value": null, "type": "number", "min": 0 },
+          // { "section": "Position", "label": "Height", "name": "height", "value": null, "type": "number", "min": 0 },
+        ],
+        "mark.symbol": [
+          { "section": "Symbol", "label": "Shape", "name": "shape", "value": null, "type": "select", "options": ["circle", "square", "cross", "diamond", "triangle-up", "triangle-down", "triangle-right", "triangle-left", "stroke", "arrow", "wedge", "triangle"], "description": "The angle (in degrees) by which to rotate the symbol (default `0`)." },
+          { "section": "Symbol", "label": "Size", "name": "size", "value": null, "type": "number", "min": 0, "description": "The area in pixels of the symbols bounding box. Note that this value sets the _area_ of the symbol; the side lengths will increase with the square root of this value." },
+          { "section": "Symbol", "label": "Angle", "name": "angle", "value": null, "type": "number", "description": "The symbol shape. One of the plotting shapes `circle` (default), `square`, `cross`, `diamond`, `triangle-up`, `triangle-down`, `triangle-right`, or `triangle-left`, the line symbol `stroke`, or one of the centered directional shapes `arrow`, `wedge`, or `triangle`. Alternatively, a custom [SVG path string](https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths) can be provided. For correct sizing, custom shape paths should be defined within a square bounding box with coordinates ranging from -1 to 1 along both the x and y dimensions." },
+          { "section": "Base", "label": "Opacity", "name": "opacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The mark opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Base", "label": "Blend", "name": "blend", "value": null, "type": "select", "options": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity", "initial", "inherit", "revert", "unset"], "description": "The color blend mode for drawing an item on its current background. Any valid [CSS mix-blend-mode](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) value except for `\"normal\"` can be used. The default value `null` maps to blend values of [normal](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) for SVG and [source-over](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation) for Canvas." },
+          { "section": "Base", "label": "Cursor", "name": "cursor", "value": null, "type": "select", "options": ["auto", "default", "none", "context-menu", "help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move", "no-drop", "not-allowed", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in", "zoom-out", "grab", "grabbing"], "description": "The mouse cursor used over the mark. Any valid [CSS cursor type](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#Values) can be used." },
+          { "section": "Base", "label": "Link", "name": "href", "value": null, "type": "text", "description": "A URL to load upon mouse click. If defined, the mark acts as a hyperlink." },
+          { "section": "Base", "label": "Tooltip", "name": "tooltip", "value": null, "type": "text", "description": "The tooltip text to show upon mouse hover. If the value is an object (other than a Date or an array), then all key-value pairs in the object will be shown in the tooltip, one per line (e.g., `\"key1: value1\nkey2: value2\"`). Array values will be shown in brackets `[value1, value2, ...]`.  Other values will be coerced to strings. Nested object values will _not_ be recursively printed." },
+          { "section": "Base", "label": "Z Index", "name": "zindex", "value": 0, "type": "number", "description": "An integer z-index indicating the layering order of sibling mark items. The default value is `0`. Higher values (`1`) will cause marks to be drawn on top of those with lower z-index values. Setting the z-index as an encoding property only affects ordering among sibling mark items; it will not change the layering relative to other mark definitions. Unlike the mark-level _sort_ property, _zindex_ changes the rendering order only; it does not otherwise change mark item order (such as line or area point order). The most common use of _zindex_ is to ensure that a mark is drawn over its siblings when selected, such as by mouse hover." },
+          { "section": "Fill", "label": "Color", "name": "fill", "value": null, "type": "color", "description": "The fill color." },
+          { "section": "Fill", "label": "Opacity", "name": "fillOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The fill opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Color", "name": "stroke", "value": null, "type": "color", "description": "The stroke color." },
+          { "section": "Stroke", "label": "Opacity", "name": "strokeOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The stroke opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Width", "name": "strokeWidth", "value": null, "type": "number", "min": 0, "description": "The stroke width in pixels." },
+          { "section": "Stroke", "label": "Cap", "name": "strokeCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for line ending style. One of `butt` (default), `round` or `square`." },
+          { "section": "Stroke", "label": "Dash", "name": "strokeDash", "value": null, "type": null, "description": "An array of [stroke, space] lengths for creating dashed or dotted lines." },
+          { "section": "Stroke", "label": "Dash Offset", "name": "strokeDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the stroke dash array." },
+          { "section": "Stroke", "label": "Join", "name": "strokeJoin", "value": null, "type": "select", "options": ["miter", "round", "bevel"], "description": "The stroke line join method. One of `miter` (default), `round` or `bevel`." },
+          { "section": "Stroke", "label": "Miter Limit", "name": "strokeMiterLimit", "value": null, "type": "number", "min": 1, "description": "The miter limit at which to bevel a line join." },
+          // { "section": "Position", "label": "X start", "name": "x", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X end", "name": "x2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X center", "name": "xc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y start", "name": "y", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y end", "name": "y2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y center", "name": "yc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Width", "name": "width", "value": null, "type": "number", "min": 0 },
+          // { "section": "Position", "label": "Height", "name": "height", "value": null, "type": "number", "min": 0 },
+        ],
+        "mark.text": [
+          { "section": "Text", "label": "Text", "name": "text", "value": null, "type": "text", "description": "The horizontal text alignment. One of `left` (default), `center`, or `right`." },
+          { "section": "Text", "label": "Align", "name": "align", "value": "center", "type": "select", "options": ["left", "center", "right"], "description": "The rotation angle of the text in degrees (default `0`)." },
+          { "section": "Text", "label": "Angle", "name": "angle", "value": null, "type": "number", "description": "The vertical text baseline. One of `alphabetic` (default), `top`, `middle`, `bottom`, `line-top`, or `line-bottom`. The `line-top` and `line-bottom` values operate similarly to `top` and `bottom`, but are calculated relative to the *lineHeight* rather than *fontSize* alone." },
+          { "section": "Text", "label": "Baseline", "name": "baseline", "value": null, "type": "select", "options": ["alphabetic", "top", "middle", "bottom", "line-top", "line-bottom"], "description": "The direction of the text. One of `ltr` (left-to-right, default) or `rtl` (right-to-left). This property determines on which side is truncated in response to the *limit* parameter." },
+          { "section": "Text", "label": "Dir", "name": "dir", "value": null, "type": "select", "options": ["ltr", "rtl"], "description": "The horizontal offset in pixels (before rotation), between the text and anchor point." },
+          { "section": "Text", "label": "X Offset", "name": "dx", "value": null, "type": "number", "description": "The vertical offset in pixels (before rotation), between the text and anchor point." },
+          { "section": "Text", "label": "Y Offset", "name": "dy", "value": null, "type": "number", "description": "The ellipsis string for text truncated in response to the *limit* parameter (default \"&hellip;\")." },
+          { "section": "Text", "label": "Ellipsis", "name": "ellipsis", "value": null, "type": "text", "description": "The typeface to set the text in (e.g., `Helvetica Neue`)." },
+          { "section": "Text", "label": "Font Family", "name": "font", "value": null, "type": "text", "description": "The font size in pixels." },
+          { "section": "Text", "label": "Font Size", "name": "fontSize", "value": null, "type": "number", "min": 0, "description": "The font weight (e.g., `normal` or `bold`)." },
+          { "section": "Text", "label": "Font Weight", "name": "fontWeight", "value": null, "type": "select", "options": {"Thin": 100, "Extra Light": 200, "Light": 300, "Normal": 400, "Medium": 500, "Semi Bold": 600, "Bold": 700, "Extra Bold": 800, "Black (Heavy)": 900}, "description": "The font style (e.g., `normal` or `italic`)." },
+          { "section": "Text", "label": "Font Style", "name": "fontStyle", "value": null, "type": "select", "options": ["normal", "italic"], "description": "A delimiter, such as a newline character, upon which to break text strings into multiple lines. This property will be ignored if the *text* property is array-valued." },
+          { "section": "Text", "label": "Line Break", "name": "lineBreak", "value": null, "type": "text", "description": "The height, in pixels, of each line of text in a multi-line text mark or a text mark with `\"line-top\"` or `\"line-bottom\"` baseline." },
+          { "section": "Text", "label": "Line Height", "name": "lineHeight", "value": null, "type": "number", "min": 0, "description": "The maximum length of the text mark in pixels (default `0`, indicating no limit). The *text* value will be automatically truncated if the rendered size exceeds the limit." },
+          { "section": "Text", "label": "Limit", "name": "limit", "value": null, "type": "number", "min": 0, "description": "Polar coordinate radial offset in pixels, relative to the origin determined by the *x* and *y* properties (default `0`)." },
+          { "section": "Text", "label": "Radius", "name": "radius", "value": null, "type": "number", "description": "The text to display. This text may be truncated if the rendered length of the text exceeds the *limit* parameter. A string array specifies multiple lines of text. All text lines are white-space trimmed prior to rendering." },
+          { "section": "Text", "label": "Theta", "name": "theta", "value": null, "type": "number", "step": 0.05, "description": "Polar coordinate angle in radians, relative to the origin determined by the *x* and *y* properties (default `0`). Values for `theta` follow the same convention of `arc` marks: angles are measured in radians, with `0` indicating up or \"north\"." },
+          { "section": "Base", "label": "Opacity", "name": "opacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The mark opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Base", "label": "Blend", "name": "blend", "value": null, "type": "select", "options": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity", "initial", "inherit", "revert", "unset"], "description": "The color blend mode for drawing an item on its current background. Any valid [CSS mix-blend-mode](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) value except for `\"normal\"` can be used. The default value `null` maps to blend values of [normal](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) for SVG and [source-over](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation) for Canvas." },
+          { "section": "Base", "label": "Cursor", "name": "cursor", "value": null, "type": "select", "options": ["auto", "default", "none", "context-menu", "help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move", "no-drop", "not-allowed", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in", "zoom-out", "grab", "grabbing"], "description": "The mouse cursor used over the mark. Any valid [CSS cursor type](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#Values) can be used." },
+          { "section": "Base", "label": "Link", "name": "href", "value": null, "type": "text", "description": "A URL to load upon mouse click. If defined, the mark acts as a hyperlink." },
+          { "section": "Base", "label": "Tooltip", "name": "tooltip", "value": null, "type": "text", "description": "The tooltip text to show upon mouse hover. If the value is an object (other than a Date or an array), then all key-value pairs in the object will be shown in the tooltip, one per line (e.g., `\"key1: value1\nkey2: value2\"`). Array values will be shown in brackets `[value1, value2, ...]`.  Other values will be coerced to strings. Nested object values will _not_ be recursively printed." },
+          { "section": "Base", "label": "Z Index", "name": "zindex", "value": 0, "type": "number", "description": "An integer z-index indicating the layering order of sibling mark items. The default value is `0`. Higher values (`1`) will cause marks to be drawn on top of those with lower z-index values. Setting the z-index as an encoding property only affects ordering among sibling mark items; it will not change the layering relative to other mark definitions. Unlike the mark-level _sort_ property, _zindex_ changes the rendering order only; it does not otherwise change mark item order (such as line or area point order). The most common use of _zindex_ is to ensure that a mark is drawn over its siblings when selected, such as by mouse hover." },
+          { "section": "Fill", "label": "Color", "name": "fill", "value": "#000000", "type": "color", "description": "The fill color." },
+          { "section": "Fill", "label": "Opacity", "name": "fillOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The fill opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Color", "name": "stroke", "value": null, "type": "color", "description": "The stroke color." },
+          { "section": "Stroke", "label": "Opacity", "name": "strokeOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The stroke opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Width", "name": "strokeWidth", "value": null, "type": "number", "min": 0, "description": "The stroke width in pixels." },
+          { "section": "Stroke", "label": "Cap", "name": "strokeCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for line ending style. One of `butt` (default), `round` or `square`." },
+          { "section": "Stroke", "label": "Dash", "name": "strokeDash", "value": null, "type": null, "description": "An array of [stroke, space] lengths for creating dashed or dotted lines." },
+          { "section": "Stroke", "label": "Dash Offset", "name": "strokeDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the stroke dash array." },
+          { "section": "Stroke", "label": "Join", "name": "strokeJoin", "value": null, "type": "select", "options": ["miter", "round", "bevel"], "description": "The stroke line join method. One of `miter` (default), `round` or `bevel`." },
+          { "section": "Stroke", "label": "Miter Limit", "name": "strokeMiterLimit", "value": null, "type": "number", "min": 1, "description": "The miter limit at which to bevel a line join." },
+          // { "section": "Position", "label": "X start", "name": "x", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X end", "name": "x2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X center", "name": "xc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y start", "name": "y", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y end", "name": "y2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y center", "name": "yc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Width", "name": "width", "value": null, "type": "number", "min": 0 },
+          // { "section": "Position", "label": "Height", "name": "height", "value": null, "type": "number", "min": 0 },
+        ],
+        "mark.trail": [
+          { "section": "Trail", "label": "size", "name": "size", "value": null, "type": "number", "min": 0, "description": "The width in pixels of the trail at the given data point." },
+          { "section": "Area", "label": "Smooth Missing", "name": "defined", "value": null, "type": "boolean", "description": "A boolean flag indicating if the current data point is defined. If `false`, the corresponding line segment will be omitted, creating a \"break\"." },
+          { "section": "Base", "label": "Opacity", "name": "opacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The mark opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Base", "label": "Blend", "name": "blend", "value": null, "type": "select", "options": ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity", "initial", "inherit", "revert", "unset"], "description": "The color blend mode for drawing an item on its current background. Any valid [CSS mix-blend-mode](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) value except for `\"normal\"` can be used. The default value `null` maps to blend values of [normal](https://developer.mozilla.org/en-US/docs/Web/CSS/mix-blend-mode) for SVG and [source-over](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation) for Canvas." },
+          { "section": "Base", "label": "Cursor", "name": "cursor", "value": null, "type": "select", "options": ["auto", "default", "none", "context-menu", "help", "pointer", "progress", "wait", "cell", "crosshair", "text", "vertical-text", "alias", "copy", "move", "no-drop", "not-allowed", "e-resize", "n-resize", "ne-resize", "nw-resize", "s-resize", "se-resize", "sw-resize", "w-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "col-resize", "row-resize", "all-scroll", "zoom-in", "zoom-out", "grab", "grabbing"], "description": "The mouse cursor used over the mark. Any valid [CSS cursor type](https://developer.mozilla.org/en-US/docs/Web/CSS/cursor#Values) can be used." },
+          { "section": "Base", "label": "Link", "name": "href", "value": null, "type": "text", "description": "A URL to load upon mouse click. If defined, the mark acts as a hyperlink." },
+          { "section": "Base", "label": "Tooltip", "name": "tooltip", "value": null, "type": "text", "description": "The tooltip text to show upon mouse hover. If the value is an object (other than a Date or an array), then all key-value pairs in the object will be shown in the tooltip, one per line (e.g., `\"key1: value1\nkey2: value2\"`). Array values will be shown in brackets `[value1, value2, ...]`.  Other values will be coerced to strings. Nested object values will _not_ be recursively printed." },
+          { "section": "Base", "label": "Z Index", "name": "zindex", "value": 0, "type": "number", "description": "An integer z-index indicating the layering order of sibling mark items. The default value is `0`. Higher values (`1`) will cause marks to be drawn on top of those with lower z-index values. Setting the z-index as an encoding property only affects ordering among sibling mark items; it will not change the layering relative to other mark definitions. Unlike the mark-level _sort_ property, _zindex_ changes the rendering order only; it does not otherwise change mark item order (such as line or area point order). The most common use of _zindex_ is to ensure that a mark is drawn over its siblings when selected, such as by mouse hover." },
+          { "section": "Fill", "label": "Color", "name": "fill", "value": null, "type": "color", "description": "The fill color." },
+          { "section": "Fill", "label": "Opacity", "name": "fillOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The fill opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Color", "name": "stroke", "value": "#000000", "type": "color", "description": "The stroke color." },
+          { "section": "Stroke", "label": "Opacity", "name": "strokeOpacity", "value": null, "type": "number", "max": 1, "min": 0, "step": 0.1, "description": "The stroke opacity from 0 (transparent) to 1 (opaque)." },
+          { "section": "Stroke", "label": "Width", "name": "strokeWidth", "value": null, "type": "number", "min": 0, "description": "The stroke width in pixels." },
+          { "section": "Stroke", "label": "Cap", "name": "strokeCap", "value": null, "type": "select", "options": ["butt", "round", "square"], "description": "The stroke cap for line ending style. One of `butt` (default), `round` or `square`." },
+          { "section": "Stroke", "label": "Dash", "name": "strokeDash", "value": null, "type": null, "description": "An array of [stroke, space] lengths for creating dashed or dotted lines." },
+          { "section": "Stroke", "label": "Dash Offset", "name": "strokeDashOffset", "value": null, "type": "number", "description": "The pixel offset at which to start the stroke dash array." },
+          { "section": "Stroke", "label": "Join", "name": "strokeJoin", "value": null, "type": "select", "options": ["miter", "round", "bevel"], "description": "The stroke line join method. One of `miter` (default), `round` or `bevel`." },
+          { "section": "Stroke", "label": "Miter Limit", "name": "strokeMiterLimit", "value": null, "type": "number", "min": 1, "description": "The miter limit at which to bevel a line join." },
+          // { "section": "Position", "label": "X start", "name": "x", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X end", "name": "x2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "X center", "name": "xc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y start", "name": "y", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y end", "name": "y2", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Y center", "name": "yc", "value": null, "type": "number" },
+          // { "section": "Position", "label": "Width", "name": "width", "value": null, "type": "number", "min": 0 },
+          // { "section": "Position", "label": "Height", "name": "height", "value": null, "type": "number", "min": 0 },
+        ],
+
+        "title": [
+          { "section": "Title", "label": "Text", "name": "text", "value": null, "type": "text", "description": "The title text. For versions, a string array specifies multiple lines of text." },
+          { "section": "Title", "label": "Orient", "name": "orient", "value": "top", "type": "select", "options": ["top", "bottom", "left", "right"], "description": "The orientation of the title and subtitle relative to the chart. One of `top` (the default), `bottom`, `left`, or `right`." },
+          { "section": "Title", "label": "Align", "name": "align", "value": null, "type": "select", "options": ["left", "center", "right"], "description": "Horizontal text alignment of the title and subtitle. If specified, this value overrides automatic alignment based on the _anchor_ value." },
+          { "section": "Title", "label": "Anchor", "name": "anchor", "value": null, "type": "select", "options": ["start", "middle", "end"], "description": "The anchor position for placing the title and subtitle. One of `start`, `middle` (the default), or `end`. For example, with an orientation of `top` these anchor positions map to a left-, center-, or right-aligned title." },
+          { "section": "Title", "label": "Angle", "name": "angle", "value": null, "type": "number", "description": "Angle in degrees of the title and subtitle text." },
+          { "section": "Title", "label": "Baseline", "name": "baseline", "value": null, "type": "select", "options": ["alphabetic", "top", "middle", "bottom", "line-top", "line-bottom"], "description": "Vertical baseline of the title and subtitle text. One of `alphabetic` (default), `top`, `middle`, `bottom`, `line-top`, or `line-bottom`. The `line-top` and `line-bottom` values operate similarly to `top` and `bottom`, but are calculated relative to the _lineHeight_ rather than _fontSize_ alone." },
+          { "section": "Title", "label": "Color", "name": "color", "value": "#000000", "type": "Color", "description": "Text color of the title text." },
+          { "section": "Title", "label": "X Offset", "name": "dx", "value": null, "type": "number", "description": "Horizontal offset added to the title and subtitle x-coordinate." },
+          { "section": "Title", "label": "Y Offset", "name": "dy", "value": null, "type": "number", "description": "Vertical offset added to the title and subtitle y-coordinate." },
+          // { "name": "encode", "value": null, "type": "Object", "description": "Optional mark encodings for custom title styling. In versions, supports encoding blocks for `group`, `title`, and `subtitle`. See [custom title encodings](https://vega.github.io/vega/docs/title/#custom). The earlier support using a flat encoding block for the title text only is now **deprecated**; please use nested encoding blocks instead." },
+          { "section": "Title", "label": "Font Family", "name": "font", "value": null, "type": "text", "description": "Font name of the title text." },
+          { "section": "Title", "label": "Font Size", "name": "fontSize", "value": 13, "type": "number", "min": 0, "description": "Font size in pixels of the title text." },
+          { "section": "Title", "label": "Font Style", "name": "fontStyle", "value": null, "type": "select", "options": ["normal", "italic"], "description": "Font style of the title text (e.g., `normal` or `italic`)." },
+          { "section": "Title", "label": "Font Weight", "name": "fontWeight", "value": 700, "type": "select", "options": {"Thin": 100, "Extra Light": 200, "Light": 300, "Normal": 400, "Medium": 500, "Semi Bold": 600, "Bold": 700, "Extra Bold": 800, "Black (Heavy)": 900}, "description": "Font weight of the title text." },
+          { "section": "Title", "label": "Frame", "name": "frame", "value": null, "type": "select", "options": ["bounds", "group"], "description": "The reference frame for the anchor position, one of `\"bounds\"` (the default, to anchor relative to the full bounding box) or `\"group\"` (to anchor relative to the group width or height)." },
+          // Deprecated
+          // { "name": "interactive", "value": null, "type": "Boolean", "description": "A boolean flag indicating if the title element should respond to input events such as mouse hover. **Deprecated**: use a [custom _encode_ block](https://vega.github.io/vega/docs/title/#custom) instead." },
+          // { "name": "name", "value": null, "type": "text", "description": "A [mark name](https://vega.github.io/vega/docs/marks/) property to apply to the title text mark. **Deprecated**: use a [custom _encode_ block](https://vega.github.io/vega/docs/title/#custom) instead." },
+          // { "name": "style", "value": null, "type": "text", "description": "A [mark style](https://vega.github.io/vega/docs/marks/) property to apply to the title text mark. If not specified, a default style of `"group-title"` is applied. **Deprecated**: use a [custom _encode_ block](https://vega.github.io/vega/docs/title/#custom) instead." },
+          { "section": "Title", "label": "Limit", "name": "limit", "value": null, "type": "number", "min": 0, "description": "The maximum allowed length in pixels of title and subtitle text." },
+          { "section": "Title", "label": "Line Height", "name": "lineHeight", "value": null, "type": "number", "min": 0, "description": "Line height in pixels for multi-line title text or title text with `\"line-top\"` or `\"line-bottom\"` baseline." },
+          { "section": "Title", "label": "Offset", "name": "offset", "value": null, "type": "number", "description": "The orthogonal offset in pixels by which to displace the title from its position along the edge of the chart." },
+          { "section": "Subtitle", "label": "Subtitle", "name": "subtitle", "value": null, "type": "text", "description": "Optional subtitle text, placed beneath the primary text. A string array specifies multiple lines of text." },
+          { "section": "Subtitle", "label": "Color", "name": "subtitleColor", "value": null, "type": "Color", "description": "Text color of the subtitle text." },
+          { "section": "Subtitle", "label": "Font", "name": "subtitleFont", "value": null, "type": "text", "description": "Font name of the subtitle text." },
+          { "section": "Subtitle", "label": "Font Size", "name": "subtitleFontSize", "value": null, "type": "number", "min": 0, "description": "Font size in pixels of the subtitle text." },
+          { "section": "Subtitle", "label": "Font Style", "name": "subtitleFontStyle", "value": null, "type": "select", "options": ["normal", "italic"], "description": "Font style of the subtitle text (e.g., `normal` or `italic`)." },
+          { "section": "Subtitle", "label": "Font Weight", "name": "subtitleFontWeight", "value": null, "type": "select", "options": {"Thin": 100, "Extra Light": 200, "Light": 300, "Normal": 400, "Medium": 500, "Semi Bold": 600, "Bold": 700, "Extra Bold": 800, "Black (Heavy)": 900}, "description": "Font weight of the subtitle text." },
+          { "section": "Subtitle", "label": "Line Height", "name": "subtitleLineHeight", "value": null, "type": "number", "min": 0, "description": "Line height in pixels for multi-line subtitle text." },
+          { "section": "Subtitle", "label": "Padding", "name": "subtitlePadding", "value": null, "type": "number", "min": 0, "description": "Padding in pixels between title and subtitle text." },
+          { "section": "Base", "label": "zindex", "name": "zindex", "value": null, "type": "number", "description": "The integer z-index indicating the layering of the title group relative to other axis, mark, and legend groups. The default value is `0`." },
+        ]
+      },
+      // If the width of any vega-chart container changes, resize based on % width
+      widthObserver: new ResizeObserver(entries => {
+        // The observer is a singleton -- used for all <vega-chart> containers.
+        // Loop through all the resized containers
+        for (let entry of entries) {
+          // Loop through all vega-chart elements in the containers and resize them
+          entry.target.querySelectorAll('vega-chart').forEach(node => {
+            if (node.$vegaChartView) {
+              node.$vegaChartView.signal('width', uifactory.vegaChart.getWidth(node))
+              node.$vegaChartView.runAsync()
             }
           })
         }
-        return signalChange
-      },
-      draw: node => {
-        // If we've already created the chart, only update the signals. Never re-render
-        // unless the spec has changed
-        if (node.$.view) {
-          // If any signal has been changed, re-render the chart and exit
-          if (uifactory.vegaChart.updateSignal(node))
-            node.$.view.runAsync()
-          return
-        }
-
-        // If there's no spec, treat it as empty spec and process it from
-        // Deep clone the spec to avoid changing original when we update it.
-        let spec = node.$.spec = node.data.spec ? JSON.parse(JSON.stringify(node.data.spec)) : {}
-        // Evaluate all scripts inside <template><script>... in the context of spec.
-        // "this" becomes the node. "spec" is also available as a variable.
-        for (let tmpl of node.querySelectorAll('template')) {
-          for (let script of tmpl.content.querySelectorAll('script')) {
-            let update_spec = new Function('spec', script.innerHTML)
-            update_spec.call(node, spec)
-          }
-        }
-
-        // If the spec is vega-lite, convert it to Vega.
-        // Vega-lite $schema is "https://vega.github.io/schema/vega-lite/v5.json".
-        if (spec.$schema && spec.$schema.match(/vega-lite/))
-          spec = vegaLite.compile(spec).spec
-
-        // Add signals
-        if (spec.uifactoryConfig) {
-          let signals = spec.signals = spec.signals || []
-          spec.uifactoryConfig.forEach(config => {
-            // TODO: Avoid lodash
-            let insertion = _.get(spec, config.insert)
-            uifactory.vegaChart.types[config.type].forEach(row => {
-              let name = config.prefix + row.name.charAt(0).toUpperCase() + row.name.substr(1)
-              let value = row.name in insertion ? insertion[row.name] : row.value
-              if (typeof value == 'object' && value && 'value' in value)
-                value = value.value
-              signals.push({ name, value, type: row.type })
-              insertion[row.name] = { signal: name }
-            })
-          })
-        }
-
-        // Render the chart. Store the view in the node's .ui object
-        node.$.view = new vega.View(vega.parse(spec), { renderer: 'svg', container: node })
-        // Update with signals
-        uifactory.vegaChart.updateSignal(node)
-        node.ui.view.runAsync()
-      },
-      types: {
-        "axis": [
-          // { "name": "scale", "value": null, "type": null },
-          { "name": "orient", "value": 'bottom', "type": null },
-          { "name": "bandPosition", "value": null, "type": null },
-          { "name": "domain", "value": null, "type": null },
-          { "name": "domainCap", "value": null, "type": null },
-          { "name": "domainColor", "value": "black", "type": null },
-          { "name": "domainDash", "value": null, "type": null },
-          { "name": "domainDashOffset", "value": null, "type": null },
-          { "name": "domainOpacity", "value": null, "type": null },
-          { "name": "domainWidth", "value": null, "type": null },
-          { "name": "encode", "value": null, "type": null },
-          { "name": "format", "value": null, "type": null },
-          { "name": "formatType", "value": null, "type": null },
-          // TODO: grid signal is not working
-          { "name": "grid", "value": null, "type": "boolean" },
-          { "name": "gridCap", "value": null, "type": null },
-          { "name": "gridColor", "value": "black", "type": "color" },
-          { "name": "gridDash", "value": null, "type": null },
-          { "name": "gridDashOffset", "value": null, "type": null },
-          { "name": "gridOpacity", "value": 0.1, "type": "number" },
-          // TODO: gridScale is the name of a scale. Default is same as scale
-          // { "name": "gridScale", "value": null, "type": null },
-          { "name": "gridWidth", "value": null, "type": null },
-          // TODO: labels signal is not working
-          { "name": "labels", "value": true, "type": "boolean" },
-          { "name": "labelAlign", "value": "center", "type": "text" },
-          { "name": "labelAngle", "value": null, "type": null },
-          { "name": "labelBaseline", "value": "top", "type": null },
-          { "name": "labelBound", "value": null, "type": null },
-          { "name": "labelColor", "value": "black", "type": "color" },
-          { "name": "labelFlush", "value": null, "type": null },
-          { "name": "labelFlushOffset", "value": null, "type": null },
-          { "name": "labelFont", "value": null, "type": null },
-          { "name": "labelFontSize", "value": null, "type": "number" },
-          { "name": "labelFontStyle", "value": null, "type": null },
-          { "name": "labelFontWeight", "value": null, "type": null },
-          { "name": "labelLimit", "value": null, "type": null },
-          { "name": "labelLineHeight", "value": null, "type": null },
-          { "name": "labelOffset", "value": null, "type": null },
-          { "name": "labelOpacity", "value": null, "type": null },
-          { "name": "labelOverlap", "value": null, "type": null },
-          { "name": "labelPadding", "value": 2, "type": "number" },
-          { "name": "labelSeparation", "value": null, "type": null },
-          { "name": "minExtent", "value": null, "type": null },
-          { "name": "maxExtent", "value": null, "type": null },
-          { "name": "offset", "value": null, "type": null },
-          { "name": "position", "value": null, "type": null },
-          { "name": "ticks", "value": null, "type": null },
-          { "name": "tickBand", "value": null, "type": null },
-          { "name": "tickCap", "value": null, "type": null },
-          { "name": "tickColor", "value": "black", "type": "color" },
-          { "name": "tickCount", "value": null, "type": null },
-          { "name": "tickDash", "value": null, "type": null },
-          { "name": "tickDashOffset", "value": null, "type": null },
-          { "name": "tickMinStep", "value": null, "type": null },
-          { "name": "tickExtra", "value": null, "type": null },
-          { "name": "tickOffset", "value": null, "type": null },
-          { "name": "tickOpacity", "value": null, "type": null },
-          { "name": "tickRound", "value": null, "type": null },
-          { "name": "tickSize", "value": 5, "type": null },
-          { "name": "tickWidth", "value": null, "type": null },
-          { "name": "title", "value": null, "type": "text" },
-          { "name": "titleAnchor", "value": "end", "type": null },
-          { "name": "titleAlign", "value": "right", "type": "text" },
-          { "name": "titleAngle", "value": null, "type": null },
-          { "name": "titleBaseline", "value": "bottom", "type": null },
-          { "name": "titleColor", "value": "black", "type": "color" },
-          { "name": "titleFont", "value": null, "type": null },
-          { "name": "titleFontSize", "value": null, "type": null },
-          { "name": "titleFontStyle", "value": null, "type": null },
-          { "name": "titleFontWeight", "value": null, "type": null },
-          { "name": "titleLimit", "value": null, "type": null },
-          { "name": "titleLineHeight", "value": null, "type": null },
-          { "name": "titleOpacity", "value": null, "type": null },
-          { "name": "titlePadding", "value": -5, "type": "number" },
-          // TODO: Setting titleX, titleY overrides positioning
-          // { "name": "titleX", "value": null, "type": null },
-          // { "name": "titleY", "value": null, "type": null },
-          { "name": "translate", "value": null, "type": null },
-          { "name": "values", "value": null, "type": null },
-          { "name": "zindex", "value": 1, "type": "number" }
-        ],
-        "mark.rect": [
-          { "name": "cornerRadius", "value": null, "type": null },
-          { "name": "cornerRadiusTopLeft", "value": null, "type": null },
-          { "name": "cornerRadiusTopRight", "value": null, "type": null },
-          { "name": "cornerRadiusBottomLeft", "value": null, "type": null },
-          { "name": "cornerRadiusBottomRight", "value": null, "type": null },
-          { "name": "x", "value": null, "type": null },
-          { "name": "x2", "value": null, "type": null },
-          { "name": "xc", "value": null, "type": null },
-          { "name": "width", "value": null, "type": null },
-          // { "name": "y", "value": null, "type": null },
-          // { "name": "y2", "value": null, "type": null },
-          // { "name": "yc", "value": null, "type": null },
-          // { "name": "height", "value": null, "type": null },
-          // { "name": "opacity", "value": null, "type": null },
-          { "name": "fill", "value": null, "type": null },
-          // { "name": "fillOpacity", "value": null, "type": null },
-          // { "name": "stroke", "value": null, "type": null },
-          // { "name": "strokeOpacity", "value": null, "type": null },
-          // { "name": "strokeWidth", "value": null, "type": null },
-          // { "name": "strokeCap", "value": null, "type": null },
-          // { "name": "strokeDash", "value": null, "type": null },
-          // { "name": "strokeDashOffset", "value": null, "type": null },
-          // { "name": "strokeJoin", "value": null, "type": null },
-          // { "name": "strokeMiterLimit", "value": null, "type": null },
-          // { "name": "blend", "value": null, "type": null },
-          // { "name": "cursor", "value": null, "type": null },
-          // { "name": "href", "value": null, "type": null },
-          // { "name": "tooltip", "value": null, "type": null },
-          { "name": "zindex", "value": null, "type": null },
-        ]
+      }),
+      // Get the pixel width of a vega-chart so as to fit its parent container
+      getWidth: function (node) {
+        // TODO: This assumes autosize: "fit". Handle other scenarios also, e.g. "autosize": "pad"
+        const style = getComputedStyle(node.parentElement)
+        const padding = node.$vegaChartView.signal('padding')
+        // Start with the parent's width (including padding, without border/margin)
+        let width = node.parentElement.clientWidth
+        // Reduce the parent's padding, only taking the inner drawing area
+        width -= parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+        // If width is specified as xx%, multiply by xx / 100
+        width *= parseFloat(node.$data.width) / 100
+        // If the vega-chart itself has a padding, reduce that
+        width -= padding.left + padding.right
+        return width
       }
     }
-  </script>
-  <!-- script src="https://cdn.jsdelivr.net/npm/vega@5"></script -->
-  <!-- script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script -->
-  <script src="vega.js"></script>
-  <script src="vega-lite.js"></script>
+
+    function updateEntry(entries, config) {
+      for (let [name, value] of Object.entries(config)) {
+        const entry = entries.find(entry => entry.name === name)
+        if (entry)
+          entry.value = value
+      }
+    }
+    // Create defaults for xAxis and yAxis
+    uifactory.vegaChart.types.xaxis = JSON.parse(JSON.stringify(uifactory.vegaChart.types.axis))
+    updateEntry(uifactory.vegaChart.types.xaxis, {
+      labelAlign: 'center'
+    })
+    uifactory.vegaChart.types.yaxis = JSON.parse(JSON.stringify(uifactory.vegaChart.types.axis))
+    updateEntry(uifactory.vegaChart.types.yaxis, {
+      labelAlign: 'right',
+      labelBaseline: 'middle'
+    })
+</script>
 </template>

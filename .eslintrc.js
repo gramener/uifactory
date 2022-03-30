@@ -10,6 +10,14 @@ module.exports = {
       "parserOptions": {
         "sourceType": "module"
       },
+    },
+    {
+      "files": ["src/vega-chart.html"],
+      "parserOptions": {
+        "ecmaFeatures": {
+          "globalReturn": true
+        }
+      }
     }
   ],
   "env": {
