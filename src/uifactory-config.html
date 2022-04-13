@@ -1,0 +1,218 @@
+<template $name="custom-property">
+  <button>+ custom property</button>
+  <bs5-input style="display: none" title="custom property name" help="hit enter to create new field"></bs5-input>
+  <script onclick>
+    if(!e.target.matches('button')) return
+    this.querySelector('bs5-input').style.display = 'block'
+    e.target.style.display = 'none'
+  </script>
+  <script onkeypress>
+    if(!e.target.matches('input')) return
+    if(e.key !== 'Enter') return
+    this.querySelector('button').style.display = 'block'
+    this.querySelector('bs5-input').style.display = 'none'
+  </script>
+</template>
+<template $name="uifactory-config" component="comic-gen" ratio="2:5">
+  <style>
+    /* Customize website's scrollbar like Mac OS
+    Not supports in Firefox and IE */
+
+    /* total width */
+    uifactory-config ::-webkit-scrollbar {
+        background-color: #fff;
+        width: 16px;
+    }
+
+    /* background of the scrollbar except button or resizer */
+    uifactory-config ::-webkit-scrollbar-track {
+        background-color: #fff;
+    }
+
+    /* scrollbar itself */
+    uifactory-config ::-webkit-scrollbar-thumb {
+        background-color: #babac0;
+        border-radius: 16px;
+        border: 4px solid #fff;
+    }
+
+    /* set button(top and bottom of the scrollbar) */
+    uifactory-config ::-webkit-scrollbar-button {
+        display:none;
+    }
+    
+    uifactory-config {
+      display: grid;
+      grid-template-columns: var(--left, 1fr) var(--right, 1fr);
+      grid-template-rows: 4fr 1fr;
+      height: 100%;
+    }
+    uifactory-config > section {
+      overflow: auto;
+    }
+    uifactory-config > .preview,
+    uifactory-config > .preview > iframe {
+      width: 100%;
+      height: 100%;
+    }
+    uifactory-config > pre {
+      grid-column: 1 / 3;
+      position: relative;
+    }
+    uifactory-config > pre > button {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+    }
+    uifactory-config > pre > code {
+      display: flex;
+      font-family: monospace;
+    } 
+    uifactory-config bs5-input {
+      display: block;
+    }
+    uifactory-config bs5-input[data-type="attribute"] {
+      background: hsl(90deg, 100%, 97%);
+    }
+    uifactory-config bs5-input[data-type="property"] {
+      background: hsl(50deg, 100%, 98%);
+    }
+    uifactory-config bs5-input[data-type="style"] {
+      background: hsl(20deg, 100%, 98%);
+    }
+    uifactory-config bs5-input[type="textarea"] {
+      margin-bottom: 1rem;
+    }
+    uifactory-config bs5-input[title="innerHTML"] {
+      font-family: monospace;
+    }
+  </style>
+  <% 
+    const split = ratio.split(':');
+    this.style.setProperty('--left', split[0] + 'fr'); 
+    this.style.setProperty('--right', split[1] + 'fr'); 
+  %>
+  <section>
+    <% for (let [name, props] of Object.entries(uifactory.components[component].properties)) { %>
+      <bs5-input data-type="attribute" default="<%- props.value %>" title="<%- name %>"></bs5-input>
+    <% } %>
+    <bs5-input data-type="property" type="textarea" title="innerHTML"></bs5-input>
+    <bs5-input data-type="style" default="auto" title="width"></bs5-input>
+    <bs5-input data-type="style" default="auto" title="height"></bs5-input>
+    <bs5-input data-type="property" default="" title="style"></bs5-input>
+    <bs5-input data-type="property" default="" title="class"></bs5-input>
+    <bs5-input data-type="property" default="" title="id"></bs5-input>
+  </section>
+  <section class="preview"></section>
+  <pre>
+    <button>Copy</button>
+    <code>
+    </code>
+  </pre>
+  <script onclick>
+    if(!e.target.matches('uifactory-config pre > button')) return
+    // https://stackoverflow.com/a/30810322/15483581
+    function fallbackCopyTextToClipboard(text) {
+      var textArea = document.createElement("textarea");
+      textArea.value = text;
+      
+      // Avoid scrolling to bottom
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.position = "fixed";
+
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        var successful = document.execCommand('copy');
+        var msg = successful ? 'successful' : 'unsuccessful';
+        console.log('Fallback: Copying text command was ' + msg);
+      } catch (err) {
+        console.error('Fallback: Oops, unable to copy', err);
+      }
+
+      document.body.removeChild(textArea);
+    }
+    function copyTextToClipboard(text, callback) {
+      if (!navigator.clipboard) {
+        fallbackCopyTextToClipboard(text);
+        callback()
+        return;
+      }
+      navigator.clipboard.writeText(text).then(function() {
+        console.log('Async: Copying to clipboard was successful!');
+        callback()
+      }, function(err) {
+        console.error('Async: Could not copy text: ', err);
+      });
+    }
+    this.querySelector('pre > button').textContent = 'Copying'
+    copyTextToClipboard(this.querySelector('code').textContent, () => {
+      this.querySelector('pre > button').textContent = 'Copied'
+      setTimeout(_ => {
+        this.querySelector('pre > button').textContent = 'Copy'
+      }, 1000)
+    })
+  </script>
+  <script onrender onchange>
+    const container = this.querySelector('.preview')
+    container.innerHTML = ''
+    const iframe = document.createElement('iframe')
+    container.appendChild(iframe)
+    const preview = iframe.contentWindow.document.body
+    const style = document.createElement('style')
+    style.innerHTML = `body { display: flex; width: 100vw; height: 100vh; align-items:center; justify-content: center;}`
+    preview.appendChild(style)
+    const lib = document.createElement('script')
+    lib.setAttribute('src', 'uifactory.js')
+    lib.setAttribute('import', '@' + component)
+    preview.appendChild(lib)
+    const comp = document.createElement(component)
+    this.querySelectorAll('bs5-input').forEach(bs5Input => {
+      let prop = bs5Input.querySelector('input')
+      if(!prop) { 
+        prop = bs5Input.querySelector('textarea')
+        if(!prop) return
+      }
+      if('type' in bs5Input.dataset && bs5Input.dataset.type === 'style') {
+        comp.style[prop.name] = prop.value
+      } else if('type' in bs5Input.dataset && bs5Input.dataset.type === 'property') {
+        let val = ''
+        if(bs5Input.title === 'style') {
+          this.querySelectorAll('bs5-input[data-type="style"] input').forEach(p => {
+            val += `${p.name}:${p.value}; `
+          })
+        }
+        comp[bs5Input.title] = val + prop.value
+      } else {
+        if(prop.value.length > 0) {
+          comp.setAttribute(prop.name, prop.value)
+        }
+      }
+    })
+    this.querySelector('code').textContent = comp.outerHTML
+    preview.appendChild(comp)
+  </script>
+</template>
+
+<script src="uifactory.js" import="@bs5-input @svg-chart @head-ing"></script>
+<script>
+  new Promise(res => {
+    const interval = setInterval(function(){
+      if('bs5-input' in uifactory.components) {
+        clearInterval(interval)
+        document.querySelector('#output').innerHTML = `<uifactory-config component="bs5-input"></uifactory-config>`
+        res()
+      }
+    }, 100)
+  })
+</script>
+<bs5-input onchange="updateConfig(event)" type="select" title="component" default="svg-chart" items="['bs5-input', 'svg-chart', 'head-ing']"></bs5-input>
+<div id="output"></div>
+<script>
+  function updateConfig(e) {
+    document.querySelector('#output uifactory-config').setAttribute('component', e.currentTarget.items[Number(e.target.value)])
+  }
+</script>
