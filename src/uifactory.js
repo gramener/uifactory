@@ -214,7 +214,9 @@
         let externalScript = el.hasAttribute('src')
         if (externalScript)
           clone.onload = clone.onerror = () => loadScripts(els, index + 1)
-        _window.document.body.appendChild(clone)
+        // If UIFactory is loaded in the <HEAD> section, the <BODY> may not exist. Append to HEAD.
+        let scriptContainer = _window.document.body || _window.document.head
+        scriptContainer.appendChild(clone)
         // If this is a <script src="...">, we've scheduled the next loadExtract.
         // So stop looping. In fact, OUTRIGHT return. DON'T resolve scripts until loaded
         if (externalScript)
