@@ -32,7 +32,10 @@ This project follows the [`eslint:recommended`](https://eslint.org/docs/rules/) 
 
 To release a new version:
 
-- Update package version in [package.json](package.json) and all other files
+- Update package version in
+  - [package.json](package.json)
+  - [src/uifactory.js](src/uifactory.js)
+  - [docs/](docs/) -- wherever required
 - Run `npm update && npm upgrade`
 - Run `npm run build`
 - Run `npm run lint` and fix any errors

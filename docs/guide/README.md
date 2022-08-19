@@ -18,7 +18,7 @@ permalink: /guide/
 You can use UIFactory directly from the CDN:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/uifactory@1.23.0/dist/uifactory.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/uifactory@1.24.0/dist/uifactory.min.js"></script>
 ```
 
 Or you can use [npm](https://www.npmjs.com/get-npm) to install UIFactory locally:
